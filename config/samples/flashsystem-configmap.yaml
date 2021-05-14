@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flashsystemcluster-sample
+  namespace: ibm-storage-odf
+data:
+  REST_API_IP: "9.119.46.30"
+  REST_TRUSTED_CA: "" # TODO: further CA SSL support for fs rest server
+  INSECURE: "true"
+  FLASHSYSTEM_CLUSTERNAME: "flashsystemcluster-sample"
+  USERNAME: fsdriver
+  PASSWORD: fsdriver

@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Command line argument
+ODF_NAMESPACE=$1
+IBMCSI_NAMESPACE=$2
+BASE_COLLECTION_PATH=$3
+
+
+# Use must-gather as base path if no argument is passed
+if [ "${BASE_COLLECTION_PATH}" = "" ]; then
+    BASE_COLLECTION_PATH="must-gather"
+fi
+mkdir -p ${BASE_COLLECTION_PATH}
+
+# Create dir for deployment
+LOG_PATH="${BASE_COLLECTION_PATH}/deployment/"
+mkdir -p ${LOG_PATH}
+
+echo "INFO: Gathering Deployments"
+ODF_DEPLOYMENTS=($(oc -n ${ODF_NAMESPACE:-ibm-storage-odf} get deployment --no-headers -o custom-columns=":metadata.name"))
+for ODF_DEPLOYMENT in ${ODF_DEPLOYMENTS[@]}; do
+    echo "INFO: Gathering Deployment ${ODF_DEPLOYMENT}"
+    oc -n ${ODF_NAMESPACE:-ibm-storage-odf} get deployment -o yaml ${ODF_DEPLOYMENT} > "${LOG_PATH}"/get_"${ODF_DEPLOYMENT}".yaml 2>&1
+    oc -n ${ODF_NAMESPACE:-ibm-storage-odf} describe deployment ${ODF_DEPLOYMENT} > "${LOG_PATH}"/describe_"${ODF_DEPLOYMENT}".log 2>&1
+done

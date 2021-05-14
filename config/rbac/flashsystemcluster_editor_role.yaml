@@ -1,0 +1,24 @@
+# permissions for end users to edit flashsystemclusters.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flashsystemcluster-editor-role
+rules:
+- apiGroups:
+  - odf.ibm.com
+  resources:
+  - flashsystemclusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - odf.ibm.com
+  resources:
+  - flashsystemclusters/status
+  verbs:
+  - get

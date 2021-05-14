@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ibm-storage-odf-operator
+  namespace: ibm-storage-odf
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        env:
+        - name: EXPORTER_IMAGE
+          value: 9.110.70.75/ibmcom/ibm-storage-odf-block-driver:v0.0.5

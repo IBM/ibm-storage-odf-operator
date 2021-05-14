@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# Command line argument
+ODF_NAMESPACE=$1
+IBMCSI_NAMESPACE=$2
+BASE_COLLECTION_PATH=$3
+
+
+# Use must-gather as base path if no argument is passed
+if [ "${BASE_COLLECTION_PATH}" = "" ]; then
+    BASE_COLLECTION_PATH="must-gather"
+fi
+mkdir -p ${BASE_COLLECTION_PATH}
+
+# Create dir for log
+LOG_PATH="${BASE_COLLECTION_PATH}/log/"
+mkdir -p ${LOG_PATH}
+
+# Gather logs
+echo "INFO: Gathering logs of ODF Operator"
+ODF_PODS=($(oc -n ${ODF_NAMESPACE:-ibm-storage-odf} get pods --no-headers -o custom-columns=":metadata.name" -l control-plane=controller-manager))
+# add -l parameter if need be
+for ODF_POD in ${ODF_PODS[@]}; do
+        oc -n ${ODF_NAMESPACE:-ibm-storage-odf} logs -c manager ${ODF_POD} > "${LOG_PATH}"/"${ODF_POD}".log 2>&1
+        oc -n ${ODF_NAMESPACE:-ibm-storage-odf} logs -c manager --previous ${ODF_POD} > "${LOG_PATH}"/"${ODF_POD}".previous.log 2>&1
+done
+
+echo "INFO: Gathering logs of ODF Block Driver"
+ODF_PODS=($(oc -n ${ODF_NAMESPACE:-ibm-storage-odf} get pods --no-headers -o custom-columns=":metadata.name" -l app.kubernetes.io/name=flashsystemcluster-sample))
+# add -l parameter if need be
+# oc -n ibm-storage-odf get flashsystemcluster
+for ODF_POD in ${ODF_PODS[@]}; do
+        oc -n ${ODF_NAMESPACE:-ibm-storage-odf} logs -c flashsystemcluster-sample ${ODF_POD} > "${LOG_PATH}"/"${ODF_POD}".log 2>&1
+        oc -n ${ODF_NAMESPACE:-ibm-storage-odf} logs -c flashsystemcluster-sample --previous ${ODF_POD} > "${LOG_PATH}"/"${ODF_POD}".previous.log 2>&1
+done
+
+echo "INFO: Gathering logs of IBM CSI Operator"
+IBMCSI_PODS=($(oc -n ${IBMCSI_NAMESPACE:-default} get pods --no-headers -o custom-columns=":metadata.name" -l app.kubernetes.io/name=ibm-block-csi-operator))
+for IBMCSI_POD in ${IBMCSI_PODS[@]}; do
+        oc -n ${IBMCSI_NAMESPACE:-default} logs -c ibm-block-csi-operator ${IBMCSI_POD} > "${LOG_PATH}"/"${IBMCSI_POD}".log 2>&1
+        oc -n ${IBMCSI_NAMESPACE:-default} logs -c ibm-block-csi-operator --previous ${IBMCSI_POD} > "${LOG_PATH}"/"${IBMCSI_POD}".previous.log 2>&1
+done
+
+echo "INFO: Gathering logs of IBM CSI Controller"
+IBMCSI_PODS=($(oc -n ${IBMCSI_NAMESPACE:-default} get pods --no-headers -o custom-columns=":metadata.name" -l app.kubernetes.io/component=csi-controller))
+for IBMCSI_POD in ${IBMCSI_PODS[@]}; do
+        oc -n ${IBMCSI_NAMESPACE:-default} logs -c ibm-block-csi-controller ${IBMCSI_POD} > "${LOG_PATH}"/"${IBMCSI_POD}".log 2>&1
+        oc -n ${IBMCSI_NAMESPACE:-default} logs -c ibm-block-csi-controller --previous ${IBMCSI_POD} > "${LOG_PATH}"/"${IBMCSI_POD}".previous.log 2>&1
+done
+
+echo "INFO: Gathering logs of IBM CSI Nodes"
+IBMCSI_PODS=($(oc -n ${IBMCSI_NAMESPACE:-default} get pods --no-headers -o custom-columns=":metadata.name" -l app.kubernetes.io/component=csi-node))
+for IBMCSI_POD in ${IBMCSI_PODS[@]}; do
+        oc -n ${IBMCSI_NAMESPACE:-default} logs -c ibm-block-csi-node ${IBMCSI_POD} > "${LOG_PATH}"/"${IBMCSI_POD}".log 2>&1
+        oc -n ${IBMCSI_NAMESPACE:-default} logs -c ibm-block-csi-node --previous ${IBMCSI_POD} > "${LOG_PATH}"/"${IBMCSI_POD}".previous.log 2>&1
+done

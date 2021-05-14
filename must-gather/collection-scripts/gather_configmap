@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Command line argument
+ODF_NAMESPACE=$1
+IBMCSI_NAMESPACE=$2
+BASE_COLLECTION_PATH=$3
+FILTER_STRING=$4
+
+# Use must-gather as base path if no argument is passed
+if [ "${BASE_COLLECTION_PATH}" = "" ]; then
+    BASE_COLLECTION_PATH="must-gather"
+fi
+mkdir -p ${BASE_COLLECTION_PATH}
+
+# Create dir for configmap
+LOG_PATH="${BASE_COLLECTION_PATH}/configmap/"
+mkdir -p ${LOG_PATH}
+
+echo "INFO: Gathering ConfigMaps"
+ODF_CONFIGMAPS=($(oc -n ${ODF_NAMESPACE:-ibm-storage-odf} get configmap --no-headers -o custom-columns=":metadata.name" | grep ${FILTER_STRING}))
+for ODF_CONFIGMAP in ${ODF_CONFIGMAPS[@]}; do
+    echo "INFO: Gathering ConfigMap ${ODF_CONFIGMAP}"
+    oc -n ${ODF_NAMESPACE:-ibm-storage-odf} get configmap -o yaml ${ODF_CONFIGMAP} > "${LOG_PATH}"/get_"${ODF_CONFIGMAP}".yaml 2>&1
+    oc -n ${ODF_NAMESPACE:-ibm-storage-odf} describe configmap ${ODF_CONFIGMAP} > "${LOG_PATH}"/describe_"${ODF_CONFIGMAP}".log 2>&1
+done

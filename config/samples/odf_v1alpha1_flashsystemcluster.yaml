@@ -1,0 +1,19 @@
+apiVersion: odf.ibm.com/v1alpha1
+kind: FlashSystemCluster
+metadata:
+  name: flashsystemcluster-sample
+  namespace: ibm-storage-odf
+spec:
+  # Add fields here
+  name: flashsystem-xxx
+  endpoint: 9.119.46.30
+  secret:
+    name: fs-secrets-example
+    namespace: ibm-storage-odf
+  insecureSkipVerify: true
+  defaultPool:
+    poolname: Pool0
+    fsType: ext4
+    volumeNamePrefix: demo-pvc
+    spaceEfficiency: thick
+

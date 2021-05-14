@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Command line argument
+ODF_NAMESPACE=$1
+IBMCSI_NAMESPACE=$2
+BASE_COLLECTION_PATH=$3
+FILTER_STRING=$4
+
+# Use must-gather as base path if no argument is passed
+if [ "${BASE_COLLECTION_PATH}" = "" ]; then
+    BASE_COLLECTION_PATH="must-gather"
+fi
+mkdir -p ${BASE_COLLECTION_PATH}
+
+# Create dir for service
+LOG_PATH="${BASE_COLLECTION_PATH}/service/"
+mkdir -p ${LOG_PATH}
+
+echo "INFO: Gathering Services"
+ODF_SERVICES=($(oc -n ${ODF_NAMESPACE:-ibm-storage-odf} get service --no-headers -o custom-columns=":metadata.name" | grep ${FILTER_STRING}))
+for ODF_SERVICE in ${ODF_SERVICES[@]}; do
+    echo "INFO: Gathering Service ${ODF_SERVICE}"
+    oc -n ${ODF_NAMESPACE:-ibm-storage-odf} get service -o yaml ${ODF_SERVICE} > "${LOG_PATH}"/get_"${ODF_SERVICE}".yaml 2>&1
+    oc -n ${ODF_NAMESPACE:-ibm-storage-odf} describe service ${ODF_SERVICE} > "${LOG_PATH}"/describe_"${ODF_SERVICE}".log 2>&1
+done
