@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"reflect"
 
+	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
+	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	odfv1alpha1 "github.ibm.com/PuDong/ibm-storage-odf-operator/api/v1alpha1"
-	"github.ibm.com/PuDong/ibm-storage-odf-operator/controllers/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"

@@ -3,7 +3,7 @@ package util
 import (
 	"time"
 
-	odfv1alpha1 "github.ibm.com/PuDong/ibm-storage-odf-operator/api/v1alpha1"
+	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

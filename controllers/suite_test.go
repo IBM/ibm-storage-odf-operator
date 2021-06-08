@@ -35,8 +35,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	odfv1alpha1 "github.ibm.com/PuDong/ibm-storage-odf-operator/api/v1alpha1"
-	util "github.ibm.com/PuDong/ibm-storage-odf-operator/controllers/util"
+	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
+	util "github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	//+kubebuilder:scaffold:imports
 )
 
