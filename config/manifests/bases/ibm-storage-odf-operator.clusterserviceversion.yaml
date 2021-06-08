@@ -41,7 +41,7 @@ spec:
   - ibm
   links:
   - name: IBM Storage ODF Operator
-    url: https://github.ibm.com/PuDong/ibm-storage-odf-operator
+    url: https://github.com/IBM/ibm-storage-odf-operator
   maintainers:
   - email: support@ibm.com
     name: IBM Support

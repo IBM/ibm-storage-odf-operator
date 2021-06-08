@@ -12,7 +12,7 @@ DEFAULT_FLASHSYSTEM_DRIVER_RELEASE="v0.0.5"
 DEFAULT_BLOCK_CSI_RELEASE="v1.5.0"
 DEFAULT_BLOCK_CSI_CR_FILE="csi.ibm.com_v1_ibmblockcsi_cr.yaml"
 
-VCS_URL="https://github.ibm.com/PuDong/ibm-storage-odf-operator"
+VCS_URL="https://github.com/IBM/ibm-storage-odf-operator"
 VCS_REF="0.1.0-$(git rev-parse --short HEAD)"
 RELEASE_VERSION=$(cat version/version.go | grep "Version =" | awk -F '"' '{print $2}')
 BUILD_DEV_VERSION=${RELEASE_VERSION}-`date +%y%m%d`

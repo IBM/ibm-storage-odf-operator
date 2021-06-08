@@ -2,6 +2,7 @@ package storageclass
 
 import (
 	"context"
+
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -16,7 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.ibm.com/PuDong/ibm-storage-odf-operator/controllers/util"
+	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 )
 
 func reconcileSC(obj runtime.Object) bool {

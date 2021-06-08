@@ -21,11 +21,11 @@ import (
 	"fmt"
 	"reflect"
 
+	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
+	"github.com/IBM/ibm-storage-odf-operator/controllers/storageclass"
+	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	"github.com/go-logr/logr"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	odfv1alpha1 "github.ibm.com/PuDong/ibm-storage-odf-operator/api/v1alpha1"
-	"github.ibm.com/PuDong/ibm-storage-odf-operator/controllers/storageclass"
-	"github.ibm.com/PuDong/ibm-storage-odf-operator/controllers/util"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	appsv1 "k8s.io/api/apps/v1"

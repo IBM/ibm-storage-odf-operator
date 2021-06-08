@@ -3,8 +3,8 @@ package controllers
 import (
 	"strings"
 
-	odfv1alpha1 "github.ibm.com/PuDong/ibm-storage-odf-operator/api/v1alpha1"
-	"github.ibm.com/PuDong/ibm-storage-odf-operator/controllers/util"
+	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
+	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
