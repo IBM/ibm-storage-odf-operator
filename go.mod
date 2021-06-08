@@ -1,4 +1,4 @@
-module github.ibm.com/PuDong/ibm-storage-odf-operator
+module github.com/IBM/ibm-storage-odf-operator
 
 go 1.15
 
