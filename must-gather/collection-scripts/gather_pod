@@ -4,7 +4,7 @@
 ODF_NAMESPACE=$1
 IBMCSI_NAMESPACE=$2
 BASE_COLLECTION_PATH=$3
-
+FILTER_STRING=$4
 
 # Use must-gather as base path if no argument is passed
 if [ "${BASE_COLLECTION_PATH}" = "" ]; then
@@ -17,9 +17,24 @@ LOG_PATH="${BASE_COLLECTION_PATH}/pod/"
 mkdir -p ${LOG_PATH}
 
 echo "INFO: Gathering Pods"
-ODF_PODS=($(oc -n ${ODF_NAMESPACE:-ibm-storage-odf} get pod --no-headers -o custom-columns=":metadata.name"))
-for ODF_POD in ${ODF_PODS[@]}; do
-    echo "INFO: Gathering Pod ${ODF_POD}"
-    oc -n ${ODF_NAMESPACE:-ibm-storage-odf} get pod -o yaml ${ODF_POD} > "${LOG_PATH}"/get_"${ODF_POD}".yaml 2>&1
-    oc -n ${ODF_NAMESPACE:-ibm-storage-odf} describe pod ${ODF_POD} > "${LOG_PATH}"/describe_"${ODF_POD}".log 2>&1
-done
+ODF_PODS=($(oc -n ${ODF_NAMESPACE} get pod --no-headers -o custom-columns=":metadata.name" -l odf="storage.ibm.com"))
+
+if [ "${FILTER_STRING}" != "" ]; then
+
+    for ODF_POD in ${ODF_PODS[@]}; do
+        if echo ${ODF_POD} | grep -Eq ${FILTER_STRING}; then
+            echo "INFO: Gathering Pod ${ODF_POD}"
+            oc -n ${ODF_NAMESPACE} get pod -o yaml ${ODF_POD} > "${LOG_PATH}"/get_"${ODF_POD}".yaml 2>&1
+            oc -n ${ODF_NAMESPACE} describe pod ${ODF_POD} > "${LOG_PATH}"/describe_"${ODF_POD}".log 2>&1
+        fi
+    done
+
+else
+
+    for ODF_POD in ${ODF_PODS[@]}; do
+        echo "INFO: Gathering Pod ${ODF_POD}"
+        oc -n ${ODF_NAMESPACE} get pod -o yaml ${ODF_POD} > "${LOG_PATH}"/get_"${ODF_POD}".yaml 2>&1
+        oc -n ${ODF_NAMESPACE} describe pod ${ODF_POD} > "${LOG_PATH}"/describe_"${ODF_POD}".log 2>&1
+    done
+
+fi

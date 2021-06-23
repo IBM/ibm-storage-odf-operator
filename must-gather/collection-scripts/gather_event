@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Command line argument
+ODF_NAMESPACE=$1
+IBMCSI_NAMESPACE=$2
+BASE_COLLECTION_PATH=$3
+
+# Use must-gather as base path if no argument is passed
+if [ "${BASE_COLLECTION_PATH}" = "" ]; then
+    BASE_COLLECTION_PATH="must-gather"
+fi
+mkdir -p ${BASE_COLLECTION_PATH}
+
+# Create dir for event
+LOG_PATH="${BASE_COLLECTION_PATH}/event/"
+mkdir -p ${LOG_PATH}
+
+echo "INFO: Gathering Events"
+oc -n ${ODF_NAMESPACE} get event -o wide -l odf="storage.ibm.com" > "${LOG_PATH}"/events.log 2>&1
+

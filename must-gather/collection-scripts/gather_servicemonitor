@@ -17,9 +17,24 @@ LOG_PATH="${BASE_COLLECTION_PATH}/servicemonitor/"
 mkdir -p ${LOG_PATH}
 
 echo "INFO: Gathering ServiceMonitors"
-ODF_SERVICEMONS=($(oc -n ${ODF_NAMESPACE:-ibm-storage-odf} get servicemonitor --no-headers -o custom-columns=":metadata.name" | grep ${FILTER_STRING}))
-for ODF_SERVICEMON in ${ODF_SERVICEMONS[@]}; do
-    echo "INFO: Gathering ServiceMonitor ${ODF_SERVICEMON}"
-    oc -n ${ODF_NAMESPACE:-ibm-storage-odf} get servicemonitor -o yaml ${ODF_SERVICEMON} > "${LOG_PATH}"/get_"${ODF_SERVICEMON}".yaml 2>&1
-    oc -n ${ODF_NAMESPACE:-ibm-storage-odf} describe servicemonitor ${ODF_SERVICEMON} > "${LOG_PATH}"/describe_"${ODF_SERVICEMON}".log 2>&1
-done
+ODF_SERVICEMONS=($(oc -n ${ODF_NAMESPACE} get servicemonitor --no-headers -o custom-columns=":metadata.name" -l odf="storage.ibm.com"))
+
+if [ "${FILTER_STRING}" != "" ]; then
+
+    for ODF_SERVICEMON in ${ODF_SERVICEMONS[@]}; do
+        if echo ${ODF_SERVICEMON} | grep -Eq ${FILTER_STRING}; then
+            echo "INFO: Gathering ServiceMonitor ${ODF_SERVICEMON}"
+            oc -n ${ODF_NAMESPACE} get servicemonitor -o yaml ${ODF_SERVICEMON} > "${LOG_PATH}"/get_"${ODF_SERVICEMON}".yaml 2>&1
+            oc -n ${ODF_NAMESPACE} describe servicemonitor ${ODF_SERVICEMON} > "${LOG_PATH}"/describe_"${ODF_SERVICEMON}".log 2>&1
+        fi
+    done
+
+else
+
+    for ODF_SERVICEMON in ${ODF_SERVICEMONS[@]}; do
+        echo "INFO: Gathering ServiceMonitor ${ODF_SERVICEMON}"
+        oc -n ${ODF_NAMESPACE} get servicemonitor -o yaml ${ODF_SERVICEMON} > "${LOG_PATH}"/get_"${ODF_SERVICEMON}".yaml 2>&1
+        oc -n ${ODF_NAMESPACE} describe servicemonitor ${ODF_SERVICEMON} > "${LOG_PATH}"/describe_"${ODF_SERVICEMON}".log 2>&1
+    done
+
+fi

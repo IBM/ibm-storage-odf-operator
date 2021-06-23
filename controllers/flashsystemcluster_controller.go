@@ -1,18 +1,18 @@
-/*
-Copyright 2021.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+/**
+ * Copyright contributors to the ibm-storage-odf-operator project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package controllers
 
@@ -21,12 +21,11 @@ import (
 	"fmt"
 	"reflect"
 
+	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
+	"github.com/IBM/ibm-storage-odf-operator/controllers/storageclass"
+	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	"github.com/go-logr/logr"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	odfv1alpha1 "github.ibm.com/PuDong/ibm-storage-odf-operator/api/v1alpha1"
-	"github.ibm.com/PuDong/ibm-storage-odf-operator/controllers/storageclass"
-	"github.ibm.com/PuDong/ibm-storage-odf-operator/controllers/util"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -53,11 +52,12 @@ var (
 // FlashSystemClusterReconciler reconciles a FlashSystemCluster object
 type FlashSystemClusterReconciler struct {
 	client.Client
-	CSIDiscoveryClient dynamic.NamespaceableResourceInterface
-	Config             *rest.Config
-	Log                logr.Logger
-	Scheme             *runtime.Scheme
-	ExporterImage      string
+	CSIDynamicClient dynamic.NamespaceableResourceInterface
+	Config           *rest.Config
+	Log              logr.Logger
+	Scheme           *runtime.Scheme
+	ExporterImage    string
+	IsCSICRCreated   bool
 }
 
 //+kubebuilder:rbac:groups=odf.ibm.com,resources=flashsystemclusters,verbs=get;list;watch;create;update;patch;delete
@@ -101,14 +101,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 	r.Log = r.Log.WithValues("flashsystemcluster", req.NamespacedName)
 	r.Log.Info("Reconciling FlashSystemCluster")
 
-	r.Log.Info("step 0: create or check FlashSystem CSI CR")
-	err = r.ensureFlashSystemCSICR(req)
-	if err != nil {
-		r.Log.Error(err, "failed to ensureFlashSystemCSICR")
-		return result, err
-	}
-
-	r.Log.Info("step 1: get FlashSystemCluster resource")
+	r.Log.Info("step 0: get FlashSystemCluster resource")
 	instance := &odfv1alpha1.FlashSystemCluster{}
 	err = r.Client.Get(context.TODO(), req.NamespacedName, instance)
 	if err != nil {
@@ -149,6 +142,13 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return reconcile.Result{}, nil
 	}
 
+	r.Log.Info("step 1: create or check FlashSystem CSI CR")
+	err = r.ensureFlashSystemCSICR(instance, req)
+	if err != nil {
+		r.Log.Error(err, "failed to ensureFlashSystemCSICR")
+		return result, err
+	}
+
 	r.Log.Info("step 2: init status/conditions of the FlashSystemCluster resource")
 	if instance.Status.Conditions == nil {
 		reason := odfv1alpha1.ReasonReconcileInit
@@ -184,6 +184,9 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
 		instance.Status.Phase = util.PhaseError
 
+		r.createEvent(instance, corev1.EventTypeWarning,
+			util.FailedLaunchBlockExporterReason, message)
+
 		updateError := r.Client.Status().Update(context.TODO(), instance)
 		if updateError != nil {
 			r.Log.Error(updateError, "failed to update conditions to status")
@@ -198,6 +201,9 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
 		instance.Status.Phase = util.PhaseError
 
+		r.createEvent(instance, corev1.EventTypeWarning,
+			util.FailedCreateServiceReason, message)
+
 		updateError := r.Client.Status().Update(context.TODO(), instance)
 		if updateError != nil {
 			r.Log.Error(updateError, "failed to update conditions to status")
@@ -205,12 +211,15 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return result, err
 	}
 
-	r.Log.Info("step 6: ensureExporterService")
+	r.Log.Info("step 6: ensureExporterServiceMonitor")
 	if err = r.ensureExporterServiceMonitor(instance); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to ensureExporterServiceMonitor: %v", err)
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
 		instance.Status.Phase = util.PhaseError
+
+		r.createEvent(instance, corev1.EventTypeWarning,
+			util.FailedCreateServiceMonitorReason, message)
 
 		updateError := r.Client.Status().Update(context.TODO(), instance)
 		if updateError != nil {
@@ -231,6 +240,9 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
 		instance.Status.Phase = util.PhaseError
 
+		r.createEvent(instance, corev1.EventTypeWarning,
+			util.FailedCreateStorageClassReason, message)
+
 		updateError := r.Client.Status().Update(context.TODO(), instance)
 		if updateError != nil {
 			r.Log.Error(updateError, "failed to update conditions to status")
@@ -244,6 +256,9 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		message := fmt.Sprintf("failed to enablePrometheusRules: %v", err)
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
 		instance.Status.Phase = util.PhaseError
+
+		r.createEvent(instance, corev1.EventTypeWarning,
+			util.FailedCreatePromRuleReason, message)
 
 		updateError := r.Client.Status().Update(context.TODO(), instance)
 		if updateError != nil {
@@ -303,21 +318,14 @@ func (r *FlashSystemClusterReconciler) SetupWithManager(mgr ctrl.Manager) error 
 
 }
 
-func (r *FlashSystemClusterReconciler) validateSecrets(instance *odfv1alpha1.FlashSystemCluster) error {
-	// secret format follows CSI storageclass requirement
-	/*
-		type: Opaque
-		stringData:
-		  management_address: 192.168.9.10
-		  username: superuser
-		data:
-		  password: cGFzc3cwcmQ=
-	*/
-	return nil
-}
+func (r *FlashSystemClusterReconciler) createEvent(instance *odfv1alpha1.FlashSystemCluster, eventtype, reason, message string) {
+	r.Log.Info(message)
 
-func (r *FlashSystemClusterReconciler) checkCSIStatus() error {
-	return nil
+	event := util.InitK8sEvent(instance, eventtype, reason, message)
+	err := r.Client.Create(context.TODO(), event)
+	if err != nil {
+		r.Log.Error(err, "failed to create Event", "reason", reason, "message", message)
+	}
 }
 
 // this object will not bind with instance
@@ -353,14 +361,12 @@ func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1a
 
 	deploymentName := getExporterDeploymentName(instance.Name)
 
-	// TODO: find from ODF CR secret reference
-	secretName := getExporterCredentialName(instance.Name)
 	foundSecret := &corev1.Secret{}
 	err = r.Client.Get(
 		context.TODO(),
 		types.NamespacedName{
-			Name:      secretName,
-			Namespace: instance.Namespace,
+			Name:      instance.Spec.Secret.Name,
+			Namespace: instance.Spec.Secret.Namespace,
 		}, foundSecret)
 
 	if err != nil {
@@ -462,13 +468,16 @@ func (r *FlashSystemClusterReconciler) ensureExporterServiceMonitor(instance *od
 
 // create storage class in case of pool parameters provided.
 func (r *FlashSystemClusterReconciler) ensureDefaultStorageClass(instance *odfv1alpha1.FlashSystemCluster) error {
+	if instance.Spec.DefaultPool == nil {
+		return nil
+	}
 
 	expectedStorageClass := InitDefaultStorageClass(instance)
 	foundStorageClass := &storagev1.StorageClass{}
 
 	err := r.Client.Get(
 		context.TODO(),
-		types.NamespacedName{Name: GetDefaultStorageClassName(instance.Name), Namespace: ""},
+		types.NamespacedName{Name: instance.Spec.DefaultPool.StorageClassName, Namespace: ""},
 		foundStorageClass)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -488,6 +497,7 @@ func (r *FlashSystemClusterReconciler) ensureDefaultStorageClass(instance *odfv1
 	if expectedStorageClass == nil {
 		r.Log.Info("leave existing default StorageClass alone")
 	} else if !compareDefaultStorageClass(foundStorageClass, expectedStorageClass) {
+		// TODO: create event
 		err = r.Client.Delete(
 			context.TODO(),
 			foundStorageClass)
@@ -495,7 +505,9 @@ func (r *FlashSystemClusterReconciler) ensureDefaultStorageClass(instance *odfv1
 			r.Log.Error(err, "failed to delete default StorageClass")
 			return err
 		}
-		r.Log.Info("delete and create default StorageClass")
+		r.createEvent(instance, corev1.EventTypeWarning,
+			util.DeletedDuplicatedStorageClassReason, "delete StorageClass with same name as default StorageClass")
+
 		return r.Client.Create(context.TODO(), expectedStorageClass)
 	}
 
@@ -504,12 +516,16 @@ func (r *FlashSystemClusterReconciler) ensureDefaultStorageClass(instance *odfv1
 }
 
 func (r *FlashSystemClusterReconciler) deleteDefaultStorageClass(instance *odfv1alpha1.FlashSystemCluster) error {
+	if instance.Spec.DefaultPool == nil {
+		return nil
+	}
+
 	expectedStorageClass := InitDefaultStorageClass(instance)
 	foundStorageClass := &storagev1.StorageClass{}
 
 	err := r.Client.Get(
 		context.TODO(),
-		types.NamespacedName{Name: GetDefaultStorageClassName(instance.Name), Namespace: ""},
+		types.NamespacedName{Name: instance.Spec.DefaultPool.StorageClassName, Namespace: ""},
 		foundStorageClass)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -556,7 +572,7 @@ func (r *FlashSystemClusterReconciler) enablePrometheusRules(instance *odfv1alph
 func (r *FlashSystemClusterReconciler) CreateOrUpdatePrometheusRules(rule *monitoringv1.PrometheusRule) error {
 	err := r.Client.Create(context.TODO(), rule)
 	if err != nil {
-		if apierrors.IsAlreadyExists(err) {
+		if errors.IsAlreadyExists(err) {
 			oldRule := &monitoringv1.PrometheusRule{}
 			err = r.Client.Get(context.TODO(), types.NamespacedName{Name: rule.Name, Namespace: rule.Namespace}, oldRule)
 			if err != nil {
@@ -574,14 +590,19 @@ func (r *FlashSystemClusterReconciler) CreateOrUpdatePrometheusRules(rule *monit
 	return nil
 }
 
-func (r *FlashSystemClusterReconciler) ensureFlashSystemCSICR(req ctrl.Request) error {
+func (r *FlashSystemClusterReconciler) ensureFlashSystemCSICR(instance *odfv1alpha1.FlashSystemCluster, req ctrl.Request) error {
+	if r.IsCSICRCreated {
+		r.Log.Info("flashsystem CSI CR is already created, skip")
+		return nil
+	}
+
 	// ensure CSI CR exists
 	namespaces, err := GetAllNamespace(r.Config)
 	if err != nil {
 		return err
 	}
 
-	isCSICRFound, err := IsIBMBlockCSIInstanceFound(namespaces, r.CSIDiscoveryClient)
+	isCSICRFound, err := IsIBMBlockCSIInstanceFound(namespaces, r.CSIDynamicClient)
 	if err != nil {
 		return err
 	}
@@ -589,15 +610,23 @@ func (r *FlashSystemClusterReconciler) ensureFlashSystemCSICR(req ctrl.Request) 
 	if !isCSICRFound {
 		// create CSI CR
 		r.Log.Info("start to create CSI CR instance...")
-		obj, err := CreateIBMBlockCSICR(r.CSIDiscoveryClient, req.Namespace)
+		obj, err := CreateIBMBlockCSICR(r.CSIDynamicClient, req.Namespace)
 		if err != nil {
+			r.createEvent(instance, corev1.EventTypeWarning,
+				util.FailedLaunchBlockCSIReason,
+				fmt.Sprintf("CSI CR:  %s/%s", obj.GetNamespace(), obj.GetName()))
+
 			return err
 		}
-
-		r.Log.Info(fmt.Sprintf("CSI CR:  %s/%s", obj.GetNamespace(), obj.GetName()))
+		r.createEvent(instance, corev1.EventTypeNormal,
+			util.SuccessfulLaunchBlockCSIReason,
+			fmt.Sprintf("CSI CR:  %s/%s", obj.GetNamespace(), obj.GetName()))
 	} else {
-		r.Log.Info("CSI CR is found, skip to create CSI CR instance")
+		r.createEvent(instance, corev1.EventTypeNormal,
+			util.SuccessfulDetectBlockCSIReason,
+			"CSI CR is found, skip to create CSI CR instance")
 	}
 
+	r.IsCSICRCreated = true
 	return nil
 }

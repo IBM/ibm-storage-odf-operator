@@ -17,9 +17,24 @@ LOG_PATH="${BASE_COLLECTION_PATH}/service/"
 mkdir -p ${LOG_PATH}
 
 echo "INFO: Gathering Services"
-ODF_SERVICES=($(oc -n ${ODF_NAMESPACE:-ibm-storage-odf} get service --no-headers -o custom-columns=":metadata.name" | grep ${FILTER_STRING}))
-for ODF_SERVICE in ${ODF_SERVICES[@]}; do
-    echo "INFO: Gathering Service ${ODF_SERVICE}"
-    oc -n ${ODF_NAMESPACE:-ibm-storage-odf} get service -o yaml ${ODF_SERVICE} > "${LOG_PATH}"/get_"${ODF_SERVICE}".yaml 2>&1
-    oc -n ${ODF_NAMESPACE:-ibm-storage-odf} describe service ${ODF_SERVICE} > "${LOG_PATH}"/describe_"${ODF_SERVICE}".log 2>&1
-done
+ODF_SERVICES=($(oc -n ${ODF_NAMESPACE} get service --no-headers -o custom-columns=":metadata.name" -l odf="storage.ibm.com"))
+
+if [ "${FILTER_STRING}" != "" ]; then
+
+    for ODF_SERVICE in ${ODF_SERVICES[@]}; do
+        if echo ${ODF_SERVICE} | grep -Eq ${FILTER_STRING}; then
+            echo "INFO: Gathering Service ${ODF_SERVICE}"
+            oc -n ${ODF_NAMESPACE} get service -o yaml ${ODF_SERVICE} > "${LOG_PATH}"/get_"${ODF_SERVICE}".yaml 2>&1
+            oc -n ${ODF_NAMESPACE} describe service ${ODF_SERVICE} > "${LOG_PATH}"/describe_"${ODF_SERVICE}".log 2>&1
+        fi
+    done
+
+else
+
+    for ODF_SERVICE in ${ODF_SERVICES[@]}; do
+        echo "INFO: Gathering Service ${ODF_SERVICE}"
+        oc -n ${ODF_NAMESPACE} get service -o yaml ${ODF_SERVICE} > "${LOG_PATH}"/get_"${ODF_SERVICE}".yaml 2>&1
+        oc -n ${ODF_NAMESPACE} describe service ${ODF_SERVICE} > "${LOG_PATH}"/describe_"${ODF_SERVICE}".log 2>&1
+    done
+
+fi

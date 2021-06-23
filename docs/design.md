@@ -52,14 +52,7 @@ metadata:
   namespace: openshift-storage
 spec:
   operatorName: ibm-storage-operator
-  parameters:
-    secret-name: demo-secret
-    secret-namespace: default
-    pool-name: mpool0
 ```
-
-The optional field `pool-name` is used to create default `StorageClass` for
-IBM Flashsystem CSI.
 
 Once the `Secret` is changed, operator will restart the driver to utilize the
 new `Secret`.
@@ -88,15 +81,16 @@ metadata:
   namespace: ibm-storage-odf
 spec:
   name: flashsystem-xxx
-  endpoint: 9.110.70.96
   secret:
     name: fs-secrets-example
     namespace: ibm-storage-odf
   insecureSkipVerify: true
   defaultPool:
-    poolname: Pool4
+    storageclassName: odf-sample
+    poolName: Pool4
     fsType: ext4
-    volumeNamePrefix: demo-pvc
+    volumeNamePrefix: odf
+    spaceEfficiency: thick
 ```
 
 The operator will watch the StorageClass used by OCP. Once the provisioner of 
@@ -129,9 +123,9 @@ TBD
 
 None
 
-### Dependencies
+### Dependencies/limitations
 
-None
+1. This operator only support one instance only. So, ODF should prevent client from creating more if there is already a storage cluster created.
 
 ## Alternatives
 

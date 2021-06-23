@@ -29,6 +29,7 @@ The directory `hack` include all the bash scripts for Makefile. The script `comm
 
 - Install the OpenShift CLI (oc) client version v4.7+
 - Can connect to an OCP cluster specified in ~/.kube/config, run the command `oc login` to the cluster without problem.
+- Run `docker login` to your registry successfully
 
 ## Building the internal catalog for OLM
 
@@ -39,7 +40,6 @@ There are few environment variables here, the file `hack/common.sh` defines defa
 ```bash
 $ export IMAGE_REGISTRY=<add new registry url here>
 $ export REGISTRY_NAMESPACE=<add namespace here>
-$ make build
 $ make docker-build
 ```
 
@@ -57,7 +57,7 @@ $ make build-catalog
 $ make deploy-catalog
 ```
 
-By default, the above example will build a catalog image `ibm-storage-odf-catalog:latest` and add the catalog source to namespace `openshift-marketplace` on your OCP cluster. The bundle image will use version like "0.1.0-210420", it can be changed in `hack/common.sh` before GA.
+By default, the above example will build a catalog image `ibm-storage-odf-catalog:latest` and add the catalog source to namespace `openshift-marketplace` on your OCP cluster. The bundle image will use version like "0.1.0", it can be changed in `hack/common.sh` before GA.
 
 If only want to build the index image, issue the following commands then they will build the images then push to the registry.
 

@@ -4,22 +4,79 @@ metadata:
   labels:
     prometheus: k8s
     role: alert-rules
-  name: prometheus-flashsystem-rules
-  namespace: ibm-storage-odf
+  name: flashsystem-subsystem-name-template
+  namespace: openshift-ibm-storage-odf
 spec:
   groups:
-  - name: cluster-services-alert.rules
+  - name: flashsystem-common.rules
     rules:
-    - alert: ClusterObjectStoreState
+    - alert: FlashsystemClusterErrorState
       annotations:
-        description: Cluster Object Store is in unhealthy state for more than 15s.
-          Please check Ceph cluster health.
-        message: Cluster Object Store is in unhealthy state. Please check Ceph cluster
-          health.
+        description: Subsystem storage "{{$labels.subsystem_name}}" in error state.
+        message: Subsystem storage "{{$labels.subsystem_name}}" is in error state
         severity_level: error
-        storage_type: RGW
+        storage_type: ibm_flashsystem
       expr: |
-        ocs_rgw_health_status{job="ocs-metrics-exporter"} > 1
-      for: 15s
+        flashsystem_subsystem_health{subsystem_name="flashsystem-subsystem-name-template"} ==2
+      for: 1m
       labels:
         severity: critical
+    - alert: FlashsystemClusterWarningState
+      annotations:
+        description: Subsystem storage "{{$labels.subsystem_name}}" in warning state for more than 5m. 
+        message: Subsystem storage "{{$labels.subsystem_name}}" is in warning state
+        severity_level: warning
+        storage_type: ibm_flashsystem
+      expr: |
+        flashsystem_subsystem_health{subsystem_name="flashsystem-subsystem-name-template"} ==1
+      for: 5m
+      labels:
+        severity: warning
+    - alert: FlashsystemMgrIsAbsent
+      annotations:
+        description: Subsystem storage manager "{{$labels.service}}" has disappeared from Prometheus target discovery.Please check the pod  {{$labels.pod}} logs to find out the cause.
+        message: Storage subsystem "{{$labels.service}}" metrics collector services is not available.
+        severity_level: error
+        storage_type: ibm_flashsystem
+      expr: |
+        up{job="flashsystem-subsystem-name-template"} !=1
+      for: 5m
+      labels:
+        severity: critical
+  - name: flashsystem-pool-status-alert.rules
+    rules:
+    - alert: FlashsystemPoolWarningState
+      annotations:
+        description: Subsystem storage "{{$labels.subsystem_name}}", pool "{{$labels.pool_name}}" is in degraded status for more than 5m.
+        message: "Subsystem storage pool is in degraded state."
+        severity_level: warning
+        storage_type: ibm_flashsystem
+      expr: |
+        flashsystem_pool_health{subsystem_name="flashsystem-subsystem-name-template"} ==1
+      for: 5m
+      labels:
+        severity: warning
+    - alert: FlashsystemPoolErrorState
+      annotations:
+        description: Subsystem storage "{{$labels.subsystem_name}}", pool "{{$labels.pool_name}}" is offline.
+        message: "Subsystem storage pool is in offline state."
+        severity_level: error
+        storage_type: ibm_flashsystem
+      expr: |
+        flashsystem_pool_health{subsystem_name="flashsystem-subsystem-name-template"} ==2
+      for: 1m
+      labels:
+        severity: critical
+  - name: flashsystem-pool-utilization-alert.rules
+    rules:
+    - alert: FlashsystemPoolNearFull
+      annotations:
+        description: Subsystem storage "{{$labels.subsystem_name}}", pool "{{$labels.pool_name}}" capacity utilization has crossed warning threshold for more than 5m.
+        message: Subsystem storage pool is nearing full. Data deletion or pool expansion is required.
+        severity_level: warning
+        storage_type: ibm_flashsystem
+      expr: |
+        flashsystem_pool_capacity_used_bytes{subsystem_name="flashsystem-subsystem-name-template"}/(flashsystem_pool_capacity_usable_bytes + flashsystem_pool_capacity_used_bytes) > flashsystem_pool_capacity_warning_threshold/100
+      for: 5m
+      labels:
+        severity: warning

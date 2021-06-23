@@ -6,14 +6,15 @@ metadata:
 spec:
   # Add fields here
   name: flashsystem-xxx
-  endpoint: 9.119.46.30
+  endpoint: 192.168.x.x
   secret:
     name: fs-secrets-example
     namespace: ibm-storage-odf
   insecureSkipVerify: true
   defaultPool:
-    poolname: Pool0
+    storageclassName: odf-flashsystemcluster-sample
+    poolName: Pool0
     fsType: ext4
-    volumeNamePrefix: demo-pvc
+    volumeNamePrefix: odf
     spaceEfficiency: thick
 

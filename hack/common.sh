@@ -1,4 +1,20 @@
 #!/bin/bash
+#
+# Copyright contributors to the ibm-storage-odf-operator project
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 
 set -e
 
@@ -6,19 +22,18 @@ DEFAULT_YQ_VERSION="4.8.0"
 DEFAULT_OPM_VERSION="v1.17.0"
 DEFAULT_OPERATOR_SDK_VERSION="v1.5.0"
 DEFAULT_KUSTOMIZE_VERSION="v3.8.7"
-DEFAULT_FLASHSYSTEM_DRIVER_RELEASE="v0.0.5"
+DEFAULT_FLASHSYSTEM_DRIVER_RELEASE="v0.0.22"
 
 # Check IBM block storage CSI driver versions on https://www.ibm.com/docs/en/blockstg-csi-driver
 DEFAULT_BLOCK_CSI_RELEASE="v1.5.0"
 DEFAULT_BLOCK_CSI_CR_FILE="csi.ibm.com_v1_ibmblockcsi_cr.yaml"
 
-VCS_URL="https://github.ibm.com/PuDong/ibm-storage-odf-operator"
-VCS_REF="0.1.0-$(git rev-parse --short HEAD)"
+VCS_URL="https://github.com/IBM/ibm-storage-odf-operator"
+VCS_REF="0.2.0-$(git rev-parse --short HEAD)"
 RELEASE_VERSION=$(cat version/version.go | grep "Version =" | awk -F '"' '{print $2}')
-BUILD_DEV_VERSION=${RELEASE_VERSION}-`date +%y%m%d`
 
-CHANNELS="dev,stable"
-DEFAULT_CHANNEL="dev"
+CHANNELS="stable-v1"
+DEFAULT_CHANNEL="stable-v1"
 
 GO111MODULE="on"
 GOPROXY="https://proxy.golang.org"
@@ -45,8 +60,8 @@ DEFAULT_OPM_BIN="${OUTDIR_BIN}/opm"
 DEFAULT_OPERATOR_SDK_BIN="${OUTDIR_BIN}/operator-sdk"
 DEFAULT_KUSTOMIZE_BIN="${OUTDIR_BIN}/kustomize"
 
-DEFAULT_IMAGE_REGISTRY="9.110.70.75"         # docker.io here when opensource
-DEFAULT_REGISTRY_NAMESPACE="ibmcom"          # equal to project name on Harbor, remove the comment before GA.
+DEFAULT_IMAGE_REGISTRY="docker.io"
+DEFAULT_REGISTRY_NAMESPACE="ibmcom"
 DEFAULT_IMAGE_TAG="latest"
 DEFAULT_OPERATOR_IMAGE_NAME="ibm-storage-odf-operator"
 DEFAULT_OPERATOR_BUNDLE_NAME="ibm-storage-odf-operator-bundle"
