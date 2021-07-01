@@ -4,13 +4,13 @@ metadata:
   labels:
     odf: storage.ibm.com
     openshift.io/cluster-monitoring: "true"
-  name: ibm-storage-odf
+  name: openshift-storage
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ibm-storage-odf-operator
-  namespace: ibm-storage-odf
+  namespace: openshift-storage
   labels:
     odf: storage.ibm.com
 spec:
