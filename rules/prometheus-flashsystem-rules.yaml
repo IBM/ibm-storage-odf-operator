@@ -5,7 +5,7 @@ metadata:
     prometheus: k8s
     role: alert-rules
   name: flashsystem-subsystem-name-template
-  namespace: openshift-ibm-storage-odf
+  namespace: openshift-storage
 spec:
   groups:
   - name: flashsystem-common.rules

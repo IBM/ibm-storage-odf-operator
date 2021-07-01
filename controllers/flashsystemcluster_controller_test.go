@@ -40,7 +40,7 @@ import (
 var _ = Describe("FlashSystemClusterReconciler", func() {
 	const (
 		FlashSystemName  = "flashsystemcluster-sample"
-		namespace        = "ibm-storage-odf"
+		namespace        = "openshift-storage"
 		secretName       = "fs-secret-sample"
 		storageClassName = "odf-flashsystemcluster-sample"
 		poolName         = "Pool0"

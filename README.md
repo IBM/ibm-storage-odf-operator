@@ -10,7 +10,7 @@ For RH OCS extension project, flashsystem operator component
 1. Create new project with `openshift-*`. '
 
    ```
-   oc adm new-project openshift-ibm-storage-odf
+   oc adm new-project openshift-storage
    ```
 
 2. Label the namespace
@@ -22,7 +22,7 @@ For RH OCS extension project, flashsystem operator component
    Example
 
    ```bash
-   oc label ns openshift-ibm-storage-odf "openshift.io/cluster-monitoring=true"
+   oc label ns openshift-storage "openshift.io/cluster-monitoring=true"
    ```
 
 ### 2. Build & install (test phase only)

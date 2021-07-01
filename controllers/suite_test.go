@@ -110,7 +110,7 @@ var _ = BeforeSuite(func() {
 	Expect(k8sClient).NotTo(BeNil())
 
 	// set environment before test
-	err = os.Setenv(util.WatchNamespaceEnvVar, "ibm-storage-odf")
+	err = os.Setenv(util.WatchNamespaceEnvVar, "openshift-storage")
 	Expect(err).NotTo(HaveOccurred())
 	err = os.Setenv(util.ExporterImageEnvVar, "docker.io/ibmcom/ibm-storage-odf-block-driver:v0.0.22")
 	Expect(err).NotTo(HaveOccurred())

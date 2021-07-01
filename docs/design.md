@@ -78,12 +78,12 @@ apiVersion: odf.ibm.com/v1alpha1
 kind: FlashSystemCluster
 metadata:
   name: flashsystemcluster-sample
-  namespace: ibm-storage-odf
+  namespace: openshift-storage
 spec:
   name: flashsystem-xxx
   secret:
     name: fs-secrets-example
-    namespace: ibm-storage-odf
+    namespace: openshift-storage
   insecureSkipVerify: true
   defaultPool:
     storageclassName: odf-sample

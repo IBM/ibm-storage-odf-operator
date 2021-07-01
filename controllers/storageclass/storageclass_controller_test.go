@@ -37,7 +37,7 @@ import (
 var _ = Describe("StorageClassWatcher", func() {
 	const (
 		FlashSystemName  = "flashsystemcluster-sample"
-		namespace        = "ibm-storage-odf"
+		namespace        = "openshift-storage"
 		secretName       = "fs-secret-sample"
 		storageClassName = "odf-flashsystemcluster"
 		poolName         = "Pool0"

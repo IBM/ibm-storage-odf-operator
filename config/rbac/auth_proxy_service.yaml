@@ -4,7 +4,7 @@ metadata:
   labels:
     odf: storage.ibm.com
   name: ibm-storage-odf-operator-metrics-service
-  namespace: ibm-storage-odf
+  namespace: openshift-storage
 spec:
   ports:
   - name: https

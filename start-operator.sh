@@ -16,7 +16,7 @@
 #
 
 
-export WATCH_NAMESPACE=ibm-storage-odf
+export WATCH_NAMESPACE=openshift-storage
 export EXPORTER_IMAGE=docker.io/ibmcom/ibm-storage-odf-block-driver:v0.0.22
 
 exec bin/manager

@@ -14,11 +14,11 @@ fi
 mkdir -p ${BASE_COLLECTION_PATH}
 
 if [ "${ODF_NAMESPACE}" = "" ]; then
-    ODF_NAMESPACE="ibm-storage-odf"
+    ODF_NAMESPACE="openshift-storage"
 fi
 
 if [ "${IBMCSI_NAMESPACE}" = "" ]; then
-    IBMCSI_NAMESPACE="openshift-ibm-storage-odf"
+    IBMCSI_NAMESPACE="openshift-storage"
 fi
 
 # timestamp for starting of the script
