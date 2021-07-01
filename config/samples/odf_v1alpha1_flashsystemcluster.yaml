@@ -6,7 +6,6 @@ metadata:
 spec:
   # Add fields here
   name: flashsystem-xxx
-  endpoint: 192.168.x.x
   secret:
     name: fs-secrets-example
     namespace: ibm-storage-odf
