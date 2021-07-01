@@ -4,8 +4,8 @@
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: flashcluster-monitor
-  namespace: ibm-storage-odf
+  name: flashsystemcluster-monitor
+  namespace: openshift-storage
 rules:
 - apiGroups:
   - monitoring.coreos.com
@@ -20,16 +20,16 @@ rules:
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: flashcluster-monitor
-  namespace: ibm-storage-odf
+  name: flashsystemcluster-monitor
+  namespace: openshift-storage
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: flashcluster-monitor
+  name: flashsystemcluster-monitor
 subjects:
 - kind: ServiceAccount
   name: ibm-storage-odf-operator
-  namespace: ibm-storage-odf
+  namespace: openshift-storage
 # OLM: END ROLE BINDING
 ---
 # OLM: BEGIN ROLE
@@ -37,8 +37,8 @@ subjects:
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: flashcluster-metrics
-  namespace: ibm-storage-odf
+  name: flashsystemcluster-metrics
+  namespace: openshift-storage
 rules:
  - apiGroups:
    - ""
@@ -57,12 +57,12 @@ rules:
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: flashcluster-metrics
-  namespace: ibm-storage-odf
+  name: flashsystemcluster-metrics
+  namespace: openshift-storage
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: flashcluster-metrics
+  name: flashsystemcluster-metrics
 subjects:
 - kind: ServiceAccount
   # change to the serviceaccount and namespace to use for monitoring
