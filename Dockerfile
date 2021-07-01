@@ -33,9 +33,8 @@ LABEL vendor="IBM" \
   org.label-schema.schema-version="0.2.0"
 
 WORKDIR /
-COPY --from=builder --chown=nonroot /workspace/manager /manager
+COPY --from=builder /workspace/manager /manager
 # COPY RULES
 COPY /rules/*.yaml /prometheus-rules/
-USER nobody
 
 ENTRYPOINT ["/manager"]
