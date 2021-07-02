@@ -17,9 +17,24 @@ LOG_PATH="${BASE_COLLECTION_PATH}/configmap/"
 mkdir -p ${LOG_PATH}
 
 echo "INFO: Gathering ConfigMaps"
-ODF_CONFIGMAPS=($(oc -n ${ODF_NAMESPACE:-ibm-storage-odf} get configmap --no-headers -o custom-columns=":metadata.name" | grep ${FILTER_STRING}))
-for ODF_CONFIGMAP in ${ODF_CONFIGMAPS[@]}; do
-    echo "INFO: Gathering ConfigMap ${ODF_CONFIGMAP}"
-    oc -n ${ODF_NAMESPACE:-ibm-storage-odf} get configmap -o yaml ${ODF_CONFIGMAP} > "${LOG_PATH}"/get_"${ODF_CONFIGMAP}".yaml 2>&1
-    oc -n ${ODF_NAMESPACE:-ibm-storage-odf} describe configmap ${ODF_CONFIGMAP} > "${LOG_PATH}"/describe_"${ODF_CONFIGMAP}".log 2>&1
-done
+ODF_CONFIGMAPS=($(oc -n ${ODF_NAMESPACE} get configmap --no-headers -o custom-columns=":metadata.name" -l odf="storage.ibm.com"))
+
+if [ "${FILTER_STRING}" != "" ]; then
+
+    for ODF_CONFIGMAP in ${ODF_CONFIGMAPS[@]}; do
+        if echo ${ODF_CONFIGMAP} | grep -Eq ${FILTER_STRING}; then
+            echo "INFO: Gathering ConfigMap ${ODF_CONFIGMAP}"
+            oc -n ${ODF_NAMESPACE} get configmap -o yaml ${ODF_CONFIGMAP} > "${LOG_PATH}"/get_"${ODF_CONFIGMAP}".yaml 2>&1
+            oc -n ${ODF_NAMESPACE} describe configmap ${ODF_CONFIGMAP} > "${LOG_PATH}"/describe_"${ODF_CONFIGMAP}".log 2>&1
+        fi
+    done
+
+else
+
+    for ODF_CONFIGMAP in ${ODF_CONFIGMAPS[@]}; do
+        echo "INFO: Gathering ConfigMap ${ODF_CONFIGMAP}"
+        oc -n ${ODF_NAMESPACE} get configmap -o yaml ${ODF_CONFIGMAP} > "${LOG_PATH}"/get_"${ODF_CONFIGMAP}".yaml 2>&1
+        oc -n ${ODF_NAMESPACE} describe configmap ${ODF_CONFIGMAP} > "${LOG_PATH}"/describe_"${ODF_CONFIGMAP}".log 2>&1
+    done
+
+fi

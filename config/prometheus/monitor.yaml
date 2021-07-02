@@ -6,7 +6,7 @@ metadata:
   labels:
     odf: storage.ibm.com
   name: ibm-storage-odf-operator-metrics-monitor
-  namespace: ibm-storage-odf
+  namespace: openshift-storage
 spec:
   endpoints:
     - path: /metrics

@@ -1,11 +1,29 @@
+/**
+ * Copyright contributors to the ibm-storage-odf-operator project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package controllers
 
 import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
@@ -36,24 +54,22 @@ const (
 	CredentialHashAnnotation = "odf.ibm.com/credential-hash"
 
 	flashsystemPrometheusRuleFilepath = "/prometheus-rules/prometheus-flashsystem-rules.yaml"
-	ruleName                          = "prometheus-flashsystem-rules"
+	// ruleName                          = "prometheus-flashsystem-rules"
+	// FlashsystemPrometheusRuleFileEnv is only for UT
+	FlashsystemPrometheusRuleFileEnv = "TEST_FS_PROM_RULE_FILE"
 )
 
 func getExporterDeploymentName(clusterName string) string {
 	return clusterName
 }
 
-func getExporterCredentialName(clusterName string) string {
-	return clusterName
-}
+// func getExporterRestConfigMapName(clusterName string) string {
+// 	return clusterName
+// }
 
-func getExporterRestConfigMapName(clusterName string) string {
-	return clusterName
-}
-
-func getExporterClusterConfigMapName(clusterName string) string {
-	return clusterName
-}
+// func getExporterClusterConfigMapName(clusterName string) string {
+// 	return clusterName
+// }
 
 func getExporterMetricsServiceName(clusterName string) string {
 	return clusterName
@@ -157,6 +173,7 @@ func InitExporterDeployment(
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      deploymentName,
 			Namespace: instance.Namespace,
+			Labels:    labels,
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion: instance.APIVersion,
@@ -250,6 +267,30 @@ func InitExporterDeployment(
 							VolumeMounts: []corev1.VolumeMount{
 								{Name: "storageclass-pool", MountPath: util.PoolConfigmapMountPath},
 							},
+							LivenessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/",
+										Port: intstr.FromInt(9100),
+									}},
+								InitialDelaySeconds: 15,
+								TimeoutSeconds:      1,
+								PeriodSeconds:       10,
+								SuccessThreshold:    1,
+								FailureThreshold:    3,
+							},
+							ReadinessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/",
+										Port: intstr.FromInt(9100),
+									}},
+								InitialDelaySeconds: 5,
+								TimeoutSeconds:      1,
+								PeriodSeconds:       10,
+								SuccessThreshold:    1,
+								FailureThreshold:    3,
+							},
 						},
 					},
 					ServiceAccountName: ServiceAccount,
@@ -332,19 +373,49 @@ func updateExporterMetricsServiceMonitor(
 	return updatedServiceMonitor
 }
 
+func getFlashsystemPrometheusRuleFilepath() string {
+	file, found := os.LookupEnv(FlashsystemPrometheusRuleFileEnv)
+	if found {
+		return file
+	}
+
+	return flashsystemPrometheusRuleFilepath
+}
+
 func getPrometheusRules(instance *odfv1alpha1.FlashSystemCluster) (*monitoringv1.PrometheusRule, error) {
-	ruleFile, err := ioutil.ReadFile(filepath.Clean(flashsystemPrometheusRuleFilepath))
+	ruleFile, err := ioutil.ReadFile(filepath.Clean(getFlashsystemPrometheusRuleFilepath()))
 	if err != nil {
 		return nil, fmt.Errorf("prometheusRules file could not be fetched. %v", err)
 	}
-	var rule monitoringv1.PrometheusRule
-	err = k8sYAML.NewYAMLOrJSONDecoder(bytes.NewBufferString(string(ruleFile)), 1000).Decode(&rule)
+	var promRule monitoringv1.PrometheusRule
+	err = k8sYAML.NewYAMLOrJSONDecoder(bytes.NewBufferString(string(ruleFile)), 8192).Decode(&promRule)
 	if err != nil {
 		return nil, fmt.Errorf("prometheusRules could not be decoded. %v", err)
 	}
 
-	rule.SetName(instance.Name)
-	rule.SetNamespace(instance.Namespace)
+	template := promRule.GetName()
+	promRule.SetName(instance.Name)
+	promRule.SetNamespace(instance.Namespace)
+
+	labels := util.GetLabels(instance.Name)
+	updateLabels := promRule.GetLabels()
+	if updateLabels == nil {
+		updateLabels = labels
+	} else {
+		for k, v := range labels {
+			updateLabels[k] = v
+		}
+	}
+	promRule.SetLabels(updateLabels)
+
+	// update expression of rules
+	for i, group := range promRule.Spec.Groups {
+		for j, rule := range group.Rules {
+			if rule.Expr.Type == intstr.String {
+				promRule.Spec.Groups[i].Rules[j].Expr.StrVal = strings.ReplaceAll(rule.Expr.StrVal, template, instance.Name)
+			}
+		}
+	}
 
 	owner := []metav1.OwnerReference{
 		{
@@ -355,7 +426,7 @@ func getPrometheusRules(instance *odfv1alpha1.FlashSystemCluster) (*monitoringv1
 		},
 	}
 
-	rule.ObjectMeta.SetOwnerReferences(owner)
+	promRule.ObjectMeta.SetOwnerReferences(owner)
 
-	return &rule, nil
+	return &promRule, nil
 }

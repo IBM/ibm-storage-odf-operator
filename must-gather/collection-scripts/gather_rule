@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Command line argument
+ODF_NAMESPACE=$1
+IBMCSI_NAMESPACE=$2
+BASE_COLLECTION_PATH=$3
+FILTER_STRING=$4
+
+# Use must-gather as base path if no argument is passed
+if [ "${BASE_COLLECTION_PATH}" = "" ]; then
+    BASE_COLLECTION_PATH="must-gather"
+fi
+mkdir -p ${BASE_COLLECTION_PATH}
+
+# Create dir for rule
+LOG_PATH="${BASE_COLLECTION_PATH}/rule/"
+mkdir -p ${LOG_PATH}
+
+echo "INFO: Gathering Rules"
+ODF_RULES=($(oc -n ${ODF_NAMESPACE} get prometheusrules.monitoring.coreos.com --no-headers -o custom-columns=":metadata.name" -l odf="storage.ibm.com"))
+
+if [ "${FILTER_STRING}" != "" ]; then
+
+    for ODF_RULE in ${ODF_RULES[@]}; do
+        if echo ${ODF_RULE} | grep -Eq ${FILTER_STRING}; then
+            echo "INFO: Gathering Rule ${ODF_RULE}"
+            oc -n ${ODF_NAMESPACE} get prometheusrules.monitoring.coreos.com -o yaml ${ODF_RULE} > "${LOG_PATH}"/get_"${ODF_RULE}".yaml 2>&1
+            oc -n ${ODF_NAMESPACE} describe prometheusrules.monitoring.coreos.com ${ODF_RULE} > "${LOG_PATH}"/describe_"${ODF_RULE}".log 2>&1
+        fi
+    done
+
+else
+
+    for ODF_RULE in ${ODF_RULES[@]}; do
+        echo "INFO: Gathering Rule ${ODF_RULE}"
+        oc -n ${ODF_NAMESPACE} get prometheusrules.monitoring.coreos.com -o yaml ${ODF_RULE} > "${LOG_PATH}"/get_"${ODF_RULE}".yaml 2>&1
+        oc -n ${ODF_NAMESPACE} describe prometheusrules.monitoring.coreos.com ${ODF_RULE} > "${LOG_PATH}"/describe_"${ODF_RULE}".log 2>&1
+    done
+
+fi

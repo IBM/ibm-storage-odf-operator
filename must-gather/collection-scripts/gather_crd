@@ -20,9 +20,9 @@ echo "INFO: Gathering All CRDs installed by IBM"
 oc get crd | grep ibm > "${LOG_PATH}"/All_CRDs_installed_by_IBM.log 2>&1
 
 echo "INFO: Gathering CRD flashsystemclusters"
-ODF_CRDS=($(oc -n ${ODF_NAMESPACE:-ibm-storage-odf} get flashsystemclusters.odf.ibm.com --no-headers -o custom-columns=":metadata.name"))
+ODF_CRDS=($(oc -n ${ODF_NAMESPACE} get flashsystemclusters.odf.ibm.com --no-headers -o custom-columns=":metadata.name"))
 for ODF_CRD in ${ODF_CRDS[@]}; do
     echo "INFO: Gathering CRD ${ODF_CRD}"
-    oc -n ${ODF_NAMESPACE:-ibm-storage-odf} get flashsystemclusters.odf.ibm.com -o yaml ${ODF_CRD} > "${LOG_PATH}"/get_"${ODF_CRD}".yaml 2>&1
-    oc -n ${ODF_NAMESPACE:-ibm-storage-odf} describe flashsystemclusters.odf.ibm.com ${ODF_CRD} > "${LOG_PATH}"/describe_"${ODF_CRD}".log 2>&1
+    oc -n ${ODF_NAMESPACE} get flashsystemclusters.odf.ibm.com -o yaml ${ODF_CRD} > "${LOG_PATH}"/get_"${ODF_CRD}".yaml 2>&1
+    oc -n ${ODF_NAMESPACE} describe flashsystemclusters.odf.ibm.com ${ODF_CRD} > "${LOG_PATH}"/describe_"${ODF_CRD}".log 2>&1
 done

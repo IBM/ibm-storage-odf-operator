@@ -14,11 +14,11 @@ fi
 mkdir -p ${BASE_COLLECTION_PATH}
 
 if [ "${ODF_NAMESPACE}" = "" ]; then
-    ODF_NAMESPACE="ibm-storage-odf"
+    ODF_NAMESPACE="openshift-storage"
 fi
 
 if [ "${IBMCSI_NAMESPACE}" = "" ]; then
-    IBMCSI_NAMESPACE="default"
+    IBMCSI_NAMESPACE="openshift-storage"
 fi
 
 # timestamp for starting of the script
@@ -32,12 +32,16 @@ pre-install.sh
 # gather scripts
 gather_log               ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH}
 gather_crd               ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH}
-gather_deployment        ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH}
-gather_pod               ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH}
+gather_deployment        ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH} ${FILTER_STRING}
+gather_pod               ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH} ${FILTER_STRING}
 gather_configmap         ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH} ${FILTER_STRING}
 gather_service           ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH} ${FILTER_STRING}
 gather_servicemonitor    ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH} ${FILTER_STRING}
-gather_secret            ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH} ${FILTER_STRING}
+gather_rule              ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH} ${FILTER_STRING}
+gather_alert             ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH}
+gather_event             ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH}
+# comment out this line, since dev currently thought secret is sensitive even though it is helpful for debugging
+#gather_secret            ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH} ${FILTER_STRING}
 
 # Call other gather scripts
 #gather_namespaced_resources ${BASE_COLLECTION_PATH} "${SINCE_TIME}"

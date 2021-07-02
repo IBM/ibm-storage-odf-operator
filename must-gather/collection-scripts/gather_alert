@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Command line argument
+ODF_NAMESPACE=$1
+IBMCSI_NAMESPACE=$2
+BASE_COLLECTION_PATH=$3
+
+# Use must-gather as base path if no argument is passed
+if [ "${BASE_COLLECTION_PATH}" = "" ]; then
+    BASE_COLLECTION_PATH="must-gather"
+fi
+mkdir -p ${BASE_COLLECTION_PATH}
+
+# Create dir for service
+LOG_PATH="${BASE_COLLECTION_PATH}/alert/"
+mkdir -p ${LOG_PATH}
+
+echo "INFO: Gathering Alerts"
+oc exec -it -n openshift-monitoring alertmanager-main-0 -- amtool --alertmanager.url=http://localhost:9093 alert > "${LOG_PATH}"/alerts.log 2>&1

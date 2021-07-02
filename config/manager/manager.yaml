@@ -4,13 +4,13 @@ metadata:
   labels:
     odf: storage.ibm.com
     openshift.io/cluster-monitoring: "true"
-  name: ibm-storage-odf
+  name: openshift-storage
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ibm-storage-odf-operator
-  namespace: ibm-storage-odf
+  namespace: openshift-storage
   labels:
     odf: storage.ibm.com
 spec:
@@ -39,7 +39,7 @@ spec:
               fieldRef:
                 fieldPath: metadata.namespace
           - name: EXPORTER_IMAGE
-            value: 9.110.70.75/ibmcom/ibm-storage-odf-block-driver:v0.0.5
+            value: docker.io/ibmcom/ibm-storage-odf-block-driver:v0.0.22
         securityContext:
           allowPrivilegeEscalation: false
         volumeMounts:
@@ -60,10 +60,10 @@ spec:
         resources:
           limits:
             cpu: 100m
-            memory: 30Mi
+            memory: 300Mi
           requests:
             cpu: 100m
-            memory: 20Mi
+            memory: 200Mi
       serviceAccountName: ibm-storage-odf-operator
       terminationGracePeriodSeconds: 10
       volumes:
