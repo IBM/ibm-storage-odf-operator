@@ -19,7 +19,6 @@
 set -e
 
 source hack/common.sh
-source hack/ensure-blockcsi-cryaml.sh
 
 echo "Deploying the operator in the cluster..."
 
