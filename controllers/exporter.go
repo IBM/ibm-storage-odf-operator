@@ -51,7 +51,8 @@ const (
 	fsSecretPasswdKey   = "password"
 	fsSecretEndPointKey = "management_address"
 
-	CredentialHashAnnotation = "odf.ibm.com/credential-hash"
+	CredentialHashAnnotation  = "odf.ibm.com/credential-hash"
+	CredentialResourceVersion = "odf.ibm.com/credential-resource-version"
 
 	flashsystemPrometheusRuleFilepath = "/prometheus-rules/prometheus-flashsystem-rules.yaml"
 	// ruleName                          = "prometheus-flashsystem-rules"
@@ -165,8 +166,10 @@ func InitExporterDeployment(
 	if err != nil {
 		return nil, err
 	}
+
 	annotations := map[string]string{
-		CredentialHashAnnotation: secretDataHash,
+		CredentialHashAnnotation:  secretDataHash,
+		CredentialResourceVersion: secret.ResourceVersion,
 	}
 
 	return &appsv1.Deployment{
