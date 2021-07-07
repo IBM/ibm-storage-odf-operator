@@ -23,6 +23,12 @@ source hack/common.sh
 echo "Deploying the operator in the cluster..."
 
 pushd config/manager
+if [ "$LOCAL_OS_TYPE" == "Darwin" ] && [[ "$(sed --version 2>&1 | head -n 1 | awk -F " " '{print $2}')" == "illegal" ]]; then
+        sed -i "" "s#value: .*#value: ${FLASHSYSTEM_DRIVER_FULL_IMAGE_NAME}#" ../default/manager_config_patch.yaml
+else
+        sed -i "s#value: .*#value: ${FLASHSYSTEM_DRIVER_FULL_IMAGE_NAME}#" ../default/manager_config_patch.yaml
+fi
+
 ../../${KUSTOMIZE_BIN} edit set image controller="${OPERATOR_FULL_IMAGE_NAME}"
 popd
 
