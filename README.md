@@ -66,12 +66,12 @@ For RH OCS extension project, flashsystem operator component
 2. Delete "IBM Storage ODF operator".
 
    1. Locate to "Installed Operators" page and select the project which includes "IBM Storage ODF operator".
-   2. Select the "IBM Storage ODF operator" and click "Uninstall Operator" from rigth kebab in the same line.
+   2. Select the "IBM Storage ODF operator" and click "Uninstall Operator" from right kebab in the same line.
 
 3. Delete "Operator for IBM block storage CSI driver" if it is running in same project of "IBM Storage ODF operator".
 
    **NOTES**:
-   - If "IBM Storage ODF operator" is installed seperatelly which is standalone without "IBM Storage ODF operator", skip step 3 & 4.
+   - If "IBM Storage ODF operator" is installed separately which is standalone without "IBM Storage ODF operator", skip step 3 & 4.
    - make sure there is no application/data consuming IBM block storage before removing the operator
 
    Reference: [IBM block CSI operator uninstallation](https://github.com/IBM/ibm-block-csi-operator#uninstalling)

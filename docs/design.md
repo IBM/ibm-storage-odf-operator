@@ -22,7 +22,7 @@ be the first citizen.
 ### Goals
 
 1. Integrate installation/uninstallation/upgrade process with OLM.
-2. Provide API, then ODF operator could create CR with nessary data got from
+2. Provide API, then ODF operator could create CR with necessary data got from
    Create Storage Cluster console.
 3. Leverage OLM to install IBM block storage CSI operator.
 4. Launch IBM Storage ODF driver when IBM Flashsystem storage cluster created.
@@ -33,7 +33,7 @@ be the first citizen.
 
 ### Non-Goals
 
-1. Suppport more than one Flashsystem.
+1. Support more than one Flashsystem.
 
 ## Proposal
 
