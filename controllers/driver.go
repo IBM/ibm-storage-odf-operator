@@ -184,7 +184,7 @@ func GetIBMBlockCSIDynamicClient(config *rest.Config) (dynamic.NamespaceableReso
 
 	resList, err := discoveryClient.ServerResourcesForGroupVersion(gvk.GroupVersion().String())
 	if err != nil {
-		return nil, fmt.Errorf("failed to get resoruce list, err:%v", err)
+		return nil, fmt.Errorf("failed to get resource list, err:%v", err)
 	}
 
 	for _, resource := range resList.APIResources {
