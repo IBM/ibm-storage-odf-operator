@@ -48,6 +48,41 @@ var (
 	watchNamespace string
 )
 
+type SecretMapper struct {
+	reconciler *FlashSystemClusterReconciler
+}
+
+func (s *SecretMapper) SecretToClusterMapFunc(object client.Object) []reconcile.Request {
+	clusters := &odfv1alpha1.FlashSystemClusterList{}
+
+	err := s.reconciler.Client.List(context.TODO(), clusters)
+	if err != nil {
+		s.reconciler.Log.Error(err, "failed to list flashsystemcluster", "SecretMapper", s)
+		return nil
+	}
+
+	requests := []reconcile.Request{}
+	for _, c := range clusters.Items {
+		if c.Spec.Secret.Name == object.GetName() &&
+			c.Spec.Secret.Namespace == object.GetNamespace() {
+			req := reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: c.GetNamespace(),
+					Name:      c.GetName(),
+				},
+			}
+			requests = append(requests, req)
+		}
+
+	}
+
+	if len(requests) > 0 {
+		s.reconciler.Log.Info("reflect secret update to flashsystemcluster instance", "SecretMapper", requests)
+	}
+
+	return requests
+}
+
 // FlashSystemClusterReconciler reconciles a FlashSystemCluster object
 type FlashSystemClusterReconciler struct {
 	client.Client
@@ -298,6 +333,10 @@ func (r *FlashSystemClusterReconciler) SetupWithManager(mgr ctrl.Manager) error 
 	}
 	r.ExporterImage = exporterImage
 
+	secretMapper := &SecretMapper{
+		reconciler: r,
+	}
+
 	//TODO: it seems operator-sdk 1.5 + golang 1.5 fails to watch resources through Owns
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&odfv1alpha1.FlashSystemCluster{}).
@@ -312,7 +351,7 @@ func (r *FlashSystemClusterReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		}, &handler.EnqueueRequestForObject{}).
 		Watches(&source.Kind{
 			Type: &corev1.Secret{},
-		}, &handler.EnqueueRequestForObject{}).
+		}, handler.EnqueueRequestsFromMapFunc(secretMapper.SecretToClusterMapFunc)).
 		Complete(r)
 
 }
