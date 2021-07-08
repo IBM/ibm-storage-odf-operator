@@ -65,7 +65,7 @@ deps:
 
 .PHONY: lint
 lint: deps
-	golangci-lint run --timeout=6m    # Run `make lint-fix` may help to fix lint issues.
+	golangci-lint run -E gosec --timeout=6m    # Run `make lint-fix` may help to fix lint issues.
 
 .PHONY: lint-fix
 lint-fix: deps	
