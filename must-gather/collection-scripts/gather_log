@@ -43,8 +43,10 @@ done
 echo "INFO: Gathering logs of ODF Block Driver"
 ODF_PODS=($(oc -n ${ODF_NAMESPACE} get pods --no-headers -o custom-columns=":metadata.name" -l odf="storage.ibm.com"))
 for ODF_POD in ${ODF_PODS[@]}; do
-        oc -n ${ODF_NAMESPACE} logs -c flashsystemcluster-sample ${ODF_POD} > "${LOG_PATH}"/"${ODF_POD}".log 2>&1
-        oc -n ${ODF_NAMESPACE} logs -c flashsystemcluster-sample --previous ${ODF_POD} > "${LOG_PATH}"/"${ODF_POD}".previous.log 2>&1
+        oc -n ${ODF_NAMESPACE} logs ${ODF_POD} > "${LOG_PATH}"/"${ODF_POD}".log 2>&1
+        oc -n ${ODF_NAMESPACE} logs --previous ${ODF_POD} > "${LOG_PATH}"/"${ODF_POD}".previous.log 2>&1
+# we omit the -c parameter here to not specify containers, since whose name is defined by users
+# we just collect logs for all of containers
 done
 
 echo "INFO: Gathering logs of IBM CSI Operator"
