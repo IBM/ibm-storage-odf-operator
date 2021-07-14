@@ -239,7 +239,7 @@ func GetAllNamespace(config *rest.Config) ([]string, error) {
 	return namespaceList, nil
 }
 
-func IsIBMBlockCSIInstanceFound(namespaces []string, dc dynamic.NamespaceableResourceInterface) (bool, error) {
+func HasIBMBlockCSICRExisted(namespaces []string, dc dynamic.NamespaceableResourceInterface) (bool, error) {
 
 	for _, ns := range namespaces {
 		obj, err := dc.Namespace(ns).List(context.Background(), metav1.ListOptions{})
