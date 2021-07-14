@@ -135,7 +135,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 	r.Log = r.Log.WithValues("flashsystemcluster", req.NamespacedName)
 	r.Log.Info("Reconciling FlashSystemCluster")
 
-	r.Log.Info("step 0: get FlashSystemCluster resource")
+	r.Log.Info("step: get FlashSystemCluster resource")
 	instance := &odfv1alpha1.FlashSystemCluster{}
 	err = r.Client.Get(context.TODO(), req.NamespacedName, instance)
 	if err != nil {
@@ -176,14 +176,14 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return reconcile.Result{}, nil
 	}
 
-	r.Log.Info("step 1: create or check FlashSystem CSI CR")
+	r.Log.Info("step: create or check FlashSystem CSI CR")
 	err = r.ensureFlashSystemCSICR(instance, req)
 	if err != nil {
 		r.Log.Error(err, "failed to ensureFlashSystemCSICR")
 		return result, err
 	}
 
-	r.Log.Info("step 2: init status/conditions of the FlashSystemCluster resource")
+	r.Log.Info("step: init status/conditions of the FlashSystemCluster resource")
 	if instance.Status.Conditions == nil {
 		reason := odfv1alpha1.ReasonReconcileInit
 		message := "Initializing flashsystem ODF resources"
@@ -197,7 +197,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 	}
 
-	r.Log.Info("step 3: ensureScPoolConfigMap")
+	r.Log.Info("step: ensureScPoolConfigMap")
 	if err = r.ensureScPoolConfigMap(); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to ensureScPoolConfigMap: %v", err)
@@ -211,7 +211,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return result, err
 	}
 
-	r.Log.Info("step 4: ensureExporterDeployment")
+	r.Log.Info("step: ensureExporterDeployment")
 	if err = r.ensureExporterDeployment(instance); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to ensureExporterDeployment: %v", err)
@@ -228,7 +228,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return result, err
 	}
 
-	r.Log.Info("step 5: ensureExporterService")
+	r.Log.Info("step: ensureExporterService")
 	if err = r.ensureExporterService(instance); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to ensureExporterService: %v", err)
@@ -245,7 +245,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return result, err
 	}
 
-	r.Log.Info("step 6: ensureExporterServiceMonitor")
+	r.Log.Info("step: ensureExporterServiceMonitor")
 	if err = r.ensureExporterServiceMonitor(instance); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to ensureExporterServiceMonitor: %v", err)
@@ -267,7 +267,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		Status: corev1.ConditionTrue,
 	})
 
-	r.Log.Info("step 7: ensureDefaultStorageClass")
+	r.Log.Info("step: ensureDefaultStorageClass")
 	if err = r.ensureDefaultStorageClass(instance); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to ensureDefaultStorageClass: %v", err)
@@ -284,7 +284,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return result, err
 	}
 
-	r.Log.Info("step 8: enablePrometheusRules")
+	r.Log.Info("step: enablePrometheusRules")
 	if err = r.enablePrometheusRules(instance); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to enablePrometheusRules: %v", err)
@@ -303,7 +303,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	util.SetReconcileCompleteCondition(&instance.Status.Conditions, odfv1alpha1.ReasonReconcileCompleted, "reconciling done")
 
-	r.Log.Info("step 9: check and update status phase")
+	r.Log.Info("step: check and update status phase")
 	if util.IsStatusConditionTrue(instance.Status.Conditions, odfv1alpha1.ConditionReconcileComplete) &&
 		util.IsStatusConditionTrue(instance.Status.Conditions, odfv1alpha1.ExporterReady) &&
 		util.IsStatusConditionTrue(instance.Status.Conditions, odfv1alpha1.StorageClusterReady) &&
@@ -490,7 +490,7 @@ func (r *FlashSystemClusterReconciler) ensureExporterServiceMonitor(instance *od
 			return r.Client.Create(context.TODO(), expectedServiceMonitor)
 		}
 
-		r.Log.Error(err, "failed to create exporter servicemonitor")
+		r.Log.Error(err, "failed to get exporter servicemonitor")
 		return err
 	}
 
@@ -634,13 +634,13 @@ func (r *FlashSystemClusterReconciler) ensureFlashSystemCSICR(instance *odfv1alp
 		return nil
 	}
 
-	// ensure CSI CR exists
+	// query if IBMBlockCSI CR has already existed in this cluster.
 	namespaces, err := GetAllNamespace(r.Config)
 	if err != nil {
 		return err
 	}
 
-	isCSICRFound, err := IsIBMBlockCSIInstanceFound(namespaces, r.CSIDynamicClient)
+	isCSICRFound, err := HasIBMBlockCSICRExisted(namespaces, r.CSIDynamicClient)
 	if err != nil {
 		return err
 	}
