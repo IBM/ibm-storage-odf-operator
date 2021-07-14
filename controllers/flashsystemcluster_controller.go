@@ -183,18 +183,12 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return result, err
 	}
 
-	r.Log.Info("step: init status/conditions of the FlashSystemCluster resource")
-	if instance.Status.Conditions == nil {
+	r.Log.Info("step: reset progressing conditions of the FlashSystemCluster resource")
+	if util.IsStatusConditionFalse(instance.Status.Conditions, odfv1alpha1.ConditionProgressing) {
 		reason := odfv1alpha1.ReasonReconcileInit
-		message := "Initializing flashsystem ODF resources"
+		message := "processing flashsystem ODF resources"
 		util.SetReconcileProgressingCondition(&instance.Status.Conditions, reason, message)
 		instance.Status.Phase = util.PhaseProgressing
-
-		err = r.Client.Status().Update(context.TODO(), instance)
-		if err != nil {
-			r.Log.Error(err, "Failed to add conditions to status")
-			return result, err
-		}
 	}
 
 	r.Log.Info("step: ensureScPoolConfigMap")
