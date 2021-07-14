@@ -205,23 +205,6 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return result, err
 	}
 
-	r.Log.Info("step: ensureExporterDeployment")
-	if err = r.ensureExporterDeployment(instance); err != nil {
-		reason := odfv1alpha1.ReasonReconcileFailed
-		message := fmt.Sprintf("failed to ensureExporterDeployment: %v", err)
-		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
-		instance.Status.Phase = util.PhaseError
-
-		r.createEvent(instance, corev1.EventTypeWarning,
-			util.FailedLaunchBlockExporterReason, message)
-
-		updateError := r.Client.Status().Update(context.TODO(), instance)
-		if updateError != nil {
-			r.Log.Error(updateError, "failed to update conditions to status")
-		}
-		return result, err
-	}
-
 	r.Log.Info("step: ensureExporterService")
 	if err = r.ensureExporterService(instance); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
@@ -231,6 +214,23 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 		r.createEvent(instance, corev1.EventTypeWarning,
 			util.FailedCreateServiceReason, message)
+
+		updateError := r.Client.Status().Update(context.TODO(), instance)
+		if updateError != nil {
+			r.Log.Error(updateError, "failed to update conditions to status")
+		}
+		return result, err
+	}
+
+	r.Log.Info("step: ensureExporterDeployment")
+	if err = r.ensureExporterDeployment(instance); err != nil {
+		reason := odfv1alpha1.ReasonReconcileFailed
+		message := fmt.Sprintf("failed to ensureExporterDeployment: %v", err)
+		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
+		instance.Status.Phase = util.PhaseError
+
+		r.createEvent(instance, corev1.EventTypeWarning,
+			util.FailedLaunchBlockExporterReason, message)
 
 		updateError := r.Client.Status().Update(context.TODO(), instance)
 		if updateError != nil {
