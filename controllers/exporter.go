@@ -60,17 +60,10 @@ const (
 	FlashsystemPrometheusRuleFileEnv = "TEST_FS_PROM_RULE_FILE"
 )
 
+// TODO: wrapper func for deployment name translation from cluster name
 func getExporterDeploymentName(clusterName string) string {
 	return clusterName
 }
-
-// func getExporterRestConfigMapName(clusterName string) string {
-// 	return clusterName
-// }
-
-// func getExporterClusterConfigMapName(clusterName string) string {
-// 	return clusterName
-// }
 
 func getExporterMetricsServiceName(clusterName string) string {
 	return clusterName
