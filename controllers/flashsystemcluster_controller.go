@@ -504,32 +504,32 @@ func (r *FlashSystemClusterReconciler) ensureDefaultStorageClass(instance *odfv1
 		return nil
 	}
 
+	var found bool
 	expectedStorageClass := InitDefaultStorageClass(instance)
 	foundStorageClass := &storagev1.StorageClass{}
 
 	err := r.Client.Get(
 		context.TODO(),
-		types.NamespacedName{Name: instance.Spec.DefaultPool.StorageClassName, Namespace: ""},
+		types.NamespacedName{Name: instance.Spec.DefaultPool.StorageClassName},
 		foundStorageClass)
+
 	if err != nil {
 		if errors.IsNotFound(err) {
-			if expectedStorageClass == nil {
-				// do nothing
-				return nil
-			} else {
-				r.Log.Info("create default StorageClass")
-				return r.Client.Create(context.TODO(), expectedStorageClass)
-			}
+			found = false
+		} else {
+			r.Log.Error(err, "failed to get default StorageClass")
+			return err
 		}
-
-		r.Log.Error(err, "failed to handle default StorageClass")
-		return err
+	} else {
+		found = true
 	}
 
-	if expectedStorageClass == nil {
-		r.Log.Info("leave existing default StorageClass alone")
-	} else if !compareDefaultStorageClass(foundStorageClass, expectedStorageClass) {
-		// TODO: create event
+	if found {
+		if compareDefaultStorageClass(foundStorageClass, expectedStorageClass) {
+			r.Log.Info("no change on default StorageClass, skip reconciling")
+			return nil
+		}
+
 		err = r.Client.Delete(
 			context.TODO(),
 			foundStorageClass)
@@ -537,14 +537,13 @@ func (r *FlashSystemClusterReconciler) ensureDefaultStorageClass(instance *odfv1
 			r.Log.Error(err, "failed to delete default StorageClass")
 			return err
 		}
+
 		r.createEvent(instance, corev1.EventTypeWarning,
 			util.DeletedDuplicatedStorageClassReason, "delete StorageClass with same name as default StorageClass")
-
-		return r.Client.Create(context.TODO(), expectedStorageClass)
 	}
 
-	r.Log.Info("handle default StorageClass")
-	return nil
+	r.Log.Info("create default StorageClass")
+	return r.Client.Create(context.TODO(), expectedStorageClass)
 }
 
 func (r *FlashSystemClusterReconciler) deleteDefaultStorageClass(instance *odfv1alpha1.FlashSystemCluster) error {
