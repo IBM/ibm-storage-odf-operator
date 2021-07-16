@@ -8,6 +8,44 @@ metadata:
   namespace: openshift-storage
 spec:
   groups:
+  - name: odf-common.rules
+    rules:
+    - expr: |
+        avg by (subsystem_name,namespace,subsystem_vendor,subsystem_type) (flashsystem_subsystem_health{subsystem_name="flashsystem-subsystem-name-template"})
+      record: odf_system_health_status
+      labels: 
+        subsystem_vendor: IBM
+        subsystem_type: FlashSystem
+    - expr: |
+        sum by (subsystem_name,namespace,subsystem_vendor,subsystem_type) (flashsystem_pool_capacity_usable_bytes{subsystem_name="flashsystem-subsystem-name-template"}+flashsystem_pool_capacity_used_bytes)
+      record: odf_system_raw_capacity_total_bytes
+      labels: 
+        subsystem_vendor: IBM
+        subsystem_type: FlashSystem
+    - expr: |
+        sum by (subsystem_name,namespace,subsystem_vendor,subsystem_type) (flashsystem_pool_capacity_used_bytes{subsystem_name="flashsystem-subsystem-name-template"})
+      record: odf_system_raw_capacity_used_bytes
+      labels: 
+        subsystem_vendor: IBM
+        subsystem_type: FlashSystem
+    - expr: |
+        sum by (subsystem_name,namespace,subsystem_vendor,subsystem_type) (flashsystem_subsystem_rd_iops{subsystem_name="flashsystem-subsystem-name-template"}+flashsystem_subsystem_wr_iops)
+      record: odf_system_iops_total_bytes
+      labels: 
+        subsystem_vendor: IBM
+        subsystem_type: FlashSystem
+    - expr: |
+        sum by (subsystem_name,namespace,subsystem_vendor,subsystem_type) (flashsystem_subsystem_rd_bytes{subsystem_name="flashsystem-subsystem-name-template"}+flashsystem_subsystem_wr_bytes)
+      record: odf_system_throughput_total_bytes
+      labels: 
+        subsystem_vendor: IBM
+        subsystem_type: FlashSystem
+    - expr: |
+        sum by (subsystem_name,namespace,subsystem_vendor,subsystem_type) (flashsystem_subsystem_latency_seconds{subsystem_name="flashsystem-subsystem-name-template"})
+      record: odf_system_latency_seconds
+      labels: 
+        subsystem_vendor: IBM
+        subsystem_type: FlashSystem
   - name: flashsystem-common.rules
     rules:
     - alert: FlashsystemClusterErrorState
