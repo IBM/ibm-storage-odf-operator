@@ -48,8 +48,7 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 		volPrefix        = "odf"
 		spaceEff         = "thick"
 
-		timeout = time.Second * 10
-		//duration = time.Second * 10
+		timeout  = time.Second * 10
 		interval = time.Millisecond * 250
 	)
 
@@ -133,7 +132,7 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 			namespaces, err := GetAllNamespace(testFlashSystemClusterReconciler.Config)
 			Expect(err).ToNot(HaveOccurred())
 
-			isCSICRFound, err := IsIBMBlockCSIInstanceFound(namespaces, testFlashSystemClusterReconciler.CSIDynamicClient)
+			isCSICRFound, err := HasIBMBlockCSICRExisted(namespaces, testFlashSystemClusterReconciler.CSIDynamicClient)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("expecting submitted")
@@ -173,15 +172,11 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 			}
 			createdFs := &odfv1alpha1.FlashSystemCluster{}
 
-			// verify step 2
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, fsLookupKey, createdFs)
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
-			//fmt.Println("created Flashsystemcluster: ", createdFs)
-
-			// verify step 3
 			cmLookupKey := types.NamespacedName{
 				Name:      util.PoolConfigmapName,
 				Namespace: namespace,
@@ -193,9 +188,6 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
-			//fmt.Println("created ConfigMap: ", createdCm)
-
-			// verify step 4
 			createdDeployment := &appsv1.Deployment{}
 
 			Eventually(func() bool {
@@ -228,7 +220,6 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 			isSame := reflect.DeepEqual(createdDeployment.Name, expectedDeployment.Name)
 			Expect(isSame).Should(BeTrue())
 
-			// verify step 5
 			createdService := &corev1.Service{}
 			Eventually(func() bool {
 				err := k8sClient.Get(
@@ -241,7 +232,6 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
-			// verify step 6
 			createdServiceMonitor := &monitoringv1.ServiceMonitor{}
 			Eventually(func() bool {
 				err := k8sClient.Get(
@@ -254,7 +244,6 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
-			// verify step 7
 			scLookupKey := types.NamespacedName{
 				Name:      storageClassName,
 				Namespace: namespace,
@@ -266,7 +255,6 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
-			// verify step 8
 			createdPromRule := &monitoringv1.PrometheusRule{}
 			Eventually(func() bool {
 				err := k8sClient.Get(
@@ -279,7 +267,6 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
-			// verify step 9
 			currentFS := &odfv1alpha1.FlashSystemCluster{}
 
 			Eventually(func() bool {

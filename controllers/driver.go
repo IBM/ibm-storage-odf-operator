@@ -86,10 +86,14 @@ func compareDefaultStorageClass(
 	found *storagev1.StorageClass,
 	expected *storagev1.StorageClass) bool {
 
-	if (found.Provisioner == expected.Provisioner) &&
-		(found.Parameters["SpaceEfficiency"] == expected.Parameters["SpaceEfficiency"]) &&
-		(found.Parameters["pool"] == expected.Parameters["pool"]) &&
-		(found.Parameters["volume_name_prefix"] == expected.Parameters["volume_name_prefix"]) {
+	if found.Provisioner == expected.Provisioner {
+		for k, v := range expected.Parameters {
+			foundVal, isFound := found.Parameters[k]
+			if !isFound || v != foundVal {
+				return false
+			}
+		}
+
 		return true
 	}
 
@@ -239,7 +243,7 @@ func GetAllNamespace(config *rest.Config) ([]string, error) {
 	return namespaceList, nil
 }
 
-func IsIBMBlockCSIInstanceFound(namespaces []string, dc dynamic.NamespaceableResourceInterface) (bool, error) {
+func HasIBMBlockCSICRExisted(namespaces []string, dc dynamic.NamespaceableResourceInterface) (bool, error) {
 
 	for _, ns := range namespaces {
 		obj, err := dc.Namespace(ns).List(context.Background(), metav1.ListOptions{})
