@@ -117,9 +117,9 @@ type FlashSystemClusterReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.2/pkg/reconcile
-func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {
-
-	result = reconcile.Result{}
+func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	var err error
+	result := reconcile.Result{}
 	prevLogger := r.Log
 
 	defer func() {
@@ -135,7 +135,6 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 	r.Log = r.Log.WithValues("flashsystemcluster", req.NamespacedName)
 	r.Log.Info("Reconciling FlashSystemCluster")
 
-	r.Log.Info("step: get FlashSystemCluster resource")
 	instance := &odfv1alpha1.FlashSystemCluster{}
 	err = r.Client.Get(context.TODO(), req.NamespacedName, instance)
 	if err != nil {
@@ -146,6 +145,24 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		// Error reading the object - requeue the request.
 		return result, err
 	}
+
+	result, err = r.reconcile(instance)
+
+	statusError := r.Client.Status().Update(context.TODO(), instance)
+
+	if err != nil {
+		r.Log.Error(err, "failed to reconcile")
+		return result, err
+	} else if statusError != nil {
+		r.Log.Error(statusError, "failed to update conditions to status")
+		return result, statusError
+	} else {
+		return result, nil
+	}
+}
+
+func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSystemCluster) (ctrl.Result, error) {
+	var err error
 
 	// Check GetDeletionTimestamp to determine if the object is under deletion
 	if instance.GetDeletionTimestamp().IsZero() {
@@ -177,10 +194,10 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	r.Log.Info("step: create or check FlashSystem CSI CR")
-	err = r.ensureFlashSystemCSICR(instance, req)
+	err = r.ensureFlashSystemCSICR(instance)
 	if err != nil {
 		r.Log.Error(err, "failed to ensureFlashSystemCSICR")
-		return result, err
+		return reconcile.Result{}, err
 	}
 
 	r.Log.Info("step: reset progressing conditions of the FlashSystemCluster resource")
@@ -198,11 +215,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
 		instance.Status.Phase = util.PhaseError
 
-		updateError := r.Client.Status().Update(context.TODO(), instance)
-		if updateError != nil {
-			r.Log.Error(updateError, "failed to update conditions to status")
-		}
-		return result, err
+		return reconcile.Result{}, err
 	}
 
 	r.Log.Info("step: ensureExporterService")
@@ -215,11 +228,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		r.createEvent(instance, corev1.EventTypeWarning,
 			util.FailedCreateServiceReason, message)
 
-		updateError := r.Client.Status().Update(context.TODO(), instance)
-		if updateError != nil {
-			r.Log.Error(updateError, "failed to update conditions to status")
-		}
-		return result, err
+		return reconcile.Result{}, err
 	}
 
 	r.Log.Info("step: ensureExporterDeployment")
@@ -232,11 +241,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		r.createEvent(instance, corev1.EventTypeWarning,
 			util.FailedLaunchBlockExporterReason, message)
 
-		updateError := r.Client.Status().Update(context.TODO(), instance)
-		if updateError != nil {
-			r.Log.Error(updateError, "failed to update conditions to status")
-		}
-		return result, err
+		return reconcile.Result{}, err
 	}
 
 	r.Log.Info("step: ensureExporterServiceMonitor")
@@ -249,11 +254,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		r.createEvent(instance, corev1.EventTypeWarning,
 			util.FailedCreateServiceMonitorReason, message)
 
-		updateError := r.Client.Status().Update(context.TODO(), instance)
-		if updateError != nil {
-			r.Log.Error(updateError, "failed to update conditions to status")
-		}
-		return result, err
+		return reconcile.Result{}, err
 	}
 
 	util.SetStatusCondition(&instance.Status.Conditions, odfv1alpha1.Condition{
@@ -271,11 +272,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		r.createEvent(instance, corev1.EventTypeWarning,
 			util.FailedCreateStorageClassReason, message)
 
-		updateError := r.Client.Status().Update(context.TODO(), instance)
-		if updateError != nil {
-			r.Log.Error(updateError, "failed to update conditions to status")
-		}
-		return result, err
+		return reconcile.Result{}, err
 	}
 
 	r.Log.Info("step: enablePrometheusRules")
@@ -288,11 +285,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		r.createEvent(instance, corev1.EventTypeWarning,
 			util.FailedCreatePromRuleReason, message)
 
-		updateError := r.Client.Status().Update(context.TODO(), instance)
-		if updateError != nil {
-			r.Log.Error(updateError, "failed to update conditions to status")
-		}
-		return result, err
+		return reconcile.Result{}, err
 	}
 
 	util.SetReconcileCompleteCondition(&instance.Status.Conditions, odfv1alpha1.ReasonReconcileCompleted, "reconciling done")
@@ -309,8 +302,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		instance.Status.Phase = util.PhaseNotReady
 	}
 
-	err = r.Client.Status().Update(context.TODO(), instance)
-	return result, err
+	return reconcile.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -621,7 +613,7 @@ func (r *FlashSystemClusterReconciler) CreateOrUpdatePrometheusRules(rule *monit
 	return nil
 }
 
-func (r *FlashSystemClusterReconciler) ensureFlashSystemCSICR(instance *odfv1alpha1.FlashSystemCluster, req ctrl.Request) error {
+func (r *FlashSystemClusterReconciler) ensureFlashSystemCSICR(instance *odfv1alpha1.FlashSystemCluster) error {
 	if r.IsCSICRCreated {
 		r.Log.Info("flashsystem CSI CR is already created, skip")
 		return nil
@@ -641,7 +633,7 @@ func (r *FlashSystemClusterReconciler) ensureFlashSystemCSICR(instance *odfv1alp
 	if !isCSICRFound {
 		// create CSI CR
 		r.Log.Info("start to create CSI CR instance...")
-		obj, err := CreateIBMBlockCSICR(r.CSIDynamicClient, req.Namespace)
+		obj, err := CreateIBMBlockCSICR(r.CSIDynamicClient, instance.Namespace)
 		if err != nil {
 			r.createEvent(instance, corev1.EventTypeWarning,
 				util.FailedLaunchBlockCSIReason,
