@@ -33,7 +33,6 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -122,11 +121,7 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 					},
 				},
 			}
-			err := testFlashSystemClusterReconciler.ensureFlashSystemCSICR(instance, reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Namespace: namespace,
-				},
-			})
+			err := testFlashSystemClusterReconciler.ensureFlashSystemCSICR(instance)
 			Expect(err).ToNot(HaveOccurred())
 
 			namespaces, err := GetAllNamespace(testFlashSystemClusterReconciler.Config)
