@@ -17,9 +17,8 @@ COPY controllers/ controllers/
 # Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager main.go
 
-# Use distroless as minimal base image to package the manager binary
-# Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot
+
+FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 MAINTAINER IBM Storage
 
 ARG VCS_REF
@@ -31,13 +30,11 @@ LABEL vendor="IBM" \
   org.label-schema.name="ibm storage odf operator" \
   org.label-schema.vcs-ref=$VCS_REF \
   org.label-schema.vcs-url=$VCS_URL \
-  org.label-schema.license="Licensed Materials - Property of IBM" \
-  org.label-schema.schema-version="0.1.0"
+  org.label-schema.schema-version="0.2.0"
 
 WORKDIR /
-COPY --from=builder --chown=nonroot /workspace/manager /manager
+COPY --from=builder /workspace/manager /manager
 # COPY RULES
 COPY /rules/*.yaml /prometheus-rules/
-USER nonroot:nonroot
 
 ENTRYPOINT ["/manager"]

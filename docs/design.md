@@ -1,12 +1,11 @@
 
-
 # Overall design
 
 ## Summary
 
 The Open Data Foundation (ODF) Driver for IBM Storage enables ODF monitoring
 and managing IBM Storage systems. In north bound, this operator will implement the
-interface with ODF. In south bound, it will manage [IBM block CSI operator](https://github.com/IBM/ibm-block-csi-operator) and [IBM Storage ODF Block driver](https://github.com/IBM/ibm-storage-odf-block-driver). 
+interface with ODF. In south bound, it will manage [IBM block CSI operator](https://github.com/IBM/ibm-block-csi-operator) and [IBM Storage ODF Block driver](https://github.com/IBM/ibm-storage-odf-block-driver).
 
 ## Motivation
 
@@ -21,14 +20,15 @@ be the first citizen.
 ### Goals
 
 1. Integrate installation/uninstallation/upgrade process with OLM.
-2. Provide API, then ODF operator could create CR with nessary data got from
+2. Provide API, then ODF operator could create CR with necessary data got from
    Create Storage Cluster console.
 3. Leverage OLM to install IBM block storage CSI operator.
 4. Launch IBM Storage ODF driver when IBM FlashSystem storage cluster created.
 5. Launch IBM block storage CSI driver when storage cluster created.
-6. Create default StorageClass for ODF over it. 
+6. Create default StorageClass for ODF over it.
 7. Dynamically pass this OCP using FlashSystem pool list to IBM storage ODF driver.
 
-### Non-Goals
+### Dependencies/limitations
 
-1. Suppport more than one FlashSystem.
+1. This operator only support one instance only. So, ODF should prevent client from creating more if there is already a storage cluster created.
+

@@ -1,10 +1,25 @@
 #!/bin/bash
+#
+# Copyright contributors to the ibm-storage-odf-operator project
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
 # Command line argument
 ODF_NAMESPACE=$1
 IBMCSI_NAMESPACE=$2
 BASE_COLLECTION_PATH=$3
-
+FILTER_STRING=$4
 
 # Use must-gather as base path if no argument is passed
 if [ "${BASE_COLLECTION_PATH}" = "" ]; then
@@ -17,9 +32,24 @@ LOG_PATH="${BASE_COLLECTION_PATH}/deployment/"
 mkdir -p ${LOG_PATH}
 
 echo "INFO: Gathering Deployments"
-ODF_DEPLOYMENTS=($(oc -n ${ODF_NAMESPACE:-ibm-storage-odf} get deployment --no-headers -o custom-columns=":metadata.name"))
-for ODF_DEPLOYMENT in ${ODF_DEPLOYMENTS[@]}; do
-    echo "INFO: Gathering Deployment ${ODF_DEPLOYMENT}"
-    oc -n ${ODF_NAMESPACE:-ibm-storage-odf} get deployment -o yaml ${ODF_DEPLOYMENT} > "${LOG_PATH}"/get_"${ODF_DEPLOYMENT}".yaml 2>&1
-    oc -n ${ODF_NAMESPACE:-ibm-storage-odf} describe deployment ${ODF_DEPLOYMENT} > "${LOG_PATH}"/describe_"${ODF_DEPLOYMENT}".log 2>&1
-done
+ODF_DEPLOYMENTS=($(oc -n ${ODF_NAMESPACE} get deployment --no-headers -o custom-columns=":metadata.name" -l odf="storage.ibm.com"))
+
+if [ "${FILTER_STRING}" != "" ]; then
+
+    for ODF_DEPLOYMENT in ${ODF_DEPLOYMENTS[@]}; do
+        if echo ${ODF_DEPLOYMENT} | grep -Eq ${FILTER_STRING}; then
+            echo "INFO: Gathering Deployment ${ODF_DEPLOYMENT}"
+            oc -n ${ODF_NAMESPACE} get deployment -o yaml ${ODF_DEPLOYMENT} > "${LOG_PATH}"/get_"${ODF_DEPLOYMENT}".yaml 2>&1
+            oc -n ${ODF_NAMESPACE} describe deployment ${ODF_DEPLOYMENT} > "${LOG_PATH}"/describe_"${ODF_DEPLOYMENT}".log 2>&1
+        fi
+    done
+
+else
+
+    for ODF_DEPLOYMENT in ${ODF_DEPLOYMENTS[@]}; do
+        echo "INFO: Gathering Deployment ${ODF_DEPLOYMENT}"
+        oc -n ${ODF_NAMESPACE} get deployment -o yaml ${ODF_DEPLOYMENT} > "${LOG_PATH}"/get_"${ODF_DEPLOYMENT}".yaml 2>&1
+        oc -n ${ODF_NAMESPACE} describe deployment ${ODF_DEPLOYMENT} > "${LOG_PATH}"/describe_"${ODF_DEPLOYMENT}".log 2>&1
+    done
+
+fi

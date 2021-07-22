@@ -2,18 +2,18 @@ apiVersion: odf.ibm.com/v1alpha1
 kind: FlashSystemCluster
 metadata:
   name: flashsystemcluster-sample
-  namespace: ibm-storage-odf
+  namespace: openshift-storage
 spec:
   # Add fields here
   name: flashsystem-xxx
-  endpoint: 9.119.46.30
   secret:
     name: fs-secrets-example
-    namespace: ibm-storage-odf
+    namespace: openshift-storage
   insecureSkipVerify: true
   defaultPool:
-    poolname: Pool0
+    storageclassName: odf-flashsystemcluster-sample
+    poolName: Pool0
     fsType: ext4
-    volumeNamePrefix: demo-pvc
+    volumeNamePrefix: odf
     spaceEfficiency: thick
 

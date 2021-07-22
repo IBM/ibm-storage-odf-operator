@@ -1,4 +1,19 @@
 #!/bin/bash
+#
+# Copyright contributors to the ibm-storage-odf-operator project
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
 # Command line argument
 FILTER_STRING=$1
@@ -14,11 +29,11 @@ fi
 mkdir -p ${BASE_COLLECTION_PATH}
 
 if [ "${ODF_NAMESPACE}" = "" ]; then
-    ODF_NAMESPACE="ibm-storage-odf"
+    ODF_NAMESPACE="openshift-storage"
 fi
 
 if [ "${IBMCSI_NAMESPACE}" = "" ]; then
-    IBMCSI_NAMESPACE="default"
+    IBMCSI_NAMESPACE="openshift-storage"
 fi
 
 # timestamp for starting of the script
@@ -32,12 +47,16 @@ pre-install.sh
 # gather scripts
 gather_log               ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH}
 gather_crd               ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH}
-gather_deployment        ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH}
-gather_pod               ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH}
+gather_deployment        ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH} ${FILTER_STRING}
+gather_pod               ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH} ${FILTER_STRING}
 gather_configmap         ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH} ${FILTER_STRING}
 gather_service           ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH} ${FILTER_STRING}
 gather_servicemonitor    ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH} ${FILTER_STRING}
-gather_secret            ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH} ${FILTER_STRING}
+gather_rule              ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH} ${FILTER_STRING}
+gather_alert             ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH}
+gather_event             ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH}
+# comment out this line, since dev currently thought secret is sensitive even though it is helpful for debugging
+#gather_secret            ${ODF_NAMESPACE} ${IBMCSI_NAMESPACE} ${BASE_COLLECTION_PATH} ${FILTER_STRING}
 
 # Call other gather scripts
 #gather_namespaced_resources ${BASE_COLLECTION_PATH} "${SINCE_TIME}"

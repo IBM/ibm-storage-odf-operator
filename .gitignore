@@ -28,3 +28,4 @@ bundle
 
 # cscope
 cscope.files
+.DS_Store

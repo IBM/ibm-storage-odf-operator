@@ -6,6 +6,8 @@ CSV_PATH=bundle/manifests/ibm-storage-odf-operator.clusterserviceversion.yaml
 
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 
+LINT_VERSION="1.40.0"
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -48,6 +50,26 @@ vet: ## Run go vet against code
 
 test: manifests generate fmt vet ## Run tests
 	hack/envtest.sh
+
+add-copyright:
+	hack/add-copyright.sh
+
+check-copyright:
+	hack/check-copyright.sh
+
+.PHONY: deps
+deps:
+	@if ! which golangci-lint >/dev/null || [[ "$$(golangci-lint --version)" != *${LINT_VERSION}* ]]; then \
+		curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v${LINT_VERSION}; \
+	fi
+
+.PHONY: lint
+lint: deps
+	golangci-lint run -E gosec --timeout=6m    # Run `make lint-fix` may help to fix lint issues.
+
+.PHONY: lint-fix
+lint-fix: deps	
+	golangci-lint run --fix
 
 ##@ Build
 

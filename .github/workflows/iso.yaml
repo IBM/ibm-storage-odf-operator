@@ -1,0 +1,35 @@
+name: iso.yaml
+
+on:
+  push:
+    branches: [ '*' ]
+  pull_request:
+    branches: [ '*' ]
+
+jobs:
+  precheck-and-build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go: ["1.15"]
+    steps:
+    - uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go }}
+
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: check copyright
+      run: |
+        make check-copyright
+
+    - name: run tests
+      run: |
+        make test
+
+    - name: Build image
+      run: |
+        make build
