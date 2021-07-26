@@ -1,61 +1,114 @@
-# ibm-storage-odf-operator
+## IBM Storage ODF (ISO) Operator
 
-For RH OCS extension project, flashsystem operator component 
+The Red Hat Open Data Foundation (ODF) Driver for IBM Storage enables ODF monitoring
+and managing IBM FlashSystem storage.
 
+This is the official operator to deploy and manage IBM FlashSystem storage.
 
-## build & install with OLM 
+## Development
 
-### 1. Prerequisites(test phase only)
+### Tools
 
-1. Create new project with `openshift-*`. '
+- [Operator SDK](https://github.com/operator-framework/operator-sdk)
 
-   ```
-   oc adm new-project openshift-storage
-   ```
+- [Kustomize](https://github.com/kubernetes-sigs/kustomize)
 
-2. Label the namespace
+- [controller-gen](https://github.com/kubernetes-sigs/controller-tools)
 
-   ```bash
-   oc label ns <your project name> "openshift.io/cluster-monitoring=true"
-   ```
+### Build
 
-   Example
+#### ISO Operator
 
-   ```bash
-   oc label ns openshift-storage "openshift.io/cluster-monitoring=true"
-   ```
+The operator image can be built via:
 
-### 2. Build & install (test phase only)
+```
+$ make docker-build
+```
 
-1. Clone build in your local repo. 
+#### ISO Operator Bundle
 
-   ```bash
-   git clone -b develop git@github.com:IBM/ibm-storage-odf-operator.git
-   ```
+To create an operator bundle image, run
 
-2. Build bundle image
+```
+$ make bundle-build
+```
 
-   ```bash
-   export IMAGE_REGISTRY=<add new registry url here>
-   export REGISTRY_NAMESPACE=<add namespace here>
-   export FLASHSYSTEM_DRIVER_RELEASE=<add new version here>
-   make bundle-build
-   ```
+> Note: Push the Bundle image to image registry before moving to next step.
 
-### 3. Deploy ibm odf operator in operator hub
+#### ISO Operator Index
+
+An operator index image can be built using
+
+```
+$ make build-catalog
+```
+
+### Deploying development builds
+
+#### Prerequisites(test phase only)
+
+Create new project with `openshift-*`
+
+```
+$ oc adm new-project openshift-storage
+```
+
+Label the namespace
+
+```bash
+$ oc label ns <your project name> "openshift.io/cluster-monitoring=true"
+```
+
+Example:
+
+```bash
+$ oc label ns openshift-storage "openshift.io/cluster-monitoring=true"
+```
+
+#### Build the operator/bundle/index images
+
+To install own development builds of ISO, first build and push the operator image to your own image repository.
+
+```
+$ export IMAGE_REGISTRY=<add new registry url here>
+$ export REGISTRY_NAMESPACE=<add namespace here>
+$ export IMAGE_TAG=<some-tag>
+$ make docker-build
+```
+
+Once the operator image is pushed, build and push the operator bundle image.
+
+```
+$ make bundle-build
+```
+
+Next build and push the operator index image.
+
+```
+$ make build-catalog
+```
+
+Now add a catalog source to your OCP cluster.
+
+```
+$ make deploy-catalog
+```
+
+Then you can install the operator from OperatorHub on OCP cluster.
+
+#### Deploy ibm odf operator in OperatorHub
 
 1. In openshift console, navigate to "Operators"->"OperatorHub" page, enter "odf" and filter, click "IBM Storage ODF operator" to install.
 2. Choose the namespace you created in previous steps. 
 3. Click "Install".
 
-### 4. Create flashsystem cluster. 
+#### Create flashsystem cluster
 
 1. In "Operators->Installed Operators" page, open "IBM Storage ODF operator" view.
 2. Click "FlashSystem Cluster" tab, and click "Create Storage System".
 3. Fill the fields here and click create button.  (This page is subjected to change.)
 
-
-### 5. Uninstall
+#### Uninstall
 
 1. Delete the created custom resource of FlashSystemCluster.
 
@@ -83,6 +136,6 @@ For RH OCS extension project, flashsystem operator component
 
 4. Delete the project (namespace) which hold previous "IBM Storage ODF operator".
 
-## best practice
+## Best Practice
 
-1. In order to avoid the REST API token confliction, please assign a dedicated Flashsystem user to this operator.
+In order to avoid the REST API token confliction, please assign a dedicated Flashsystem user to this operator.
