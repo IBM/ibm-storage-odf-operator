@@ -83,7 +83,7 @@ var _ = Describe("StorageClassWatcher", func() {
 					Namespace: namespace,
 				},
 				Data: map[string][]byte{
-					"management_address": []byte("OS4xMTAuNzAuOTY="),
+					"managementAddress": []byte("OS4xMTAuNzAuOTY="),
 					"password":           []byte("ZnNkcml2ZXI="),
 					"username":           []byte("ZnNkcml2ZXI="),
 				},

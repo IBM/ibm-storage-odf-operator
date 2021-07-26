@@ -1,4 +1,3 @@
-
 # Overall design
 
 ## Summary
@@ -9,7 +8,7 @@ interface with ODF. In south bound, it will manage [IBM block CSI operator](http
 
 ## Motivation
 
-Currently, the Container Storage Interface (CSI) implemented by IBM block 
+Currently, the Container Storage Interface (CSI) implemented by IBM block
 storage CSI driver can only provide limited functions, e.g. provisioning,
 snapshot. It's not convienent for OCP admin and app developer to get the
 state of system, capacity, performance and so on.
