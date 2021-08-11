@@ -85,7 +85,7 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 					Namespace: namespace,
 				},
 				Data: map[string][]byte{
-					"managementAddress": []byte("OS4xMTAuNzAuOTY="),
+					"management_address": []byte("OS4xMTAuNzAuOTY="),
 					"password":           []byte("ZnNkcml2ZXI="),
 					"username":           []byte("ZnNkcml2ZXI="),
 				},

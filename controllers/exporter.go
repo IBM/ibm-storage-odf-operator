@@ -49,7 +49,7 @@ const (
 
 	fsSecretUserKey     = "username"
 	fsSecretPasswdKey   = "password"
-	fsSecretEndPointKey = "managementAddress"
+	fsSecretEndPointKey = "management_address"
 
 	CredentialHashAnnotation  = "odf.ibm.com/credential-hash"
 	CredentialResourceVersion = "odf.ibm.com/credential-resource-version"
