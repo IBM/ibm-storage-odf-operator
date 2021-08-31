@@ -10,4 +10,4 @@ spec:
       - name: manager
         env:
         - name: EXPORTER_IMAGE
-          value: docker.io/ibmcom/ibm-storage-odf-block-driver:v0.0.22
+          value: docker.io/ibmcom/ibm-storage-odf-block-driver:0.2.0
