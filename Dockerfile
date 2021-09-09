@@ -30,7 +30,7 @@ LABEL vendor="IBM" \
   org.label-schema.name="ibm storage odf operator" \
   org.label-schema.vcs-ref=$VCS_REF \
   org.label-schema.vcs-url=$VCS_URL \
-  org.label-schema.schema-version="0.2.0" \
+  org.label-schema.schema-version="0.2.1" \
   summary="IBM Storage ODF Operator" \
   description="operator and driver of ibm storage systems for openshift data foundation (ODF)"
 
