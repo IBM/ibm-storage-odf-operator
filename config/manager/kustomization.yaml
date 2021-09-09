@@ -14,4 +14,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: docker.io/ibmcom/ibm-storage-odf-operator
-  newTag: 0.1.0-b96b942
+  newTag: 0.2.0
