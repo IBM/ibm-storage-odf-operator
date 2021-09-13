@@ -17,7 +17,7 @@ spec:
         subsystem_vendor: IBM
         subsystem_type: FlashSystem
     - expr: |
-        sum by (subsystem_name,namespace,subsystem_vendor,subsystem_type) (flashsystem_pool_capacity_usable_bytes{subsystem_name="flashsystem-subsystem-name-template"}+flashsystem_pool_capacity_used_bytes)
+        sum by (subsystem_name,namespace,subsystem_vendor,subsystem_type) (flashsystem_pool_capacity_usable_bytes{subsystem_name="flashsystem-subsystem-name-template"}+flashsystem_pool_capacity_used_bytes{subsystem_name="flashsystem-subsystem-name-template"})
       record: odf_system_raw_capacity_total_bytes
       labels: 
         subsystem_vendor: IBM
@@ -29,13 +29,13 @@ spec:
         subsystem_vendor: IBM
         subsystem_type: FlashSystem
     - expr: |
-        sum by (subsystem_name,namespace,subsystem_vendor,subsystem_type) (flashsystem_subsystem_rd_iops{subsystem_name="flashsystem-subsystem-name-template"}+flashsystem_subsystem_wr_iops)
+        sum by (subsystem_name,namespace,subsystem_vendor,subsystem_type) (flashsystem_subsystem_rd_iops{subsystem_name="flashsystem-subsystem-name-template"}+flashsystem_subsystem_wr_iops{subsystem_name="flashsystem-subsystem-name-template"})
       record: odf_system_iops_total_bytes
       labels: 
         subsystem_vendor: IBM
         subsystem_type: FlashSystem
     - expr: |
-        sum by (subsystem_name,namespace,subsystem_vendor,subsystem_type) (flashsystem_subsystem_rd_bytes{subsystem_name="flashsystem-subsystem-name-template"}+flashsystem_subsystem_wr_bytes)
+        sum by (subsystem_name,namespace,subsystem_vendor,subsystem_type) (flashsystem_subsystem_rd_bytes{subsystem_name="flashsystem-subsystem-name-template"}+flashsystem_subsystem_wr_bytes{subsystem_name="flashsystem-subsystem-name-template"})
       record: odf_system_throughput_total_bytes
       labels: 
         subsystem_vendor: IBM
