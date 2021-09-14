@@ -17,6 +17,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 
@@ -31,11 +32,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
+	console "github.com/IBM/ibm-storage-odf-operator/console"
 	"github.com/IBM/ibm-storage-odf-operator/controllers"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/storageclass"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
+	consolev1alpha1 "github.com/openshift/api/console/v1alpha1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	//+kubebuilder:scaffold:imports
 )
@@ -50,6 +54,7 @@ func init() {
 
 	utilruntime.Must(monitoringv1.AddToScheme(scheme))
 	utilruntime.Must(odfv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(consolev1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -57,11 +62,13 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
+	var consolePort int
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.IntVar(&consolePort, "console-port", 9003, "The port where the IBM console server will be serving it's payload")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -93,6 +100,19 @@ func main() {
 	dynamicClient, err := controllers.GetIBMBlockCSIDynamicClient(mgr.GetConfig())
 	if err != nil {
 		setupLog.Error(err, "unable to create CSI discovery client")
+		os.Exit(1)
+	}
+
+	setupLog.Info("starting console")
+	if err := mgr.Add(manager.RunnableFunc(func(context.Context) error {
+		err = console.InitConsole(mgr.GetClient(), consolePort)
+		if err != nil {
+			setupLog.Error(err, "unable to Initialize ODF Console")
+			os.Exit(1)
+		}
+		return nil
+	})); err != nil {
+		setupLog.Error(err, "unable to Initialize ODF Console")
 		os.Exit(1)
 	}
 
