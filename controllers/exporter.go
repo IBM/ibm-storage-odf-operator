@@ -409,6 +409,7 @@ func getPrometheusRules(instance *odfv1alpha1.FlashSystemCluster) (*monitoringv1
 		for j, rule := range group.Rules {
 			if rule.Expr.Type == intstr.String {
 				promRule.Spec.Groups[i].Rules[j].Expr.StrVal = strings.ReplaceAll(rule.Expr.StrVal, template, instance.Name)
+				promRule.Spec.Groups[i].Rules[j].Labels["managedBy"] = instance.Name
 			}
 		}
 	}
