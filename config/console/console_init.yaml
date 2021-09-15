@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: console
+spec:
+  selector:
+    matchLabels:
+      app: ibm-odf-console
+  template:
+    metadata:
+      labels:
+        app: ibm-odf-console
+    spec:
+      containers:
+        - name: ibm-odf-console
+          image: ibm-console:latest
+          resources:
+            limits:
+              cpu: "50m"
+              memory: "100Mi"
+          ports:
+            - containerPort: 9003
+              protocol: TCP
+          args:
+            - "--ssl"
+            - "--cert=/var/serving-cert/tls.crt"
+            - "--key=/var/serving-cert/tls.key"
+          volumeMounts:
+            - name: ibm-odf-console-serving-cert
+              mountPath: /var/serving-cert
+              readOnly: true
+      volumes:
+        - name: ibm-odf-console-serving-cert
+          secret:
+            secretName: ibm-odf-console-serving-cert
