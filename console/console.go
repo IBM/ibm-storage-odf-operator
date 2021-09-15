@@ -109,7 +109,7 @@ func InitConsole(client client.Client, consolePort int) error {
 		return err
 	}
 	// Create IBM Console Plugin
-	ibmConsolePlugin := GetConsolePluginCR("ibm-odf-console", "IBM Plugin", consolePort, ibmService.ObjectMeta.Name, deployment.ObjectMeta)
+	ibmConsolePlugin := GetConsolePluginCR("ibm-storage-odf-plugin", "IBM Plugin", consolePort, ibmService.ObjectMeta.Name, deployment.ObjectMeta)
 	if err := client.Create(context.TODO(), &ibmConsolePlugin); err != nil && !errors.IsAlreadyExists(err) {
 		return err
 	}
