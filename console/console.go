@@ -115,3 +115,22 @@ func InitConsole(client client.Client, consolePort int) error {
 	}
 	return nil
 }
+
+// ensure plugin is cleaned when uninstall operator
+func RemoveConsole(client client.Client) error {
+	consolePlugin := consolev1alpha1.ConsolePlugin{}
+	if err := client.Get(context.TODO(), types.NamespacedName{
+		Name:      "ibm-storage-odf-plugin",
+		Namespace: DEPLOYMENT_NAMESPACE,
+	}, &consolePlugin); err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	// Delete ibm consoleplugin
+	if err := client.Delete(context.TODO(), &consolePlugin); err != nil {
+		return err
+	}
+	return nil
+}

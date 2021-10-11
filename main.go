@@ -154,4 +154,9 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+
+	setupLog.Info("removing console plugin CR")
+	if err := console.RemoveConsole(mgr.GetClient()); err != nil {
+		setupLog.Error(err, "problem removing console plugin")
+	}
 }
