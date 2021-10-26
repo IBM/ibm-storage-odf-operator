@@ -17,7 +17,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"os"
 
@@ -32,13 +31,13 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	console "github.com/IBM/ibm-storage-odf-operator/console"
 	"github.com/IBM/ibm-storage-odf-operator/controllers"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/storageclass"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
+	configv1 "github.com/openshift/api/config/v1"
 	consolev1alpha1 "github.com/openshift/api/console/v1alpha1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	//+kubebuilder:scaffold:imports
@@ -55,6 +54,7 @@ func init() {
 	utilruntime.Must(monitoringv1.AddToScheme(scheme))
 	utilruntime.Must(odfv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(consolev1alpha1.AddToScheme(scheme))
+	utilruntime.Must(configv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -103,19 +103,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	setupLog.Info("starting console")
-	if err := mgr.Add(manager.RunnableFunc(func(context.Context) error {
-		err = console.InitConsole(mgr.GetClient(), consolePort)
-		if err != nil {
-			setupLog.Error(err, "unable to Initialize ODF Console")
-			os.Exit(1)
-		}
-		return nil
-	})); err != nil {
-		setupLog.Error(err, "unable to Initialize ODF Console")
-		os.Exit(1)
-	}
-
 	if err = (&controllers.FlashSystemClusterReconciler{
 		Client:           mgr.GetClient(),
 		CSIDynamicClient: dynamicClient,
@@ -138,6 +125,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err = (&controllers.ClusterVersionReconciler{
+		Client:      mgr.GetClient(),
+		Scheme:      mgr.GetScheme(),
+		ConsolePort: consolePort,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ClusterVersion")
+		os.Exit(1)
+	}
+
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
@@ -156,7 +152,7 @@ func main() {
 	}
 
 	setupLog.Info("removing console plugin CR")
-	if err := console.RemoveConsole(mgr.GetClient()); err != nil {
+	if err := console.RemoveConsole(mgr.GetClient(), ns); err != nil {
 		setupLog.Error(err, "problem removing console plugin")
 	}
 }
