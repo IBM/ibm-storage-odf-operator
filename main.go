@@ -17,6 +17,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 
@@ -31,6 +32,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	console "github.com/IBM/ibm-storage-odf-operator/console"
@@ -39,6 +41,7 @@ import (
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	configv1 "github.com/openshift/api/config/v1"
 	consolev1alpha1 "github.com/openshift/api/console/v1alpha1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	//+kubebuilder:scaffold:imports
 )
@@ -55,6 +58,7 @@ func init() {
 	utilruntime.Must(odfv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(consolev1alpha1.AddToScheme(scheme))
 	utilruntime.Must(configv1.AddToScheme(scheme))
+	utilruntime.Must(operatorv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -131,6 +135,19 @@ func main() {
 		ConsolePort: consolePort,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterVersion")
+		os.Exit(1)
+	}
+
+	setupLog.Info("enable console")
+	if err := mgr.Add(manager.RunnableFunc(func(context.Context) error {
+		err = console.EnableIBMConsoleByDefault(mgr.GetClient())
+		if err != nil {
+			setupLog.Error(err, "unable to enable IBM Console")
+			os.Exit(1)
+		}
+		return nil
+	})); err != nil {
+		setupLog.Error(err, "unable to Initialize IBM Console")
 		os.Exit(1)
 	}
 

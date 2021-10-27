@@ -172,6 +172,12 @@ rules:
   - patch
   - update
 - apiGroups:
+  - operator.openshift.io
+  resources:
+  - consoles
+  verbs:
+  - '*'
+- apiGroups:
   - security.openshift.io
   resources:
   - securitycontextconstraints

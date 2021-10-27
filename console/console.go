@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	consolev1alpha1 "github.com/openshift/api/console/v1alpha1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -96,6 +97,7 @@ func GetConsolePluginCR(consolePort int, basePath string, serviceNamespace strin
 //+kubebuilder:rbac:groups="apps",resources=deployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=console.openshift.io,resources=consoleplugins,verbs=*
+//+kubebuilder:rbac:groups=operator.openshift.io,resources=consoles,verbs=*
 
 // ensure plugin is cleaned when uninstall operator
 func RemoveConsole(client client.Client, namespace string) error {
@@ -121,4 +123,35 @@ func GetBasePath(clusterVersion string) string {
 	}
 
 	return MAIN_BASE_PATH
+}
+
+func EnableIBMConsoleByDefault(client client.Client) error {
+	var err error
+	ibmConsoleName := "ibm-storage-odf-plugin"
+	consoleCluster := operatorv1.Console{}
+	if err = client.Get(context.TODO(), types.NamespacedName{
+		Name: "cluster",
+	}, &consoleCluster); err != nil {
+		return err
+	}
+	consolePlugins := consoleCluster.Spec.Plugins
+	if !IsContain(consolePlugins, ibmConsoleName) {
+		consolePlugins = append(consolePlugins, ibmConsoleName)
+		consoleCluster.Spec.Plugins = consolePlugins
+		err = client.Update(context.TODO(), &consoleCluster)
+	}
+
+	return err
+}
+
+func IsContain(items []string, item string) bool {
+	if len(items) == 0 {
+		return false
+	}
+	for _, eachItem := range items {
+		if eachItem == item {
+			return true
+		}
+	}
+	return false
 }
