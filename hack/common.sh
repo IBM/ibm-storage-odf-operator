@@ -28,7 +28,7 @@ DEFAULT_BLOCK_CSI_RELEASE="v1.5.0"
 DEFAULT_BLOCK_CSI_CR_FILE="csi.ibm.com_v1_ibmblockcsi_cr.yaml"
 
 VCS_URL="https://github.com/IBM/ibm-storage-odf-operator"
-VCS_REF="0.2.1-$(git rev-parse --short HEAD)"
+VCS_REF="1.0.0-$(git rev-parse --short HEAD)"
 RELEASE_VERSION=$(cat version/version.go | grep "Version =" | awk -F '"' '{print $2}')
 
 CHANNELS="stable-v1"

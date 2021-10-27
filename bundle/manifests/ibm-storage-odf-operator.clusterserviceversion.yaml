@@ -33,8 +33,8 @@ metadata:
     operators.operatorframework.io/builder: operator-sdk-v1.4.0+git
     operators.operatorframework.io/operator-type: non-standalone
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
-    olm.skipRange: '>=0.0.1 <0.2.1'
-  name: ibm-storage-odf-operator.v0.2.1
+    olm.skipRange: '>=0.0.1 <1.0.0'
+  name: ibm-storage-odf-operator.v1.0.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -220,6 +220,12 @@ spec:
                 - patch
                 - update
             - apiGroups:
+                - operator.openshift.io
+              resources:
+                - consoles
+              verbs:
+                - '*'
+            - apiGroups:
                 - security.openshift.io
               resources:
                 - securitycontextconstraints
@@ -269,7 +275,7 @@ spec:
                       - --ssl
                       - --cert=/var/serving-cert/tls.crt
                       - --key=/var/serving-cert/tls.key
-                    image: docker.io/ibmcom/ibm-storage-odf-plugin:0.2.1
+                    image: docker.io/ibmcom/ibm-storage-odf-plugin:1.0.0
                     name: ibm-odf-console
                     ports:
                       - containerPort: 9003
@@ -319,12 +325,12 @@ spec:
                       - /manager
                     env:
                       - name: EXPORTER_IMAGE
-                        value: docker.io/ibmcom/ibm-storage-odf-block-driver:latest
+                        value: docker.io/ibmcom/ibm-storage-odf-block-driver:1.0.0
                       - name: WATCH_NAMESPACE
                         valueFrom:
                           fieldRef:
                             fieldPath: metadata.annotations['olm.targetNamespaces']
-                    image: docker.io/ibmcom/ibm-storage-odf-operator:latest
+                    image: docker.io/ibmcom/ibm-storage-odf-operator:1.0.0
                     imagePullPolicy: Always
                     livenessProbe:
                       httpGet:
@@ -375,7 +381,7 @@ spec:
                       - --ssl
                       - --cert=/var/serving-cert/tls.crt
                       - --key=/var/serving-cert/tls.key
-                    image: docker.io/ibmcom/ibm-storage-odf-plugin:0.2.1
+                    image: docker.io/ibmcom/ibm-storage-odf-plugin:1.0.0
                     name: ibm-odf-console
                     ports:
                       - containerPort: 9003
@@ -447,4 +453,4 @@ spec:
   maturity: alpha
   provider:
     name: IBM
-  version: 0.2.1
+  version: 1.0.0
