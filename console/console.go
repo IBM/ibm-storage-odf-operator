@@ -54,13 +54,6 @@ func GetService(port int, namespace string) *apiv1.Service {
 			Labels: map[string]string{
 				"app": "ibm-odf-console",
 			},
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: "apps/v1",
-					Kind:       "Deployment",
-					Name:       "ibm-odf-console",
-				},
-			},
 		},
 		Spec: apiv1.ServiceSpec{
 			Ports: []apiv1.ServicePort{

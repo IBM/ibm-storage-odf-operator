@@ -259,39 +259,6 @@ spec:
                 - create
           serviceAccountName: ibm-storage-odf-operator
       deployments:
-        - name: ibm-odf-console
-          spec:
-            selector:
-              matchLabels:
-                app: ibm-odf-console
-            strategy: {}
-            template:
-              metadata:
-                labels:
-                  app: ibm-odf-console
-              spec:
-                containers:
-                  - args:
-                      - --ssl
-                      - --cert=/var/serving-cert/tls.crt
-                      - --key=/var/serving-cert/tls.key
-                    image: docker.io/ibmcom/ibm-storage-odf-plugin:1.0.0
-                    name: ibm-odf-console
-                    ports:
-                      - containerPort: 9003
-                        protocol: TCP
-                    resources:
-                      limits:
-                        cpu: 50m
-                        memory: 100Mi
-                    volumeMounts:
-                      - mountPath: /var/serving-cert
-                        name: ibm-odf-console-serving-cert
-                        readOnly: true
-                volumes:
-                  - name: ibm-odf-console-serving-cert
-                    secret:
-                      secretName: ibm-odf-console-serving-cert
         - name: ibm-storage-odf-operator
           spec:
             replicas: 1
@@ -377,11 +344,7 @@ spec:
                   app: ibm-odf-console
               spec:
                 containers:
-                  - args:
-                      - --ssl
-                      - --cert=/var/serving-cert/tls.crt
-                      - --key=/var/serving-cert/tls.key
-                    image: docker.io/ibmcom/ibm-storage-odf-plugin:1.0.0
+                  - image: docker.io/ibmcom/ibm-storage-odf-plugin:1.0.0
                     name: ibm-odf-console
                     ports:
                       - containerPort: 9003
