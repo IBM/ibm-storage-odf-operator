@@ -11,7 +11,7 @@ require (
 	k8s.io/api v0.21.0-rc.0
 	k8s.io/apimachinery v0.21.0-rc.0
 	k8s.io/client-go v0.20.2
-	sigs.k8s.io/controller-runtime v0.7.2
+	sigs.k8s.io/controller-runtime v0.8.3
 )
 
 replace (

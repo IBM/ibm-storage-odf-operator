@@ -18,8 +18,10 @@ package console
 
 import (
 	"context"
+	"strings"
 
 	consolev1alpha1 "github.com/openshift/api/console/v1alpha1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -29,15 +31,25 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const DEPLOYMENT_NAMESPACE = "openshift-storage"
+const MAIN_BASE_PATH = ""
+const COMPATIBILITY_BASE_PATH = "compatibility"
 
-func GetService(serviceName string, port int, owner metav1.ObjectMeta) apiv1.Service {
-	return apiv1.Service{
+func GetDeployment(namespace string) *appsv1.Deployment {
+	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      serviceName + "-service",
-			Namespace: DEPLOYMENT_NAMESPACE,
+			Name:      "ibm-odf-console",
+			Namespace: namespace,
+		},
+	}
+}
+
+func GetService(port int, namespace string) *apiv1.Service {
+	return &apiv1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ibm-odf-console-service",
+			Namespace: namespace,
 			Annotations: map[string]string{
-				"service.alpha.openshift.io/serving-cert-secret-name": serviceName + "-serving-cert",
+				"service.alpha.openshift.io/serving-cert-secret-name": "ibm-odf-console-serving-cert",
 			},
 			Labels: map[string]string{
 				"app": "ibm-odf-console",
@@ -47,7 +59,6 @@ func GetService(serviceName string, port int, owner metav1.ObjectMeta) apiv1.Ser
 					APIVersion: "apps/v1",
 					Kind:       "Deployment",
 					Name:       "ibm-odf-console",
-					UID:        owner.UID,
 				},
 			},
 		},
@@ -67,24 +78,16 @@ func GetService(serviceName string, port int, owner metav1.ObjectMeta) apiv1.Ser
 	}
 }
 
-func GetConsolePluginCR(pluginName string, displayName string, consolePort int, serviceName string, owner metav1.ObjectMeta) consolev1alpha1.ConsolePlugin {
-	return consolev1alpha1.ConsolePlugin{
+func GetConsolePluginCR(consolePort int, basePath string, serviceNamespace string) *consolev1alpha1.ConsolePlugin {
+	return &consolev1alpha1.ConsolePlugin{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: pluginName,
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: "apps/v1",
-					Kind:       "Deployment",
-					Name:       "ibm-odf-console",
-					UID:        owner.UID,
-				},
-			},
+			Name: "ibm-storage-odf-plugin",
 		},
 		Spec: consolev1alpha1.ConsolePluginSpec{
-			DisplayName: displayName,
+			DisplayName: "IBM Plugin",
 			Service: consolev1alpha1.ConsolePluginService{
-				Name:      serviceName,
-				Namespace: DEPLOYMENT_NAMESPACE,
+				Name:      "ibm-odf-console-service",
+				Namespace: serviceNamespace,
 				Port:      int32(consolePort),
 			},
 		},
@@ -94,24 +97,61 @@ func GetConsolePluginCR(pluginName string, displayName string, consolePort int, 
 //+kubebuilder:rbac:groups="apps",resources=deployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=console.openshift.io,resources=consoleplugins,verbs=*
+//+kubebuilder:rbac:groups=operator.openshift.io,resources=consoles,verbs=*
 
-func InitConsole(client client.Client, consolePort int) error {
-	deployment := appsv1.Deployment{}
+// ensure plugin is cleaned when uninstall operator
+func RemoveConsole(client client.Client, namespace string) error {
+	consolePlugin := consolev1alpha1.ConsolePlugin{}
 	if err := client.Get(context.TODO(), types.NamespacedName{
-		Name:      "ibm-odf-console",
-		Namespace: DEPLOYMENT_NAMESPACE,
-	}, &deployment); err != nil {
+		Name:      "ibm-storage-odf-plugin",
+		Namespace: namespace,
+	}, &consolePlugin); err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
 		return err
 	}
-	// Create IBM console Service
-	ibmService := GetService("ibm-odf-console", consolePort, deployment.ObjectMeta)
-	if err := client.Create(context.TODO(), &ibmService); err != nil && !errors.IsAlreadyExists(err) {
-		return err
-	}
-	// Create IBM Console Plugin
-	ibmConsolePlugin := GetConsolePluginCR("ibm-storage-odf-plugin", "IBM Plugin", consolePort, ibmService.ObjectMeta.Name, deployment.ObjectMeta)
-	if err := client.Create(context.TODO(), &ibmConsolePlugin); err != nil && !errors.IsAlreadyExists(err) {
+	// Delete ibm consoleplugin
+	if err := client.Delete(context.TODO(), &consolePlugin); err != nil {
 		return err
 	}
 	return nil
+}
+func GetBasePath(clusterVersion string) string {
+	if strings.Contains(clusterVersion, "4.10") {
+		return COMPATIBILITY_BASE_PATH
+	}
+
+	return MAIN_BASE_PATH
+}
+
+func EnableIBMConsoleByDefault(client client.Client) error {
+	var err error
+	ibmConsoleName := "ibm-storage-odf-plugin"
+	consoleCluster := operatorv1.Console{}
+	if err = client.Get(context.TODO(), types.NamespacedName{
+		Name: "cluster",
+	}, &consoleCluster); err != nil {
+		return err
+	}
+	consolePlugins := consoleCluster.Spec.Plugins
+	if !IsContain(consolePlugins, ibmConsoleName) {
+		consolePlugins = append(consolePlugins, ibmConsoleName)
+		consoleCluster.Spec.Plugins = consolePlugins
+		err = client.Update(context.TODO(), &consoleCluster)
+	}
+
+	return err
+}
+
+func IsContain(items []string, item string) bool {
+	if len(items) == 0 {
+		return false
+	}
+	for _, eachItem := range items {
+		if eachItem == item {
+			return true
+		}
+	}
+	return false
 }

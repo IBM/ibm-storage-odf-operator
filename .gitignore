@@ -8,7 +8,8 @@
 bin
 testbin/*
 build
-bundle
+vendor
+#bundle
 
 # Test binary, build with `go test -c`
 *.test

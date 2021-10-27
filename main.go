@@ -39,7 +39,9 @@ import (
 	"github.com/IBM/ibm-storage-odf-operator/controllers"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/storageclass"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
+	configv1 "github.com/openshift/api/config/v1"
 	consolev1alpha1 "github.com/openshift/api/console/v1alpha1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	//+kubebuilder:scaffold:imports
 )
@@ -55,6 +57,8 @@ func init() {
 	utilruntime.Must(monitoringv1.AddToScheme(scheme))
 	utilruntime.Must(odfv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(consolev1alpha1.AddToScheme(scheme))
+	utilruntime.Must(configv1.AddToScheme(scheme))
+	utilruntime.Must(operatorv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -103,19 +107,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	setupLog.Info("starting console")
-	if err := mgr.Add(manager.RunnableFunc(func(context.Context) error {
-		err = console.InitConsole(mgr.GetClient(), consolePort)
-		if err != nil {
-			setupLog.Error(err, "unable to Initialize ODF Console")
-			os.Exit(1)
-		}
-		return nil
-	})); err != nil {
-		setupLog.Error(err, "unable to Initialize ODF Console")
-		os.Exit(1)
-	}
-
 	if err = (&controllers.FlashSystemClusterReconciler{
 		Client:           mgr.GetClient(),
 		CSIDynamicClient: dynamicClient,
@@ -138,6 +129,28 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err = (&controllers.ClusterVersionReconciler{
+		Client:      mgr.GetClient(),
+		Scheme:      mgr.GetScheme(),
+		ConsolePort: consolePort,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ClusterVersion")
+		os.Exit(1)
+	}
+
+	setupLog.Info("enable console")
+	if err := mgr.Add(manager.RunnableFunc(func(context.Context) error {
+		err = console.EnableIBMConsoleByDefault(mgr.GetClient())
+		if err != nil {
+			setupLog.Error(err, "unable to enable IBM Console")
+			os.Exit(1)
+		}
+		return nil
+	})); err != nil {
+		setupLog.Error(err, "unable to Initialize IBM Console")
+		os.Exit(1)
+	}
+
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
@@ -153,5 +166,10 @@ func main() {
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
+	}
+
+	setupLog.Info("removing console plugin CR")
+	if err := console.RemoveConsole(mgr.GetClient(), ns); err != nil {
+		setupLog.Error(err, "problem removing console plugin")
 	}
 }
