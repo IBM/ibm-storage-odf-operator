@@ -81,6 +81,7 @@ jobs:
 
     - name: generate bundle manifests and metadata
       run: |
+        export IMAGE_TAG=${{ steps.tag.outputs.version-without-v || 'dev' }}
         make bundle
 
     # Build and (optionally) push the operator bundle image
