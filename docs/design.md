@@ -4,8 +4,7 @@
 ## Summary
 
 The Open Data Foundation (ODF) Driver for IBM Storage enables ODF monitoring
-and managing IBM Storage systems. In north bound, this operator will implement the
-interface with ODF. In south bound, it will manage [IBM block CSI operator](https://github.com/IBM/ibm-block-csi-operator) and [IBM Storage ODF Block driver](https://github.com/IBM/ibm-storage-odf-block-driver).
+and managing IBM Storage systems. In north bound, this operator will implement the interface with ODF. In south bound, it will manage [IBM block CSI operator](https://github.com/IBM/ibm-block-csi-operator) and [IBM Storage ODF Block driver](https://github.com/IBM/ibm-storage-odf-block-driver).
 
 ## Motivation
 
