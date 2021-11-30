@@ -51,7 +51,9 @@ const (
 	fsSecretPasswdKey   = "password"
 	fsSecretEndPointKey = "management_address"
 
+    // #nosec
 	CredentialHashAnnotation  = "odf.ibm.com/credential-hash"
+	// #nosec
 	CredentialResourceVersion = "odf.ibm.com/credential-resource-version"
 
 	flashsystemPrometheusRuleFilepath = "/prometheus-rules/prometheus-flashsystem-rules.yaml"
