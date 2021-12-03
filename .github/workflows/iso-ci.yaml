@@ -83,6 +83,7 @@ jobs:
       run: |
         export IMAGE_TAG=${{ steps.tag.outputs.version-without-v || 'dev' }}
         make bundle
+        rm -rf ./bundle/manifests/ibm-storage-odf-operator_v1_serviceaccount.yaml
 
     # Build and (optionally) push the operator bundle image
     - name: build the operator bundle image
