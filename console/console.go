@@ -31,8 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const MAIN_BASE_PATH = ""
-const COMPATIBILITY_BASE_PATH = "compatibility"
+const MAIN_BASE_PATH = "/"
+const COMPATIBILITY_BASE_PATH = "/compatibility/"
 
 func GetDeployment(namespace string) *appsv1.Deployment {
 	return &appsv1.Deployment{
@@ -82,6 +82,7 @@ func GetConsolePluginCR(consolePort int, basePath string, serviceNamespace strin
 				Name:      "ibm-odf-console-service",
 				Namespace: serviceNamespace,
 				Port:      int32(consolePort),
+				BasePath:  basePath,
 			},
 		},
 	}
@@ -111,7 +112,7 @@ func RemoveConsole(client client.Client, namespace string) error {
 	return nil
 }
 func GetBasePath(clusterVersion string) string {
-	if strings.Contains(clusterVersion, "4.10") {
+	if strings.Contains(clusterVersion, "4.11") {
 		return COMPATIBILITY_BASE_PATH
 	}
 
