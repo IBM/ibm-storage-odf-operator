@@ -35,11 +35,14 @@ LABEL vendor="IBM" \
   summary="IBM Storage ODF Operator" \
   description="operator and driver of ibm storage systems for openshift data foundation (ODF)"
 
+
+FROM gcr.io/distroless/static:nonroot
 WORKDIR /
 COPY --from=builder /workspace/manager /manager
-# COPY RULES
 COPY /rules/*.yaml /prometheus-rules/
 RUN mkdir /licenses
 COPY /LICENSE /licenses/
+
+USER 1001
 
 ENTRYPOINT ["/manager"]
