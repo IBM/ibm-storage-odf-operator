@@ -42,4 +42,14 @@ COPY /rules/*.yaml /prometheus-rules/
 RUN mkdir /licenses
 COPY /LICENSE /licenses/
 
+
+ENV USER_UID=1001 \
+    USER_NAME=ibm-storage-odf-operator
+
+COPY hack/user_setup /usr/local/bin/user_setup
+RUN chmod 777 /usr/local/bin/user_setup
+RUN  /usr/local/bin/user_setup
+
+USER ${USER_UID}
+
 ENTRYPOINT ["/manager"]
