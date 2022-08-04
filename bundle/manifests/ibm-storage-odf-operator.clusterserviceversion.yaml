@@ -292,12 +292,12 @@ spec:
                       - /manager
                     env:
                       - name: EXPORTER_IMAGE
-                        value: docker.io/ibmcom/ibm-storage-odf-block-driver:1.0.2
+                        value: docker.io/ibmcom/ibm-storage-odf-block-driver:1.1.0
                       - name: WATCH_NAMESPACE
                         valueFrom:
                           fieldRef:
                             fieldPath: metadata.annotations['olm.targetNamespaces']
-                    image: docker.io/ibmcom/ibm-storage-odf-operator:1.0.2
+                    image: docker.io/ibmcom/ibm-storage-odf-operator:1.1.0
                     imagePullPolicy: Always
                     livenessProbe:
                       httpGet:
@@ -344,7 +344,7 @@ spec:
                   app: ibm-odf-console
               spec:
                 containers:
-                  - image: docker.io/ibmcom/ibm-storage-odf-plugin:1.0.2
+                  - image: docker.io/ibmcom/ibm-storage-odf-plugin:1.1.0
                     name: ibm-odf-console
                     ports:
                       - containerPort: 9003
