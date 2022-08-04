@@ -35,7 +35,7 @@ dependencies:
   - type: olm.package
     value:
       packageName: ibm-block-csi-operator
-      version: ">=1.5.0"
+      version: ">=1.9.0"
 EOF
 
 echo "Generating bundle manifests and metadata..."
