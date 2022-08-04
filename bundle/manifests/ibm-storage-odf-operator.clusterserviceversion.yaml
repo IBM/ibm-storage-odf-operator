@@ -33,8 +33,8 @@ metadata:
     operators.operatorframework.io/builder: operator-sdk-v1.4.0+git
     operators.operatorframework.io/operator-type: non-standalone
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
-    olm.skipRange: '>=0.0.1 <1.0.2'
-  name: ibm-storage-odf-operator.v1.0.2
+    olm.skipRange: '>=0.0.1 <1.2.0'
+  name: ibm-storage-odf-operator.v1.2.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -292,12 +292,12 @@ spec:
                       - /manager
                     env:
                       - name: EXPORTER_IMAGE
-                        value: docker.io/ibmcom/ibm-storage-odf-block-driver:1.0.2
+                        value: docker.io/ibmcom/ibm-storage-odf-block-driver:1.2.0
                       - name: WATCH_NAMESPACE
                         valueFrom:
                           fieldRef:
                             fieldPath: metadata.annotations['olm.targetNamespaces']
-                    image: docker.io/ibmcom/ibm-storage-odf-operator:1.0.2
+                    image: docker.io/ibmcom/ibm-storage-odf-operator:1.2.0
                     imagePullPolicy: Always
                     livenessProbe:
                       httpGet:
@@ -344,7 +344,7 @@ spec:
                   app: ibm-odf-console
               spec:
                 containers:
-                  - image: docker.io/ibmcom/ibm-storage-odf-plugin:1.0.2
+                  - image: docker.io/ibmcom/ibm-storage-odf-plugin:1.2.0
                     name: ibm-odf-console
                     ports:
                       - containerPort: 9003
@@ -416,4 +416,4 @@ spec:
   maturity: alpha
   provider:
     name: IBM
-  version: 1.0.2
+  version: 1.2.0
