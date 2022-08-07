@@ -31,8 +31,8 @@ VCS_URL="https://github.com/IBM/ibm-storage-odf-operator"
 VCS_REF="1.3.0-$(git rev-parse --short HEAD)"
 RELEASE_VERSION=$(cat version/version.go | grep "Version =" | awk -F '"' '{print $2}')
 
-CHANNELS="stable-v1"
-DEFAULT_CHANNEL="stable-v1"
+CHANNELS="stable-v1.3"
+DEFAULT_CHANNEL="stable-v1.3"
 
 GO111MODULE="on"
 GOPROXY="https://proxy.golang.org"
