@@ -21,11 +21,13 @@ import (
 	"fmt"
 	"reflect"
 
+	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/storageclass"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	"github.com/go-logr/logr"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -159,6 +161,30 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 	} else {
 		return result, nil
 	}
+}
+
+// deleteSecret deletes the secret with the input given name and all of its versions.
+func deleteSecret(name string) error {
+	// name := "ibm-flashsystem-storage-alon-secret-test"
+
+	// Create the client.
+	ctx := context.Background()
+	client, err := secretmanager.NewClient(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to create secretmanager client: %v", err)
+	}
+	defer client.Close()
+
+	// Build the request.
+	req := &secretmanagerpb.DeleteSecretRequest{
+		Name: name,
+	}
+
+	// Call the API.
+	if err := client.DeleteSecret(ctx, req); err != nil {
+		return fmt.Errorf("failed to delete secret: %v", err)
+	}
+	return nil
 }
 
 func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSystemCluster) (ctrl.Result, error) {
