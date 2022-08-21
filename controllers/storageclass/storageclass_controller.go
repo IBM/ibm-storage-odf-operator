@@ -17,7 +17,10 @@
 package storageclass
 
 import (
+	"bytes"
 	"context"
+	"fmt"
+	"github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -116,6 +119,9 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 		return result, err
 	}
 
+	flashSystemCluster, err := r.getFlashSystemClusterByStorageClass(sc)
+	r.Log.Info(fmt.Sprintf("found flashSystemCluster %v \n", flashSystemCluster))
+
 	// Check GetDeletionTimestamp to determine if the object is under deletion
 	if !sc.GetDeletionTimestamp().IsZero() {
 		r.Log.Info("Object is terminated")
@@ -151,6 +157,47 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 	r.Log.Info("Reconciling StorageClass")
 
 	return result, nil
+}
+
+func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.StorageClass) (v1alpha1.FlashSystemCluster, error) {
+	r.Log.Info("Looking for flashSystemCluster by storageClass", "sc", sc.Name)
+	storageClassSecret := &corev1.Secret{}
+	foundCluster := v1alpha1.FlashSystemCluster{}
+	err := r.Client.Get(context.Background(),
+		types.NamespacedName{
+			Namespace: sc.Parameters[util.SecretNamespace],
+			Name:      sc.Parameters[util.SecretName]},
+		storageClassSecret)
+	if err != nil {
+		r.Log.Error(nil, "failed to find storageClass secret", "sc", sc.Name)
+		return foundCluster, err
+	}
+	secretManagementAddress := storageClassSecret.Data[util.SecretManagementAddress]
+	r.Log.Info(fmt.Sprintf("found sc management address is %v \n", secretManagementAddress))
+
+	clusters := &v1alpha1.FlashSystemClusterList{}
+	err = r.Client.List(context.Background(), clusters)
+	if err != nil {
+		r.Log.Error(nil, "failed to list FlashSystemClusterList", "sc", sc.Name)
+		return foundCluster, err
+	}
+
+	for _, c := range clusters.Items {
+		clusterSecret := &corev1.Secret{}
+		err = r.Client.Get(context.Background(),
+			types.NamespacedName{
+				Namespace: c.Spec.Secret.Namespace,
+				Name:      c.Spec.Secret.Name},
+			clusterSecret)
+		clusterSecretManagement := clusterSecret.Data[util.SecretManagementAddress]
+		secretsEqual := bytes.Compare(clusterSecretManagement, secretManagementAddress)
+		if secretsEqual == 0 {
+			r.Log.Info("found storageClass with a matching secret address", "sc", c.Name)
+			return c, nil
+		}
+	}
+	r.Log.Error(nil, "failed to match storageClass to flashSystemCluster item", "sc", sc.Name)
+	return foundCluster, fmt.Errorf("failed to match storageClass to flashSystemCluster item")
 }
 
 func InitScPoolConfigMap(ns string) *corev1.ConfigMap {
