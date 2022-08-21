@@ -120,7 +120,9 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 	}
 
 	flashSystemCluster, err := r.getFlashSystemClusterByStorageClass(sc)
-	r.Log.Info(fmt.Sprintf("found flashSystemCluster %v \n", flashSystemCluster))
+	if err != nil {
+		r.Log.Info(fmt.Sprintf("found flashSystemCluster %v \n", flashSystemCluster))
+	}
 
 	// Check GetDeletionTimestamp to determine if the object is under deletion
 	if !sc.GetDeletionTimestamp().IsZero() {
@@ -173,7 +175,6 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 		return foundCluster, err
 	}
 	secretManagementAddress := storageClassSecret.Data[util.SecretManagementAddress]
-	r.Log.Info(fmt.Sprintf("found sc management address is %v \n", secretManagementAddress))
 
 	clusters := &v1alpha1.FlashSystemClusterList{}
 	err = r.Client.List(context.Background(), clusters)
