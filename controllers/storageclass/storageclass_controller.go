@@ -17,9 +17,11 @@
 package storageclass
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
+	"github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
+
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -119,7 +121,7 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 		return result, err
 	}
 
-	if flashSystemCluster, err := r.getFlashsystemClusterByStorageclass(*sc); err == nil {
+	if flashSystemCluster, fscErr := r.getFlashSystemClusterByStorageClass(sc); fscErr == nil {
 		fscName := flashSystemCluster.GetName()
 		fscSecretName := flashSystemCluster.Spec.Secret.Name
 		r.Log.Info("FlashsystemCluster found", "flashsystemcluster", fscName)
@@ -166,6 +168,50 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 		r.Log.Info("Cannot find FlashsystemCluster for StorageClass", "sc", request.Name)
 	}
 	return result, nil
+}
+
+func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.StorageClass) (v1alpha1.FlashSystemCluster, error) {
+	r.Log.Info("Looking for flashSystemCluster by storageClass", "sc", sc.Name)
+	storageClassSecret := &corev1.Secret{}
+	foundCluster := v1alpha1.FlashSystemCluster{}
+	err := r.Client.Get(context.Background(),
+		types.NamespacedName{
+			Namespace: sc.Parameters[util.SecretNamespaceKey],
+			Name:      sc.Parameters[util.SecretNameKey]},
+		storageClassSecret)
+	if err != nil {
+		r.Log.Error(nil, "failed to find storageClass secret", "sc", sc.Name)
+		return foundCluster, err
+	}
+	secretManagementAddress := storageClassSecret.Data[util.SecretManagementAddress]
+
+	clusters := &v1alpha1.FlashSystemClusterList{}
+	err = r.Client.List(context.Background(), clusters)
+	if err != nil {
+		r.Log.Error(nil, "failed to list FlashSystemClusterList", "sc", sc.Name)
+		return foundCluster, err
+	}
+
+	for _, c := range clusters.Items {
+		clusterSecret := &corev1.Secret{}
+		err = r.Client.Get(context.Background(),
+			types.NamespacedName{
+				Namespace: c.Spec.Secret.Namespace,
+				Name:      c.Spec.Secret.Name},
+			clusterSecret)
+		if err != nil {
+			r.Log.Error(nil, "failed to FlashSystemCluster secret", "sc", c.Name)
+			return foundCluster, err
+		}
+		clusterSecretManagement := clusterSecret.Data[util.SecretManagementAddress]
+		secretsEqual := bytes.Compare(clusterSecretManagement, secretManagementAddress)
+		if secretsEqual == 0 {
+			r.Log.Info("found storageClass with a matching secret address", "sc", c.Name)
+			return c, nil
+		}
+	}
+	r.Log.Error(nil, "failed to match storageClass to flashSystemCluster item", "sc", sc.Name)
+	return foundCluster, fmt.Errorf("failed to match storageClass to flashSystemCluster item")
 }
 
 func InitScPoolConfigMap(ns string) *corev1.ConfigMap {
@@ -231,22 +277,4 @@ func (r *StorageClassWatcher) updateConfigmap() error {
 	}
 
 	return nil
-}
-
-func (r *StorageClassWatcher) getFlashsystemClusterByStorageclass(sc storagev1.StorageClass) (odfv1alpha1.FlashSystemCluster, error) {
-	clusters := &odfv1alpha1.FlashSystemClusterList{}
-	err := r.Client.List(context.TODO(), clusters)
-
-	if err != nil {
-		r.Log.Error(err, "failed to list flashsystemcluster", "StorageclassWatcher", r)
-		return odfv1alpha1.FlashSystemCluster{}, err
-	}
-
-	for _, c := range clusters.Items {
-		// todo tal: change if statement to use secret management address comparison
-		if c.Spec.Secret.Name == sc.Parameters["csi.storage.k8s.io/provisioner-secret-name"] {
-			return c, nil
-		}
-	}
-	return odfv1alpha1.FlashSystemCluster{}, fmt.Errorf("storageclass is not belong to any flashsystemcluster")
 }
