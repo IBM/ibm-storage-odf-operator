@@ -30,6 +30,10 @@ const (
 
 	CsiIBMBlockDriver = "block.csi.ibm.com"
 	CsiIBMBlockScPool = "pool"
+
+	SecretNameKey           = "csi.storage.k8s.io/provisioner-secret-name"
+	SecretNamespaceKey      = "csi.storage.k8s.io/provisioner-secret-namespace"
+	SecretManagementAddress = "management_address"
 )
 
 type ScPoolMap struct {
