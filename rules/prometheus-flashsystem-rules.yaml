@@ -59,7 +59,7 @@ spec:
             subsystem_vendor: IBM
             subsystem_type: FlashSystem
         - expr: |
-            sum by (subsystem_name,namespace,subsystem_vendor,subsystem_type) (flashsystem_pool_logical_capacity_usable_bytes{subsystem_name="flashsystem-subsystem-name-template"}+(flashsystem_pool_logical_capacity_used_bytes{subsystem_name="flashsystem-subsystem-name-template"})
+            sum by (subsystem_name,namespace,subsystem_vendor,subsystem_type) (flashsystem_pool_logical_capacity_usable_bytes{subsystem_name="flashsystem-subsystem-name-template"}+flashsystem_pool_logical_capacity_used_bytes{subsystem_name="flashsystem-subsystem-name-template"})
           record: odf_system_pool_logical_capacity_total_bytes
           labels:
             subsystem_vendor: IBM
@@ -77,7 +77,7 @@ spec:
             subsystem_vendor: IBM
             subsystem_type: FlashSystem
         - expr: |
-            sum by (subsystem_name,namespace,subsystem_vendor,subsystem_type) (flashsystem_pool_capacity_usable_bytes{subsystem_name="flashsystem-subsystem-name-template"}+(flashsystem_pool_capacity_used_bytes{subsystem_name="flashsystem-subsystem-name-template"})
+            sum by (subsystem_name,namespace,subsystem_vendor,subsystem_type) (flashsystem_pool_capacity_usable_bytes{subsystem_name="flashsystem-subsystem-name-template"}+flashsystem_pool_capacity_used_bytes{subsystem_name="flashsystem-subsystem-name-template"})
           record: odf_system_pool_physical_capacity_total_bytes
           labels:
             subsystem_vendor: IBM
@@ -87,7 +87,7 @@ spec:
         - alert: FlashsystemClusterErrorState
           annotations:
             description: Subsystem storage "{{$labels.subsystem_name}}" in error state.
-            message: Subsystem storage "{{$labels.subsystem_name}}" is in error state
+            message: 'Subsystem storage "{{$labels.subsystem_name}}" is in error state'
             severity_level: error
             storage_type: ibm_flashsystem
           expr: |
@@ -98,7 +98,7 @@ spec:
         - alert: FlashsystemClusterWarningState
           annotations:
             description: Subsystem storage "{{$labels.subsystem_name}}" in warning state for more than 5m.
-            message: Subsystem storage "{{$labels.subsystem_name}}" is in warning state
+            message: 'Subsystem storage "{{$labels.subsystem_name}}" is in warning state'
             severity_level: warning
             storage_type: ibm_flashsystem
           expr: |
@@ -109,7 +109,7 @@ spec:
         - alert: FlashsystemMgrIsAbsent
           annotations:
             description: Subsystem storage manager "{{$labels.service}}" has disappeared from Prometheus target discovery.Please check the pod  {{$labels.pod}} logs to find out the cause.
-            message: Storage subsystem "{{$labels.service}}" metrics collector services is not available.
+            message: 'Storage subsystem "{{$labels.service}}" metrics collector services is not available.'
             severity_level: error
             storage_type: ibm_flashsystem
           expr: |
@@ -120,7 +120,7 @@ spec:
         - alert: FlashSystemStoragePhysicalCapacityNearFull
           annotations:
             description: Subsystem storage system "{{$labels.subsystem_name}}" physical capacity utilization has crossed warning threshold for more than 5m.
-            message: Subsystem storage system "{{$labels.subsystem_name}}" physical capacity is nearing full. Data deletion or expansion is required.
+            message: 'Subsystem storage system "{{$labels.subsystem_name}}" physical capacity is nearing full. Data deletion or expansion is required.'
             severity_level: warning
             storage_type: ibm_flashsystem
           expr: |
@@ -133,7 +133,7 @@ spec:
         - alert: FlashsystemPoolWarningState
           annotations:
             description: Subsystem storage "{{$labels.subsystem_name}}", pool "{{$labels.pool_name}}" is in degraded status for more than 5m.
-            message: "Subsystem storage pool is in degraded state."
+            message: 'Subsystem storage pool "{{$labels.pool_name}}" is in degraded state.'
             severity_level: warning
             storage_type: ibm_flashsystem
           expr: |
@@ -144,7 +144,7 @@ spec:
         - alert: FlashsystemPoolErrorState
           annotations:
             description: Subsystem storage "{{$labels.subsystem_name}}", pool "{{$labels.pool_name}}" is offline.
-            message: "Subsystem storage pool is in offline state."
+            message: 'Subsystem storage pool "{{$labels.pool_name}}" is in offline state.'
             severity_level: error
             storage_type: ibm_flashsystem
           expr: |
@@ -157,7 +157,7 @@ spec:
         - alert: FlashSystemPoolPhysicalCapacityNearFull
           annotations:
             description: Subsystem storage "{{$labels.subsystem_name}}", pool "{{$labels.pool_name}}" physical capacity utilization has crossed warning threshold for more than 5m.
-            message: Subsystem storage "{{$labels.subsystem_name}}" on pool "{{$labels.pool_name}}" physical capacity is nearing full. Data deletion or pool expansion is required.
+            message: 'Subsystem storage "{{$labels.subsystem_name}}" on pool "{{$labels.pool_name}}" physical capacity is nearing full. Data deletion or pool expansion is required.'
             severity_level: warning
             storage_type: ibm_flashsystem
           expr: |
@@ -168,7 +168,7 @@ spec:
         - alert: FlashSystemPoolLogicalCapacityNearFull
           annotations:
             description: Subsystem storage "{{$labels.subsystem_name}}", pool "{{$labels.pool_name}}" logical capacity utilization has crossed warning threshold for more than 5m.
-            message: Subsystem storage "{{$labels.subsystem_name}}" on pool "{{$labels.pool_name}}" logical capacity is nearing full. Data deletion or pool expansion is required.
+            message: 'Subsystem storage "{{$labels.subsystem_name}}" on pool "{{$labels.pool_name}}" logical capacity is nearing full. Data deletion or pool expansion is required.'
             severity_level: warning
             storage_type: ibm_flashsystem
           expr: |
