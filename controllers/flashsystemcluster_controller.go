@@ -19,15 +19,11 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"reflect"
-
-	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/storageclass"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	"github.com/go-logr/logr"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -36,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
+	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -163,30 +160,6 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 }
 
-// deleteSecret deletes the secret with the input given name and all of its versions.
-func deleteSecret(name string) error {
-	// name := "ibm-flashsystem-storage-alon-secret-test"
-
-	// Create the client.
-	ctx := context.Background()
-	client, err := secretmanager.NewClient(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to create secretmanager client: %v", err)
-	}
-	defer client.Close()
-
-	// Build the request.
-	req := &secretmanagerpb.DeleteSecretRequest{
-		Name: name,
-	}
-
-	// Call the API.
-	if err := client.DeleteSecret(ctx, req); err != nil {
-		return fmt.Errorf("failed to delete secret: %v", err)
-	}
-	return nil
-}
-
 func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSystemCluster) (ctrl.Result, error) {
 	var err error
 
@@ -216,6 +189,33 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 			}
 		}
 		r.Log.Info("Object is terminated, skipping reconciliation")
+		return reconcile.Result{}, nil
+	}
+	// Reading the secret, if it has ownership then skip, else update the secret with details of the FlashSystemCluster
+	secret := &corev1.Secret{}
+	err = r.Client.Get(
+		context.TODO(),
+		types.NamespacedName{Name: instance.Spec.Secret.Name, Namespace: instance.Spec.Secret.Namespace},
+		secret)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			r.Log.Info("Secret not found")
+			return reconcile.Result{}, nil
+		}
+		return reconcile.Result{}, err
+	}
+	if secret.OwnerReferences == nil {
+		r.Log.Info("Secret does not have an owner reference, adding it now.")
+		secret.OwnerReferences[0].Kind = instance.Kind
+		secret.OwnerReferences[0].Name = instance.Name
+		secret.OwnerReferences[0].UID = instance.UID
+		secret.OwnerReferences[0].APIVersion = instance.APIVersion
+		err := r.Client.Update(context.TODO(), secret)
+		if err != nil {
+			r.Log.Error(err, "Update Error: Failed to update secret with owner reference")
+			return reconcile.Result{}, err
+		}
 		return reconcile.Result{}, nil
 	}
 
