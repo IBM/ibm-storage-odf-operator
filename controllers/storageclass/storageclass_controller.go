@@ -183,7 +183,7 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 		r.Log.Error(nil, "failed to find storageClass secret", "sc", sc.Name)
 		return foundCluster, err
 	}
-	secretManagementAddress := storageClassSecret.Data[util.SecretManagementAddress]
+	secretManagementAddress := storageClassSecret.Data[util.SecretManagementAddressKey]
 
 	clusters := &v1alpha1.FlashSystemClusterList{}
 	err = r.Client.List(context.Background(), clusters)
@@ -203,7 +203,7 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 			r.Log.Error(nil, "failed to FlashSystemCluster secret", "sc", c.Name)
 			return foundCluster, err
 		}
-		clusterSecretManagement := clusterSecret.Data[util.SecretManagementAddress]
+		clusterSecretManagement := clusterSecret.Data[util.SecretManagementAddressKey]
 		secretsEqual := bytes.Compare(clusterSecretManagement, secretManagementAddress)
 		if secretsEqual == 0 {
 			r.Log.Info("found storageClass with a matching secret address", "sc", c.Name)

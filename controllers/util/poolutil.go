@@ -25,16 +25,15 @@ import (
 )
 
 const (
-	PoolConfigmapName      = "ibm-flashsystem-pools"
+	PoolConfigmapName     = "ibm-flashsystem-pools"
 	FSCConfigmapMountPath = "/config"
-	PoolConfigmapKey       = "pools"
 
 	CsiIBMBlockDriver = "block.csi.ibm.com"
 	CsiIBMBlockScPool = "pool"
 
-	SecretNameKey           = "csi.storage.k8s.io/provisioner-secret-name"
-	SecretNamespaceKey      = "csi.storage.k8s.io/provisioner-secret-namespace"
-	SecretManagementAddress = "management_address"
+	SecretNameKey              = "csi.storage.k8s.io/provisioner-secret-name"
+	SecretNamespaceKey         = "csi.storage.k8s.io/provisioner-secret-namespace"
+	SecretManagementAddressKey = "management_address"
 )
 
 type FlashSystemClusterMapContent struct {
