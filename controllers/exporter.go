@@ -51,8 +51,8 @@ const (
 	fsSecretPasswdKey   = "password"
 	fsSecretEndPointKey = "management_address"
 
-    // #nosec
-	CredentialHashAnnotation  = "odf.ibm.com/credential-hash"
+	// #nosec
+	CredentialHashAnnotation = "odf.ibm.com/credential-hash"
 	// #nosec
 	CredentialResourceVersion = "odf.ibm.com/credential-resource-version"
 
@@ -263,7 +263,7 @@ func InitExporterDeployment(
 								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
-								{Name: "storageclass-pool", MountPath: util.PoolConfigmapMountPath},
+								{Name: "storageclass-pool", MountPath: util.FSCConfigmapMountPath},
 							},
 							LivenessProbe: &corev1.Probe{
 								Handler: corev1.Handler{

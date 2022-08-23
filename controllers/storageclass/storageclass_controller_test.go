@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	"time"
 
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
@@ -91,6 +92,31 @@ var _ = Describe("StorageClassWatcher", func() {
 
 			Expect(k8sClient.Create(ctx, sec)).Should(Succeed())
 
+			By("By creating a new flashsystemcluster")
+			instance := &odfv1alpha1.FlashSystemCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      FlashSystemName,
+					Namespace: namespace,
+				},
+				Spec: odfv1alpha1.FlashSystemClusterSpec{
+					Name: FlashSystemName,
+					Secret: corev1.SecretReference{
+						Name:      secretName,
+						Namespace: namespace,
+					},
+					InsecureSkipVerify: true,
+					DefaultPool: &odfv1alpha1.StorageClassConfig{
+						StorageClassName: storageClassName,
+						PoolName:         poolName,
+						FsType:           fsType,
+						VolumeNamePrefix: volPrefix,
+						SpaceEfficiency:  spaceEff,
+					},
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, instance)).Should(Succeed())
+
 			By("By querying the created Secret")
 			secLookupKey := types.NamespacedName{
 				Name:      secretName,
@@ -150,10 +176,10 @@ var _ = Describe("StorageClassWatcher", func() {
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
-			var sp util.ScPoolMap
-			err := json.Unmarshal([]byte(createdCm.Data[util.PoolConfigmapKey]), &sp)
+			var sp util.FlashSystemClusterMapContent
+			err := json.Unmarshal([]byte(createdCm.Data[FlashSystemName]), &sp)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(sp.ScPool[storageClassName]).Should(Equal(poolName))
+			Expect(sp.ScPoolMap[storageClassName]).Should(Equal(poolName))
 			fmt.Println("created ConfigMap: ", createdCm, sp)
 
 			By("By deleting StorageClass")
@@ -182,11 +208,11 @@ var _ = Describe("StorageClassWatcher", func() {
 					return false
 				}
 
-				var sp util.ScPoolMap
-				err = json.Unmarshal([]byte(createdCm.Data[util.PoolConfigmapKey]), &sp)
+				var sp util.FlashSystemClusterMapContent
+				err = json.Unmarshal([]byte(createdCm.Data[FlashSystemName]), &sp)
 				Expect(err).ToNot(HaveOccurred())
 
-				_, ok := sp.ScPool[storageClassName]
+				_, ok := sp.ScPoolMap[storageClassName]
 				return !ok
 			}, timeout, interval).Should(BeTrue())
 		})
