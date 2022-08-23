@@ -107,7 +107,7 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 		if errors.IsNotFound(err) {
 			r.Log.Info("StorageClass not found", "sc", request.Name)
 			for _, fscContent := range r.FlashSystemClusterMap {
-				delete(fscContent.ScPoolMap, request.Name)}
+				delete(fscContent.ScPoolMap, request.Name)
 			}
 			err = r.updateConfigmap()
 			if err != nil {
