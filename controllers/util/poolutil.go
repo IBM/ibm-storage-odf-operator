@@ -58,9 +58,9 @@ func GenerateFSCConfigmapContent(sp FSCConfigMapData) (map[string]string, error)
 	return configMapContent, nil
 }
 
-func ReadPoolConfigMapFile() ([]FlashSystemClusterMapContent, error) {
-	var fscContents []FlashSystemClusterMapContent
-	var fscContent FlashSystemClusterMapContent
+func ReadPoolConfigMapFile() (map[string]FlashSystemClusterMapContent, error) {
+	var flashSystemClustersMap map[string]FlashSystemClusterMapContent
+	var flashSystemClusterContent FlashSystemClusterMapContent
 	fscPath := FSCConfigmapMountPath + "/"
 
 	files, err := ioutil.ReadDir(fscPath)
@@ -70,15 +70,15 @@ func ReadPoolConfigMapFile() ([]FlashSystemClusterMapContent, error) {
 
 	for _, file := range files {
 		if !file.IsDir() && !strings.HasPrefix(file.Name(), ".") {
-			fscContent, err = getFileContent(filepath.Join(fscPath, file.Name()))
+			flashSystemClusterContent, err = getFileContent(filepath.Join(fscPath, file.Name()))
 			if err != nil {
-				return fscContents, err
+				return flashSystemClustersMap, err
 			} else {
-				fscContents = append(fscContents, fscContent)
+				flashSystemClustersMap[file.Name()] = flashSystemClusterContent
 			}
 		}
 	}
-	return fscContents, nil
+	return flashSystemClustersMap, nil
 }
 
 func getFileContent(filePath string) (FlashSystemClusterMapContent, error) {
