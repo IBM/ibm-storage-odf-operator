@@ -59,7 +59,7 @@ func GenerateFSCConfigmapContent(sp FSCConfigMapData) (map[string]string, error)
 }
 
 func ReadPoolConfigMapFile() (map[string]FlashSystemClusterMapContent, error) {
-	var flashSystemClustersMap map[string]FlashSystemClusterMapContent
+	var flashSystemClustersMap = make(map[string]FlashSystemClusterMapContent)
 	var flashSystemClusterContent FlashSystemClusterMapContent
 	fscPath := FSCConfigmapMountPath + "/"
 
