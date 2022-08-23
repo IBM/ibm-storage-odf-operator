@@ -206,7 +206,7 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 		return reconcile.Result{}, err
 	}
 	if secret.OwnerReferences == nil {
-		r.Log.Info("Secret does not have an owner reference, adding it now.")
+		r.Log.Info("FlashSystemCluster Secret does not have an owner reference, adding it now.")
 		secret.OwnerReferences[0].Kind = instance.Kind
 		secret.OwnerReferences[0].Name = instance.Name
 		secret.OwnerReferences[0].UID = instance.UID
