@@ -28,6 +28,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
@@ -207,10 +208,14 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 	}
 	if secret.OwnerReferences == nil {
 		r.Log.Info("FlashSystemCluster Secret does not have an owner reference, adding it now.")
-		secret.OwnerReferences[0].Kind = instance.Kind
-		secret.OwnerReferences[0].Name = instance.Name
-		secret.OwnerReferences[0].UID = instance.UID
-		secret.OwnerReferences[0].APIVersion = instance.APIVersion
+		// Creating an OwnerReference object with the info of the FlashSystemCluster for it to be the owner of the secret
+		newOwnerForSecret := v1.OwnerReference{
+			Name:       instance.Name,
+			Kind:       instance.Kind,
+			APIVersion: instance.APIVersion,
+			UID:        instance.UID,
+		}
+		secret.SetOwnerReferences([]v1.OwnerReference{newOwnerForSecret})
 		err := r.Client.Update(context.TODO(), secret)
 		if err != nil {
 			r.Log.Error(err, "Update Error: Failed to update secret with owner reference")
