@@ -41,7 +41,11 @@ const (
 	// FlashSystemClusterSpec.Name as resource name for multiple flashsystem clusters
 
 	ExporterClusterConfigMapMountPoint = "/cluster-configmap"
+	ExporterClusterConfigMapVolumeName = "storageclass-pool"
 	ServiceAccount                     = "ibm-storage-odf-operator"
+	fsServiceName                      = "ibm-flashsystem-storage-service"
+	fsDeploymentName                   = "ibm-flashsystem-storage-deployment"
+	fsServiceMonitorName               = "ibm-flashsystem-storage-service-monitor"
 
 	portMetrics    = "metrics"
 	scrapeInterval = "1m"
@@ -51,34 +55,36 @@ const (
 	fsSecretPasswdKey   = "password"
 	fsSecretEndPointKey = "management_address"
 
-	// #nosec
-	CredentialHashAnnotation = "odf.ibm.com/credential-hash"
-	// #nosec
-	CredentialResourceVersion = "odf.ibm.com/credential-resource-version"
+	CredentialHashAnnotation  = "odf.ibm.com/credential-hash"             // #nosec
+	CredentialResourceVersion = "odf.ibm.com/credential-resource-version" // #nosec
 
 	flashsystemPrometheusRuleFilepath = "/prometheus-rules/prometheus-flashsystem-rules.yaml"
 	// ruleName                          = "prometheus-flashsystem-rules"
+
 	// FlashsystemPrometheusRuleFileEnv is only for UT
 	FlashsystemPrometheusRuleFileEnv = "TEST_FS_PROM_RULE_FILE"
 )
 
 // TODO: wrapper func for deployment name translation from cluster name
-func getExporterDeploymentName(clusterName string) string {
-	return clusterName
+func getExporterDeploymentName() string {
+	return fsDeploymentName
 }
 
-func getExporterMetricsServiceName(clusterName string) string {
-	return clusterName
+func getExporterMetricsServiceName() string {
+	return fsServiceName
+}
+
+func getExporterMetricsServiceMonitorName() string {
+	return fsServiceMonitorName
 }
 
 func InitExporterMetricsService(instance *odfv1alpha1.FlashSystemCluster) *corev1.Service {
-
-	name := getExporterMetricsServiceName(instance.Name)
+	serviceName := getExporterMetricsServiceName()
 	labels := util.GetLabels(instance.Name)
 
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name:      serviceName,
 			Namespace: instance.Namespace,
 			Labels:    labels,
 			OwnerReferences: []metav1.OwnerReference{
@@ -154,7 +160,7 @@ func InitExporterDeployment(
 	name := instance.Name
 	var replicaOne int32 = 1
 
-	deploymentName := getExporterDeploymentName(name)
+	deploymentName := getExporterDeploymentName()
 	labels := util.GetLabels(instance.Name)
 
 	secretDataHash, err := util.CalculateDataHash(secret.Data)
@@ -263,7 +269,7 @@ func InitExporterDeployment(
 								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
-								{Name: "storageclass-pool", MountPath: util.FSCConfigmapMountPath},
+								{Name: ExporterClusterConfigMapVolumeName, MountPath: util.FSCConfigmapMountPath},
 							},
 							LivenessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
@@ -294,7 +300,7 @@ func InitExporterDeployment(
 					ServiceAccountName: ServiceAccount,
 					Volumes: []corev1.Volume{
 						{
-							Name: "storageclass-pool",
+							Name: ExporterClusterConfigMapVolumeName,
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
@@ -311,7 +317,6 @@ func InitExporterDeployment(
 }
 
 func updateExporterDeployment(found *appsv1.Deployment, expected *appsv1.Deployment) *appsv1.Deployment {
-
 	if !reflect.DeepEqual(found.Spec, expected.Spec) {
 		updated := found.DeepCopy()
 		updated.Spec = *expected.Spec.DeepCopy()
@@ -326,7 +331,7 @@ func InitExporterMetricsServiceMonitor(instance *odfv1alpha1.FlashSystemCluster)
 
 	serviceMonitor := &monitoringv1.ServiceMonitor{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name,
+			Name:      fsServiceMonitorName,
 			Namespace: instance.Namespace,
 			Labels:    selectLabels,
 			OwnerReferences: []metav1.OwnerReference{

@@ -383,7 +383,7 @@ func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1a
 		r.Log.Error(err, "failed to get exporter image from pod env variable")
 	}
 
-	deploymentName := getExporterDeploymentName(instance.Name)
+	deploymentName := getExporterDeploymentName()
 
 	foundSecret := &corev1.Secret{}
 	err = r.Client.Get(
@@ -434,7 +434,7 @@ func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1a
 func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alpha1.FlashSystemCluster) error {
 
 	expectedService := InitExporterMetricsService(instance)
-	serviceName := getExporterMetricsServiceName(instance.Name)
+	serviceName := getExporterMetricsServiceName()
 	foundService := &corev1.Service{}
 
 	err := r.Client.Get(
@@ -462,13 +462,13 @@ func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alph
 }
 
 func (r *FlashSystemClusterReconciler) ensureExporterServiceMonitor(instance *odfv1alpha1.FlashSystemCluster) error {
-
 	expectedServiceMonitor := InitExporterMetricsServiceMonitor(instance)
+	serviceMonitorName := getExporterMetricsServiceMonitorName()
 	foundServiceMonitor := &monitoringv1.ServiceMonitor{}
 
 	err := r.Client.Get(
 		context.TODO(),
-		types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace},
+		types.NamespacedName{Name: serviceMonitorName, Namespace: instance.Namespace},
 		foundServiceMonitor)
 	if err != nil {
 		if errors.IsNotFound(err) {
