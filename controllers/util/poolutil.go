@@ -21,64 +21,74 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const (
-	PoolConfigmapName      = "ibm-flashsystem-pools"
-	PoolConfigmapMountPath = "/config"
-	PoolConfigmapKey       = "pools"
+	PoolConfigmapName     = "ibm-flashsystem-pools"
+	FSCConfigmapMountPath = "/config"
 
 	CsiIBMBlockDriver = "block.csi.ibm.com"
 	CsiIBMBlockScPool = "pool"
 
-	SecretNameKey           = "csi.storage.k8s.io/provisioner-secret-name"
-	SecretNamespaceKey      = "csi.storage.k8s.io/provisioner-secret-namespace"
-	SecretManagementAddress = "management_address"
+	SecretNameKey              = "csi.storage.k8s.io/provisioner-secret-name"      // #nosec G101 - false positive
+	SecretNamespaceKey         = "csi.storage.k8s.io/provisioner-secret-namespace" // #nosec G101 - false positive
+	SecretManagementAddressKey = "management_address"                              // #nosec G101 - false positive
 )
 
-type ScPoolMap struct {
-	ScPool map[string]string `json:"storageclass_pool,omitempty"`
+type FlashSystemClusterMapContent struct {
+	ScPoolMap map[string]string `json:"storageclass"`
+	Secret    string            `json:"secret"`
 }
 
-func GeneratePoolConfigmapContent(sp ScPoolMap) (string, error) {
+type FSCConfigMapData struct {
+	FlashSystemClusterMap map[string]FlashSystemClusterMapContent
+}
 
-	data, err := json.Marshal(sp)
-	if err != nil {
-		return "", err
+func GenerateFSCConfigmapContent(sp FSCConfigMapData) (map[string]string, error) {
+	var configMapContent = make(map[string]string)
+	for FSCName, FSCMapContent := range sp.FlashSystemClusterMap {
+		val, err := json.Marshal(FSCMapContent)
+		if err != nil {
+			return make(map[string]string), err
+		}
+		configMapContent[FSCName] = string(val)
 	}
 
-	return string(data), nil
+	return configMapContent, nil
 }
 
-func readPoolConfigMapFile() ([]byte, error) {
-	poolPath := filepath.Join(PoolConfigmapMountPath, PoolConfigmapKey)
+func ReadPoolConfigMapFile() (map[string]FlashSystemClusterMapContent, error) {
+	var flashSystemClustersMap = make(map[string]FlashSystemClusterMapContent)
+	var flashSystemClusterContent FlashSystemClusterMapContent
+	fscPath := FSCConfigmapMountPath + "/"
 
-	file, err := os.Open(poolPath) // For read access.
+	files, err := ioutil.ReadDir(fscPath)
 	if err != nil {
-		//		if os.IsNotExist(err) {
-		//			return "", nil
-		//		} else {
 		return nil, err
-		//		}
-	}
-	defer file.Close()
-
-	content, err := ioutil.ReadAll(file)
-	if err != nil {
-		return nil, err
 	}
 
-	return content, nil
+	for _, file := range files {
+		if !file.IsDir() && !strings.HasPrefix(file.Name(), ".") {
+			flashSystemClusterContent, err = getFileContent(filepath.Join(fscPath, file.Name()))
+			if err != nil {
+				return flashSystemClustersMap, err
+			} else {
+				flashSystemClustersMap[file.Name()] = flashSystemClusterContent
+			}
+		}
+	}
+	return flashSystemClustersMap, nil
 }
 
-func GetPoolConfigmapContent() (ScPoolMap, error) {
-	var sp ScPoolMap
-
-	content, err := readPoolConfigMapFile()
+func getFileContent(filePath string) (FlashSystemClusterMapContent, error) {
+	var fscContent FlashSystemClusterMapContent
+	fileReader, err := os.Open(filePath)
 	if err != nil {
-		return sp, err
+		return fscContent, err
 	}
 
-	err = json.Unmarshal(content, &sp)
-	return sp, err
+	fileContent, _ := ioutil.ReadAll(fileReader)
+	err = json.Unmarshal(fileContent, &fscContent)
+	return fscContent, err
 }
