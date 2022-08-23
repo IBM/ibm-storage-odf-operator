@@ -10,7 +10,7 @@ spec:
   groups:
     - name: odf-common.rules
       rules:
-        - expr: |
+        - expr: |Fflashsystem_subsystem_physical_usedF_capacity_bytes
             avg by (subsystem_name,namespace,subsystem_vendor,subsystem_type) (flashsystem_subsystem_health{subsystem_name="flashsystem-subsystem-name-template"})
           record: odf_system_health_status
           labels:
@@ -124,7 +124,7 @@ spec:
             severity_level: warning
             storage_type: ibm_flashsystem
           expr: |
-            flashsystem_subsystem_physical_used_capacity_bytes{subsystem_name="flashsystem-subsystem-name-template"}/flashsystem_subsystem_physical_total_capacity_bytes{subsystem_name="flashsystem-subsystem-name-template"}> flashsystem_pool_capacity_warning_threshold/100
+            flashsystem_subsystem_physical_used_capacity_bytes{subsystem_name="flashsystem-subsystem-name-template"}/flashsystem_subsystem_physical_total_capacity_bytes > flashsystem_pool_capacity_warning_threshold/100
           for: 5m
           labels:
             severity: warning
