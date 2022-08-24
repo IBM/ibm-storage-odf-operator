@@ -51,10 +51,6 @@ const (
 	scrapeInterval = "1m"
 	scrapeTimeout  = "20s"
 
-	fsSecretUserKey     = "username"
-	fsSecretPasswdKey   = "password"
-	fsSecretEndPointKey = "management_address"
-
 	CredentialHashAnnotation  = "odf.ibm.com/credential-hash"             // #nosec
 	CredentialResourceVersion = "odf.ibm.com/credential-resource-version" // #nosec
 
@@ -157,7 +153,6 @@ func InitExporterDeployment(
 	image string,
 	secret *corev1.Secret) (*appsv1.Deployment, error) {
 
-	name := instance.Name
 	var replicaOne int32 = 1
 
 	deploymentName := getExporterDeploymentName()
