@@ -213,7 +213,7 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 }
 
 func InitScPoolConfigMap(ns string) *corev1.ConfigMap {
-	selectLabels := util.GetLabels("")
+	selectLabels := util.GetLabels()
 
 	scPoolConfigMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

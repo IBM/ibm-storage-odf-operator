@@ -38,9 +38,9 @@ import (
 
 const (
 	// exporter related dependencies
-	// FlashSystemClusterSpec.Name as resource name for multiple flashsystem clusters
+	// FlashSystemClusterSpec.Name as resource name for multiple flashSystem clusters
 
-	ExporterClusterConfigMapMountPoint = "/cluster-configmap"
+	// ExporterClusterConfigMapMountPoint = "/cluster-configmap"
 	ExporterClusterConfigMapVolumeName = "storageclass-pool"
 	ServiceAccount                     = "ibm-storage-odf-operator"
 	fsServiceName                      = "ibm-flashsystem-storage-service"
@@ -76,7 +76,7 @@ func getExporterMetricsServiceMonitorName() string {
 
 func InitExporterMetricsService(instance *odfv1alpha1.FlashSystemCluster) *corev1.Service {
 	serviceName := getExporterMetricsServiceName()
-	labels := util.GetLabels(instance.Name)
+	labels := util.GetLabels()
 
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -139,7 +139,7 @@ func updateExporterMetricsService(foundService *corev1.Service, expectedService 
 				},
 			},
 		}
-		updatedService.Spec.Selector = util.GetLabels(foundService.Name)
+		updatedService.Spec.Selector = util.GetLabels()
 
 		return updatedService
 	}
@@ -156,7 +156,7 @@ func InitExporterDeployment(
 	var replicaOne int32 = 1
 
 	deploymentName := getExporterDeploymentName()
-	labels := util.GetLabels(instance.Name)
+	labels := util.GetLabels()
 
 	secretDataHash, err := util.CalculateDataHash(secret.Data)
 	if err != nil {
@@ -279,7 +279,7 @@ func updateExporterDeployment(found *appsv1.Deployment, expected *appsv1.Deploym
 }
 
 func InitExporterMetricsServiceMonitor(instance *odfv1alpha1.FlashSystemCluster) *monitoringv1.ServiceMonitor {
-	selectLabels := util.GetLabels(instance.Name)
+	selectLabels := util.GetLabels()
 
 	serviceMonitor := &monitoringv1.ServiceMonitor{
 		ObjectMeta: metav1.ObjectMeta{
@@ -352,7 +352,7 @@ func getPrometheusRules(instance *odfv1alpha1.FlashSystemCluster) (*monitoringv1
 	promRule.SetName(instance.Name)
 	promRule.SetNamespace(instance.Namespace)
 
-	labels := util.GetLabels(instance.Name)
+	labels := util.GetLabels()
 	updateLabels := promRule.GetLabels()
 	if updateLabels == nil {
 		updateLabels = labels

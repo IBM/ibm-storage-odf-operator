@@ -42,7 +42,7 @@ const (
 
 func InitK8sEvent(instance *odfv1alpha1.FlashSystemCluster, eventtype, reason, message string) *corev1.Event {
 	t := metav1.Time{Time: time.Now()}
-	selectLabels := GetLabels(instance.Name)
+	selectLabels := GetLabels()
 	return &corev1.Event{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%v.%x", instance.Name, t.UnixNano()),
