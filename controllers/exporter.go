@@ -203,49 +203,6 @@ func InitExporterDeployment(
 							Name:            deploymentName,
 							Image:           image,
 							ImagePullPolicy: pullPolicy,
-							Env: []corev1.EnvVar{
-								{
-									Name:  "FLASHSYSTEM_CLUSTERNAME",
-									Value: name,
-								},
-								{
-									Name:  util.WatchNamespaceEnvVar,
-									Value: instance.Namespace,
-								},
-								{
-									Name: "USERNAME",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: secret.Name,
-											},
-											Key: fsSecretUserKey,
-										},
-									},
-								},
-								{
-									Name: "PASSWORD",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: secret.Name,
-											},
-											Key: fsSecretPasswdKey,
-										},
-									},
-								},
-								{
-									Name: "REST_API_IP",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: secret.Name,
-											},
-											Key: fsSecretEndPointKey,
-										},
-									},
-								},
-							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceCPU:    resource.MustParse("0.5"),
