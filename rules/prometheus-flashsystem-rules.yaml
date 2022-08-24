@@ -124,7 +124,7 @@ spec:
             severity_level: warning
             storage_type: ibm_flashsystem
           expr: |
-            flashsystem_subsystem_physical_used_capacity_bytes{subsystem_name="flashsystem-subsystem-name-template"}/flashsystem_subsystem_physical_total_capacity_bytes{subsystem_name="flashsystem-subsystem-name-template"}> flashsystem_pool_capacity_warning_threshold/100
+            flashsystem_subsystem_physical_used_capacity_bytes{subsystem_name="flashsystem-subsystem-name-template"}/flashsystem_subsystem_physical_total_capacity_bytes > flashsystem_pool_capacity_warning_threshold/100
           for: 5m
           labels:
             severity: warning
