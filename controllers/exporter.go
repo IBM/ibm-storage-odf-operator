@@ -51,9 +51,6 @@ const (
 	scrapeInterval = "1m"
 	scrapeTimeout  = "20s"
 
-	CredentialHashAnnotation  = "odf.ibm.com/credential-hash"             // #nosec
-	CredentialResourceVersion = "odf.ibm.com/credential-resource-version" // #nosec
-
 	flashsystemPrometheusRuleFilepath = "/prometheus-rules/prometheus-flashsystem-rules.yaml"
 	// ruleName                          = "prometheus-flashsystem-rules"
 
@@ -150,23 +147,12 @@ func updateExporterMetricsService(foundService *corev1.Service, expectedService 
 func InitExporterDeployment(
 	instance *odfv1alpha1.FlashSystemCluster,
 	pullPolicy corev1.PullPolicy,
-	image string,
-	secret *corev1.Secret) (*appsv1.Deployment, error) {
+	image string) (*appsv1.Deployment, error) {
 
 	var replicaOne int32 = 1
 
 	deploymentName := getExporterDeploymentName()
 	labels := util.GetLabels()
-
-	secretDataHash, err := util.CalculateDataHash(secret.Data)
-	if err != nil {
-		return nil, err
-	}
-
-	annotations := map[string]string{
-		CredentialHashAnnotation:  secretDataHash,
-		CredentialResourceVersion: secret.ResourceVersion,
-	}
 
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -189,8 +175,7 @@ func InitExporterDeployment(
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels:      labels,
-					Annotations: annotations,
+					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{

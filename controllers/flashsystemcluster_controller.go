@@ -397,7 +397,7 @@ func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1a
 		return err
 	}
 
-	expectedDeployment, err := InitExporterDeployment(instance, corev1.PullIfNotPresent, exporterImg, foundSecret)
+	expectedDeployment, err := InitExporterDeployment(instance, corev1.PullIfNotPresent, exporterImg)
 	if err != nil {
 		return err
 	}
