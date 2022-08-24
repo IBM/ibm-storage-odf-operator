@@ -10,7 +10,7 @@ spec:
   groups:
     - name: odf-common.rules
       rules:
-        - expr: |Fflashsystem_subsystem_physical_usedF_capacity_bytes
+        - expr: |
             avg by (subsystem_name,namespace,subsystem_vendor,subsystem_type) (flashsystem_subsystem_health{subsystem_name="flashsystem-subsystem-name-template"})
           record: odf_system_health_status
           labels:
