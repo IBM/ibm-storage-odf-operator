@@ -183,6 +183,11 @@ func InitExporterDeployment(
 							Name:            deploymentName,
 							Image:           image,
 							ImagePullPolicy: pullPolicy,
+							Env: []corev1.EnvVar{
+								{
+									Name:  util.WatchNamespaceEnvVar,
+									Value: instance.Namespace,
+								}},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceCPU:    resource.MustParse("0.5"),
