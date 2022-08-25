@@ -208,7 +208,7 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 			exporterImg, err := util.GetExporterImage()
 			Expect(err).ToNot(HaveOccurred())
 
-			expectedDeployment, err := InitExporterDeployment(instance, corev1.PullIfNotPresent, exporterImg, createdSec)
+			expectedDeployment, err := InitExporterDeployment(instance, corev1.PullIfNotPresent, exporterImg)
 			Expect(err).ToNot(HaveOccurred())
 
 			// TODO: customize deep comparison
