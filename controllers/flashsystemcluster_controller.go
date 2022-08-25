@@ -416,11 +416,8 @@ func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1a
 		r.Log.Error(err, "failed to create exporter deployment")
 		return err
 	}
-	r.Log.Info(fmt.Sprintf("found deployment selector is %v \n expected deployment selector is %v \n", foundDeployment.Spec.Selector, expectedDeployment.Spec.Selector))
-	r.Log.Info(fmt.Sprintf("found deployment Template is %v \n expected deployment Template is %v \n", foundDeployment.Spec.Template, expectedDeployment.Spec.Template))
 
-	if reflect.DeepEqual(foundDeployment.Spec.Selector, expectedDeployment.Spec.Selector) &&
-		reflect.DeepEqual(foundDeployment.Spec.Template, expectedDeployment.Spec.Template) {
+	if reflect.DeepEqual(foundDeployment.Spec, expectedDeployment.Spec) {
 		r.Log.Info("existing exporter deployment is expected with no change")
 		return nil
 	}
