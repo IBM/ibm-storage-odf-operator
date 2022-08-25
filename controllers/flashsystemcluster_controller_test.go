@@ -188,7 +188,7 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 			Eventually(func() bool {
 				err := k8sClient.Get(
 					ctx,
-					types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace},
+					types.NamespacedName{Name: fsDeploymentName, Namespace: instance.Namespace},
 					createdDeployment)
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
@@ -220,7 +220,7 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 				err := k8sClient.Get(
 					ctx,
 					types.NamespacedName{
-						Name:      instance.Name,
+						Name:      fsServiceName,
 						Namespace: namespace,
 					},
 					createdService)
@@ -232,7 +232,7 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 				err := k8sClient.Get(
 					ctx,
 					types.NamespacedName{
-						Name:      instance.Name,
+						Name:      fsServiceMonitorName,
 						Namespace: namespace,
 					},
 					createdServiceMonitor)
