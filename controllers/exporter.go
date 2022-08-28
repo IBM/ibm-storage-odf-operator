@@ -38,47 +38,46 @@ import (
 
 const (
 	// exporter related dependencies
-	// FlashSystemClusterSpec.Name as resource name for multiple flashsystem clusters
+	// FlashSystemClusterSpec.Name as resource name for multiple flashSystem clusters
 
-	ExporterClusterConfigMapMountPoint = "/cluster-configmap"
+	// ExporterClusterConfigMapMountPoint = "/cluster-configmap"
+	ExporterClusterConfigMapVolumeName = "storageclass-pool"
 	ServiceAccount                     = "ibm-storage-odf-operator"
+	fsServiceName                      = "ibm-flashsystem-storage-service"
+	fsDeploymentName                   = "ibm-flashsystem-storage-deployment"
+	fsServiceMonitorName               = "ibm-flashsystem-storage-service-monitor"
 
 	portMetrics    = "metrics"
 	scrapeInterval = "1m"
 	scrapeTimeout  = "20s"
 
-	fsSecretUserKey     = "username"
-	fsSecretPasswdKey   = "password"
-	fsSecretEndPointKey = "management_address"
-
-	// #nosec
-	CredentialHashAnnotation = "odf.ibm.com/credential-hash"
-	// #nosec
-	CredentialResourceVersion = "odf.ibm.com/credential-resource-version"
-
 	flashsystemPrometheusRuleFilepath = "/prometheus-rules/prometheus-flashsystem-rules.yaml"
 	// ruleName                          = "prometheus-flashsystem-rules"
+
 	// FlashsystemPrometheusRuleFileEnv is only for UT
 	FlashsystemPrometheusRuleFileEnv = "TEST_FS_PROM_RULE_FILE"
 )
 
 // TODO: wrapper func for deployment name translation from cluster name
-func getExporterDeploymentName(clusterName string) string {
-	return clusterName
+func getExporterDeploymentName() string {
+	return fsDeploymentName
 }
 
-func getExporterMetricsServiceName(clusterName string) string {
-	return clusterName
+func getExporterMetricsServiceName() string {
+	return fsServiceName
+}
+
+func getExporterMetricsServiceMonitorName() string {
+	return fsServiceMonitorName
 }
 
 func InitExporterMetricsService(instance *odfv1alpha1.FlashSystemCluster) *corev1.Service {
-
-	name := getExporterMetricsServiceName(instance.Name)
-	labels := util.GetLabels(instance.Name)
+	serviceName := getExporterMetricsServiceName()
+	labels := util.GetLabels()
 
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name:      serviceName,
 			Namespace: instance.Namespace,
 			Labels:    labels,
 			OwnerReferences: []metav1.OwnerReference{
@@ -137,7 +136,7 @@ func updateExporterMetricsService(foundService *corev1.Service, expectedService 
 				},
 			},
 		}
-		updatedService.Spec.Selector = util.GetLabels(foundService.Name)
+		updatedService.Spec.Selector = util.GetLabels()
 
 		return updatedService
 	}
@@ -148,24 +147,12 @@ func updateExporterMetricsService(foundService *corev1.Service, expectedService 
 func InitExporterDeployment(
 	instance *odfv1alpha1.FlashSystemCluster,
 	pullPolicy corev1.PullPolicy,
-	image string,
-	secret *corev1.Secret) (*appsv1.Deployment, error) {
+	image string) (*appsv1.Deployment, error) {
 
-	name := instance.Name
 	var replicaOne int32 = 1
 
-	deploymentName := getExporterDeploymentName(name)
-	labels := util.GetLabels(instance.Name)
-
-	secretDataHash, err := util.CalculateDataHash(secret.Data)
-	if err != nil {
-		return nil, err
-	}
-
-	annotations := map[string]string{
-		CredentialHashAnnotation:  secretDataHash,
-		CredentialResourceVersion: secret.ResourceVersion,
-	}
+	deploymentName := getExporterDeploymentName()
+	labels := util.GetLabels()
 
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -188,8 +175,7 @@ func InitExporterDeployment(
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels:      labels,
-					Annotations: annotations,
+					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
@@ -199,47 +185,9 @@ func InitExporterDeployment(
 							ImagePullPolicy: pullPolicy,
 							Env: []corev1.EnvVar{
 								{
-									Name:  "FLASHSYSTEM_CLUSTERNAME",
-									Value: name,
-								},
-								{
 									Name:  util.WatchNamespaceEnvVar,
 									Value: instance.Namespace,
-								},
-								{
-									Name: "USERNAME",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: secret.Name,
-											},
-											Key: fsSecretUserKey,
-										},
-									},
-								},
-								{
-									Name: "PASSWORD",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: secret.Name,
-											},
-											Key: fsSecretPasswdKey,
-										},
-									},
-								},
-								{
-									Name: "REST_API_IP",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: secret.Name,
-											},
-											Key: fsSecretEndPointKey,
-										},
-									},
-								},
-							},
+								}},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceCPU:    resource.MustParse("0.5"),
@@ -263,7 +211,7 @@ func InitExporterDeployment(
 								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
-								{Name: "storageclass-pool", MountPath: util.FSCConfigmapMountPath},
+								{Name: ExporterClusterConfigMapVolumeName, MountPath: util.FSCConfigmapMountPath},
 							},
 							LivenessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
@@ -294,7 +242,7 @@ func InitExporterDeployment(
 					ServiceAccountName: ServiceAccount,
 					Volumes: []corev1.Volume{
 						{
-							Name: "storageclass-pool",
+							Name: ExporterClusterConfigMapVolumeName,
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
@@ -311,7 +259,6 @@ func InitExporterDeployment(
 }
 
 func updateExporterDeployment(found *appsv1.Deployment, expected *appsv1.Deployment) *appsv1.Deployment {
-
 	if !reflect.DeepEqual(found.Spec, expected.Spec) {
 		updated := found.DeepCopy()
 		updated.Spec = *expected.Spec.DeepCopy()
@@ -322,11 +269,11 @@ func updateExporterDeployment(found *appsv1.Deployment, expected *appsv1.Deploym
 }
 
 func InitExporterMetricsServiceMonitor(instance *odfv1alpha1.FlashSystemCluster) *monitoringv1.ServiceMonitor {
-	selectLabels := util.GetLabels(instance.Name)
+	selectLabels := util.GetLabels()
 
 	serviceMonitor := &monitoringv1.ServiceMonitor{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name,
+			Name:      fsServiceMonitorName,
 			Namespace: instance.Namespace,
 			Labels:    selectLabels,
 			OwnerReferences: []metav1.OwnerReference{
@@ -395,7 +342,7 @@ func getPrometheusRules(instance *odfv1alpha1.FlashSystemCluster) (*monitoringv1
 	promRule.SetName(instance.Name)
 	promRule.SetNamespace(instance.Namespace)
 
-	labels := util.GetLabels(instance.Name)
+	labels := util.GetLabels()
 	updateLabels := promRule.GetLabels()
 	if updateLabels == nil {
 		updateLabels = labels

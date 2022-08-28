@@ -49,10 +49,9 @@ func GetExporterImage() (string, error) {
 }
 
 // GetLabels returns the labels with cluster name
-func GetLabels(clusterName string) map[string]string {
+func GetLabels() map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/component": "ibm-storage-odf-operator",
-		"app.kubernetes.io/name":      clusterName,
 		"odf":                         "storage.ibm.com",
 	}
 }
