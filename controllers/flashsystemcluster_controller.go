@@ -257,18 +257,6 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 
 		return reconcile.Result{}, err
 	}
-	newOwnerDetails := v1.OwnerReference{
-		Name:       instance.Name,
-		Kind:       instance.Kind,
-		APIVersion: instance.APIVersion,
-		UID:        instance.UID,
-	}
-	// adding ownerReference to replicaSet
-	replicaSet := &appsv1.ReplicaSet{}
-	replicaSet.SetOwnerReferences(append(replicaSet.GetOwnerReferences(), newOwnerDetails))
-	// adding ownerReference to pod
-	pod := &corev1.Pod{}
-	pod.SetOwnerReferences(append(pod.GetOwnerReferences(), newOwnerDetails))
 
 	util.SetStatusCondition(&instance.Status.Conditions, odfv1alpha1.Condition{
 		Type:   odfv1alpha1.ExporterCreated,
