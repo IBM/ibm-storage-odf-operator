@@ -424,7 +424,7 @@ func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1a
 		return err
 	}
 	if reflect.DeepEqual(foundDeployment.Spec, expectedDeployment.Spec) {
-		r.Log.Info("existing exporter deployment is expected with no change")
+		r.Log.Info("existing exporter deployment is expected with no change, adding owner reference")
 		foundDeployment.SetOwnerReferences(append(foundDeployment.GetOwnerReferences(), newOwnerDetails))
 		return nil
 	}
@@ -458,16 +458,12 @@ func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alph
 		r.Log.Error(err, "failed to create exporter service")
 		return err
 	}
-	if reflect.DeepEqual(foundService.Spec, expectedService.Spec) {
-		r.Log.Info("existing exporter deployment is expected with no change")
-		foundService.SetOwnerReferences(append(foundService.GetOwnerReferences(), newOwnerDetails))
-		return nil
-	}
 
 	updatedService := updateExporterMetricsService(foundService, expectedService)
 	if updatedService == nil {
-		r.Log.Info("existing exporter service is expected with no change")
+		r.Log.Info("existing exporter service is expected with no change adding owner reference")
 		foundService.SetOwnerReferences(append(foundService.GetOwnerReferences(), newOwnerDetails))
+		r.Client.Update(context.TODO(), foundService)
 		return nil
 	}
 
@@ -494,16 +490,11 @@ func (r *FlashSystemClusterReconciler) ensureExporterServiceMonitor(instance *od
 		r.Log.Error(err, "failed to get exporter servicemonitor")
 		return err
 	}
-	if reflect.DeepEqual(foundServiceMonitor.Spec, expectedServiceMonitor.Spec) {
-		r.Log.Info("existing exporter deployment is expected with no change")
-		foundServiceMonitor.SetOwnerReferences(append(foundServiceMonitor.GetOwnerReferences(), newOwnerDetails))
-		return nil
-	}
-
 	updatedServiceMonitor := updateExporterMetricsServiceMonitor(foundServiceMonitor, expectedServiceMonitor)
 	if updatedServiceMonitor == nil {
-		r.Log.Info("existing exporter servicemonitor is expected with no change")
+		r.Log.Info("existing exporter servicemonitor is expected with no change, adding owner reference")
 		foundServiceMonitor.SetOwnerReferences(append(foundServiceMonitor.GetOwnerReferences(), newOwnerDetails))
+		r.Client.Update(context.TODO(), foundServiceMonitor)
 		return nil
 	}
 
