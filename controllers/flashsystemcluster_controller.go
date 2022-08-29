@@ -464,6 +464,12 @@ func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alph
 		APIVersion: instance.APIVersion,
 		UID:        instance.UID,
 	}
+	if reflect.DeepEqual(foundService.Spec, expectedService.Spec) {
+		r.Log.Info("existing exporter deployment is expected with no change")
+		foundService.SetOwnerReferences(append(foundService.GetOwnerReferences(), newOwnerDetails))
+		return nil
+	}
+
 	updatedService := updateExporterMetricsService(foundService, expectedService)
 	if updatedService == nil {
 		r.Log.Info("existing exporter service is expected with no change")
@@ -500,6 +506,12 @@ func (r *FlashSystemClusterReconciler) ensureExporterServiceMonitor(instance *od
 		APIVersion: instance.APIVersion,
 		UID:        instance.UID,
 	}
+	if reflect.DeepEqual(foundServiceMonitor.Spec, expectedServiceMonitor.Spec) {
+		r.Log.Info("existing exporter deployment is expected with no change")
+		foundServiceMonitor.SetOwnerReferences(append(foundServiceMonitor.GetOwnerReferences(), newOwnerDetails))
+		return nil
+	}
+
 	updatedServiceMonitor := updateExporterMetricsServiceMonitor(foundServiceMonitor, expectedServiceMonitor)
 	if updatedServiceMonitor == nil {
 		r.Log.Info("existing exporter servicemonitor is expected with no change")
