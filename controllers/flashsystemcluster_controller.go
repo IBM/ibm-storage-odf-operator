@@ -426,7 +426,7 @@ func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1a
 	if reflect.DeepEqual(foundDeployment.Spec, expectedDeployment.Spec) {
 		r.Log.Info("existing exporter deployment is expected with no change, adding owner reference")
 		foundDeployment.SetOwnerReferences(append(foundDeployment.GetOwnerReferences(), newOwnerDetails))
-		return nil
+		return r.Client.Update(context.TODO(), foundDeployment)
 	}
 
 	updatedDeployment := updateExporterDeployment(foundDeployment, expectedDeployment)
@@ -463,8 +463,8 @@ func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alph
 	if updatedService == nil {
 		r.Log.Info("existing exporter service is expected with no change adding owner reference")
 		foundService.SetOwnerReferences(append(foundService.GetOwnerReferences(), newOwnerDetails))
-		r.Client.Update(context.TODO(), foundService)
-		return nil
+		return r.Client.Update(context.TODO(), foundService)
+
 	}
 
 	r.Log.Info("update exporter service")
@@ -494,8 +494,7 @@ func (r *FlashSystemClusterReconciler) ensureExporterServiceMonitor(instance *od
 	if updatedServiceMonitor == nil {
 		r.Log.Info("existing exporter servicemonitor is expected with no change, adding owner reference")
 		foundServiceMonitor.SetOwnerReferences(append(foundServiceMonitor.GetOwnerReferences(), newOwnerDetails))
-		r.Client.Update(context.TODO(), foundServiceMonitor)
-		return nil
+		return r.Client.Update(context.TODO(), foundServiceMonitor)
 	}
 
 	r.Log.Info("update exporter servicemonitor")
