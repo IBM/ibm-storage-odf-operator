@@ -218,9 +218,15 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 
 		return reconcile.Result{}, err
 	}
+	newOwnerDetails := v1.OwnerReference{
+		Name:       instance.Name,
+		Kind:       instance.Kind,
+		APIVersion: instance.APIVersion,
+		UID:        instance.UID,
+	}
 
 	r.Log.Info("step: ensureExporterService")
-	if err = r.ensureExporterService(instance); err != nil {
+	if err = r.ensureExporterService(instance, newOwnerDetails); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to ensureExporterService: %v", err)
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
@@ -233,7 +239,7 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 	}
 
 	r.Log.Info("step: ensureExporterDeployment")
-	if err = r.ensureExporterDeployment(instance); err != nil {
+	if err = r.ensureExporterDeployment(instance, newOwnerDetails); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to ensureExporterDeployment: %v", err)
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
@@ -246,7 +252,7 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 	}
 
 	r.Log.Info("step: ensureExporterServiceMonitor")
-	if err = r.ensureExporterServiceMonitor(instance); err != nil {
+	if err = r.ensureExporterServiceMonitor(instance, newOwnerDetails); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to ensureExporterServiceMonitor: %v", err)
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
@@ -377,7 +383,7 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap() error {
 	return nil
 }
 
-func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1alpha1.FlashSystemCluster) error {
+func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1alpha1.FlashSystemCluster, newOwnerDetails v1.OwnerReference) error {
 
 	exporterImg, err := util.GetExporterImage()
 	if err != nil {
@@ -417,12 +423,6 @@ func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1a
 		r.Log.Error(err, "failed to create exporter deployment")
 		return err
 	}
-	newOwnerDetails := v1.OwnerReference{
-		Name:       instance.Name,
-		Kind:       instance.Kind,
-		APIVersion: instance.APIVersion,
-		UID:        instance.UID,
-	}
 	if reflect.DeepEqual(foundDeployment.Spec, expectedDeployment.Spec) {
 		r.Log.Info("existing exporter deployment is expected with no change")
 		foundDeployment.SetOwnerReferences(append(foundDeployment.GetOwnerReferences(), newOwnerDetails))
@@ -439,7 +439,7 @@ func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1a
 	return nil
 }
 
-func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alpha1.FlashSystemCluster) error {
+func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alpha1.FlashSystemCluster, newOwnerDetails v1.OwnerReference) error {
 
 	expectedService := InitExporterMetricsService(instance)
 	serviceName := getExporterMetricsServiceName()
@@ -457,12 +457,6 @@ func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alph
 
 		r.Log.Error(err, "failed to create exporter service")
 		return err
-	}
-	newOwnerDetails := v1.OwnerReference{
-		Name:       instance.Name,
-		Kind:       instance.Kind,
-		APIVersion: instance.APIVersion,
-		UID:        instance.UID,
 	}
 	if reflect.DeepEqual(foundService.Spec, expectedService.Spec) {
 		r.Log.Info("existing exporter deployment is expected with no change")
@@ -482,7 +476,7 @@ func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alph
 	return r.Client.Update(context.TODO(), updatedService)
 }
 
-func (r *FlashSystemClusterReconciler) ensureExporterServiceMonitor(instance *odfv1alpha1.FlashSystemCluster) error {
+func (r *FlashSystemClusterReconciler) ensureExporterServiceMonitor(instance *odfv1alpha1.FlashSystemCluster, newOwnerDetails v1.OwnerReference) error {
 	expectedServiceMonitor := InitExporterMetricsServiceMonitor(instance)
 	serviceMonitorName := getExporterMetricsServiceMonitorName()
 	foundServiceMonitor := &monitoringv1.ServiceMonitor{}
@@ -499,12 +493,6 @@ func (r *FlashSystemClusterReconciler) ensureExporterServiceMonitor(instance *od
 
 		r.Log.Error(err, "failed to get exporter servicemonitor")
 		return err
-	}
-	newOwnerDetails := v1.OwnerReference{
-		Name:       instance.Name,
-		Kind:       instance.Kind,
-		APIVersion: instance.APIVersion,
-		UID:        instance.UID,
 	}
 	if reflect.DeepEqual(foundServiceMonitor.Spec, expectedServiceMonitor.Spec) {
 		r.Log.Info("existing exporter deployment is expected with no change")
