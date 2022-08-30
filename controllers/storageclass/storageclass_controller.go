@@ -17,7 +17,10 @@
 package storageclass
 
 import (
+	"bytes"
 	"context"
+	"fmt"
+	"github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -69,12 +72,11 @@ type StorageClassWatcher struct {
 	Scheme    *runtime.Scheme
 	Log       logr.Logger
 	Namespace string
-	util.ScPoolMap
+	util.FSCConfigMapData
 }
 
 func (r *StorageClassWatcher) SetupWithManager(mgr ctrl.Manager) error {
-	r.ScPool = make(map[string]string)
-
+	r.FlashSystemClusterMap = make(map[string]util.FlashSystemClusterMapContent)
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&storagev1.StorageClass{}, builder.WithPredicates(scPredicate)).
 		Complete(r)
@@ -104,8 +106,9 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 	if err != nil {
 		if errors.IsNotFound(err) {
 			r.Log.Info("StorageClass not found", "sc", request.Name)
-			delete(r.ScPool, request.Name)
-
+			for _, fscContent := range r.FlashSystemClusterMap {
+				delete(fscContent.ScPoolMap, request.Name)
+			}
 			err = r.updateConfigmap()
 			if err != nil {
 				return result, err
@@ -116,45 +119,101 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 		return result, err
 	}
 
-	// Check GetDeletionTimestamp to determine if the object is under deletion
-	if !sc.GetDeletionTimestamp().IsZero() {
-		r.Log.Info("Object is terminated")
-		delete(r.ScPool, request.Name)
+	if flashSystemCluster, fscErr := r.getFlashSystemClusterByStorageClass(sc); fscErr == nil {
+		fscName := flashSystemCluster.GetName()
+		fscSecretName := flashSystemCluster.Spec.Secret.Name
+		r.Log.Info("FlashsystemCluster found", "flashsystemcluster", fscName)
+
+		// Check GetDeletionTimestamp to determine if the object is under deletion
+		if !sc.GetDeletionTimestamp().IsZero() {
+			r.Log.Info("Object is terminated")
+			delete(r.FlashSystemClusterMap[fscName].ScPoolMap, request.Name)
+
+			err = r.updateConfigmap()
+			if err != nil {
+				return result, err
+			} else {
+				return result, nil
+			}
+		}
+
+		_, ok := r.FlashSystemClusterMap[fscName].ScPoolMap[request.Name]
+		if ok {
+			r.Log.Info("Reconciling a existing StorageClass: ", "sc", request.Name)
+			delete(r.FlashSystemClusterMap[fscName].ScPoolMap, request.Name)
+		}
+
+		poolName, ok := sc.Parameters[util.CsiIBMBlockScPool]
+		if ok {
+			if _, exist := r.FlashSystemClusterMap[fscName]; !exist {
+				r.FlashSystemClusterMap[fscName] = util.FlashSystemClusterMapContent{
+					ScPoolMap: make(map[string]string), Secret: fscSecretName}
+			}
+			r.FlashSystemClusterMap[fscName].ScPoolMap[request.Name] = poolName
+
+		} else {
+			r.Log.Error(nil, "Reconciling a StorageClass without a pool", "sc", request.Name)
+		}
 
 		err = r.updateConfigmap()
 		if err != nil {
+			r.Log.Error(err, "Failed to update configmap")
 			return result, err
-		} else {
-			return result, nil
 		}
-	}
 
-	_, ok := r.ScPool[request.Name]
-	if ok {
-		r.Log.Info("Reconciling a existing StorageClass: ", "sc", request.Name)
-		delete(r.ScPool, request.Name)
-	}
-
-	poolName, ok := sc.Parameters[util.CsiIBMBlockScPool]
-	if ok {
-		r.ScPool[request.Name] = poolName
+		r.Log.Info("Reconciling StorageClass")
 	} else {
-		r.Log.Error(nil, "Reconciling a StorageClass without a pool", "sc", request.Name)
+		r.Log.Info("Cannot find FlashsystemCluster for StorageClass", "sc", request.Name)
 	}
-
-	err = r.updateConfigmap()
-	if err != nil {
-		r.Log.Error(err, "Failed to update configmap")
-		return result, err
-	}
-
-	r.Log.Info("Reconciling StorageClass")
-
 	return result, nil
 }
 
+func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.StorageClass) (v1alpha1.FlashSystemCluster, error) {
+	r.Log.Info("Looking for flashSystemCluster by storageClass", "sc", sc.Name)
+	storageClassSecret := &corev1.Secret{}
+	foundCluster := v1alpha1.FlashSystemCluster{}
+	err := r.Client.Get(context.Background(),
+		types.NamespacedName{
+			Namespace: sc.Parameters[util.SecretNamespaceKey],
+			Name:      sc.Parameters[util.SecretNameKey]},
+		storageClassSecret)
+	if err != nil {
+		r.Log.Error(nil, "failed to find storageClass secret", "sc", sc.Name)
+		return foundCluster, err
+	}
+	secretManagementAddress := storageClassSecret.Data[util.SecretManagementAddressKey]
+
+	clusters := &v1alpha1.FlashSystemClusterList{}
+	err = r.Client.List(context.Background(), clusters)
+	if err != nil {
+		r.Log.Error(nil, "failed to list FlashSystemClusterList", "sc", sc.Name)
+		return foundCluster, err
+	}
+
+	for _, c := range clusters.Items {
+		clusterSecret := &corev1.Secret{}
+		err = r.Client.Get(context.Background(),
+			types.NamespacedName{
+				Namespace: c.Spec.Secret.Namespace,
+				Name:      c.Spec.Secret.Name},
+			clusterSecret)
+		if err != nil {
+			r.Log.Error(nil, "failed to FlashSystemCluster secret", "sc", c.Name)
+			return foundCluster, err
+		}
+		clusterSecretManagement := clusterSecret.Data[util.SecretManagementAddressKey]
+		secretsEqual := bytes.Compare(clusterSecretManagement, secretManagementAddress)
+		if secretsEqual == 0 {
+			r.Log.Info("found storageClass with a matching secret address", "sc", c.Name)
+			return c, nil
+		}
+	}
+	r.Log.Error(nil, "failed to match storageClass to flashSystemCluster item", "sc", sc.Name)
+	return foundCluster, fmt.Errorf("failed to match storageClass to flashSystemCluster item")
+}
+
 func InitScPoolConfigMap(ns string) *corev1.ConfigMap {
-	selectLabels := util.GetLabels("")
+	selectLabels := util.GetLabels()
 
 	scPoolConfigMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -201,12 +260,12 @@ func (r *StorageClassWatcher) updateConfigmap() error {
 		configMap.Data = make(map[string]string)
 	}
 
-	value, err := util.GeneratePoolConfigmapContent(r.ScPoolMap)
+	value, err := util.GenerateFSCConfigmapContent(r.FSCConfigMapData)
 	if err != nil {
 		r.Log.Error(err, "configMap marshal failed")
 		return err
 	} else {
-		configMap.Data[util.PoolConfigmapKey] = value
+		configMap.Data = value
 	}
 
 	err = r.Client.Update(context.Background(), configMap)

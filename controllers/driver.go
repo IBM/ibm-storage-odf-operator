@@ -51,7 +51,7 @@ const (
 )
 
 func InitDefaultStorageClass(instance *odfv1alpha1.FlashSystemCluster) *storagev1.StorageClass {
-	selectLabels := util.GetLabels(instance.Name)
+	selectLabels := util.GetLabels()
 	secret := instance.Spec.Secret
 	pool := instance.Spec.DefaultPool
 	if pool == nil {
@@ -162,7 +162,7 @@ func LoadFlashSystemCRFromFile() (*unstructured.Unstructured, error) {
 }
 
 func CreateIBMBlockCSICR(dc dynamic.NamespaceableResourceInterface, namespace string) (*unstructured.Unstructured, error) {
-	client := dc.Namespace(namespace)
+	localClient := dc.Namespace(namespace)
 
 	unstructuredObj, err := LoadFlashSystemCRFromFile()
 	if err != nil {
@@ -170,7 +170,7 @@ func CreateIBMBlockCSICR(dc dynamic.NamespaceableResourceInterface, namespace st
 	}
 
 	unstructuredObj.SetNamespace(namespace)
-	obj, err := client.Create(context.TODO(), unstructuredObj, metav1.CreateOptions{})
+	obj, err := localClient.Create(context.TODO(), unstructuredObj, metav1.CreateOptions{})
 
 	return obj, err
 }
