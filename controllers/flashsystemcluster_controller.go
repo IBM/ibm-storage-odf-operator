@@ -193,6 +193,37 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 		r.Log.Info("Object is terminated, skipping reconciliation")
 		return reconcile.Result{}, nil
 	}
+	// Reading the secret, if it has ownership then skip, else update the secret with details of the FlashSystemCluster
+	secret := &corev1.Secret{}
+	err = r.Client.Get(
+		context.TODO(),
+		types.NamespacedName{Name: instance.Spec.Secret.Name, Namespace: instance.Spec.Secret.Namespace},
+		secret)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			r.Log.Info("Secret not found")
+			return reconcile.Result{}, nil
+		}
+		return reconcile.Result{}, err
+	}
+	if secret.OwnerReferences == nil {
+		r.Log.Info("FlashSystemCluster Secret does not have an owner reference, adding it now.")
+		// Creating an OwnerReference object with the info of the FlashSystemCluster for it to be the owner of the secret
+		newOwnerForSecret := v1.OwnerReference{
+			Name:       instance.Name,
+			Kind:       instance.Kind,
+			APIVersion: instance.APIVersion,
+			UID:        instance.UID,
+		}
+		secret.SetOwnerReferences([]v1.OwnerReference{newOwnerForSecret})
+		err := r.Client.Update(context.TODO(), secret)
+		if err != nil {
+			r.Log.Error(err, "Update Error: Failed to update secret with owner reference")
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{}, nil
+	}
 
 	r.Log.Info("step: create or check FlashSystem CSI CR")
 	err = r.ensureFlashSystemCSICR(instance)

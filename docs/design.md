@@ -13,7 +13,7 @@ storage CSI driver can only provide limited functions, e.g. provisioning,
 snapshot. It's not convenient for OCP admin and app developer to get the
 state of system, capacity, performance and so on.
 
-The ODF is a well defined framework, which makes the third party storage
+The ODF is a well-defined framework, which makes the third party storage
 be the first citizen.
 
 ### Goals
