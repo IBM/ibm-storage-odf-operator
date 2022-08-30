@@ -19,9 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"reflect"
-
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/storageclass"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
@@ -31,10 +28,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
+	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -241,7 +240,7 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 	}
 
 	r.Log.Info("step: ensureScPoolConfigMap")
-	if err = r.ensureScPoolConfigMap(); err != nil {
+	if err = r.ensureScPoolConfigMap(instance); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to ensureScPoolConfigMap: %v", err)
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
@@ -391,7 +390,7 @@ func (r *FlashSystemClusterReconciler) createEvent(instance *odfv1alpha1.FlashSy
 }
 
 // this object will not bind with instance
-func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap() error {
+func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alpha1.FlashSystemCluster) error {
 	expectedScPoolConfigMap := storageclass.InitScPoolConfigMap(watchNamespace)
 	foundScPoolConfigMap := &corev1.ConfigMap{}
 
@@ -409,7 +408,19 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap() error {
 		return err
 	}
 
-	// storageclass_controller will update it.
+	// If flashsystemcluster is deleted, we delete it from the foundScPoolConfigMap.Data
+	if !instance.DeletionTimestamp.IsZero() {
+		delete(foundScPoolConfigMap.Data, instance.Name)
+		return r.Client.Update(context.TODO(), foundScPoolConfigMap)
+	}
+
+	// If flashsystemcluster is created and not located , add it to the foundScPoolConfigMap.Data
+	if _, ok := foundScPoolConfigMap.Data[instance.Name]; !ok {
+		value := util.FlashSystemClusterMapContent{
+			ScPoolMap: make(map[string]string), Secret: instance.Spec.Secret.Name}
+		foundScPoolConfigMap.Data[instance.Name] = value
+		return r.Client.Update(context.TODO(), foundScPoolConfigMap)
+	}
 
 	return nil
 }
