@@ -128,6 +128,7 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 		if !sc.GetDeletionTimestamp().IsZero() {
 			r.Log.Info("Object is terminated")
 			delete(r.FlashSystemClusterMap[fscName].ScPoolMap, request.Name)
+			delete(r.FlashSystemClusterMap[fscName].ScPoolMap, fscName)
 
 			err = r.updateConfigmap()
 			if err != nil {
