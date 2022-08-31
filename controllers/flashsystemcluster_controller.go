@@ -415,13 +415,10 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alph
 		types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace},
 		instance)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			delete(foundScPoolConfigMap.Data, instance.Name)
-			return r.Client.Update(context.TODO(), foundScPoolConfigMap)
-		}
-		r.Log.Error(err, "failed to delete StorageSystem key from ConfigMap")
-		return err
+		delete(foundScPoolConfigMap.Data, instance.Name)
+		return r.Client.Update(context.TODO(), foundScPoolConfigMap)
 	}
+
 	//if !instance.DeletionTimestamp.IsZero() {
 	//	delete(foundScPoolConfigMap.Data, instance.Name)
 	//	return r.Client.Update(context.TODO(), foundScPoolConfigMap)
