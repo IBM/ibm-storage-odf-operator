@@ -410,10 +410,22 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alph
 	}
 
 	// If flashsystemcluster is deleted, we delete it from the foundScPoolConfigMap.Data
-	if !instance.DeletionTimestamp.IsZero() {
-		delete(foundScPoolConfigMap.Data, instance.Name)
-		return r.Client.Update(context.TODO(), foundScPoolConfigMap)
+	err = r.Client.Get(
+		context.TODO(),
+		types.NamespacedName{Name: instance.Spec.Name},
+		instance)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			delete(foundScPoolConfigMap.Data, instance.Name)
+			return r.Client.Update(context.TODO(), foundScPoolConfigMap)
+		}
+		r.Log.Error(err, "failed to delete StorageSystem key from ConfigMap")
+		return err
 	}
+	//if !instance.DeletionTimestamp.IsZero() {
+	//	delete(foundScPoolConfigMap.Data, instance.Name)
+	//	return r.Client.Update(context.TODO(), foundScPoolConfigMap)
+	//}
 
 	// If flashsystemcluster is created and not located , add it to the foundScPoolConfigMap.Data
 	if _, ok := foundScPoolConfigMap.Data[instance.Name]; !ok {
