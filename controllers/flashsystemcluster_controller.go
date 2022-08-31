@@ -31,6 +31,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"reflect"
@@ -418,7 +419,11 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alph
 	if _, ok := foundScPoolConfigMap.Data[instance.Name]; !ok {
 		value := util.FlashSystemClusterMapContent{
 			ScPoolMap: make(map[string]string), Secret: instance.Spec.Secret.Name}
-		foundScPoolConfigMap.Data[instance.Name] = value
+		val, err := json.Marshal(value)
+		if err != nil {
+			return err
+		}
+		foundScPoolConfigMap.Data[instance.Name] = string(val)
 		return r.Client.Update(context.TODO(), foundScPoolConfigMap)
 	}
 
