@@ -121,7 +121,7 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 
 	if flashSystemCluster, fscErr := r.getFlashSystemClusterByStorageClass(sc); fscErr == nil {
 		fscName := flashSystemCluster.GetName()
-		//fscSecretName := flashSystemCluster.Spec.Secret.Name
+		fscSecretName := flashSystemCluster.Spec.Secret.Name
 		r.Log.Info("FlashsystemCluster found", "flashsystemcluster", fscName)
 
 		// Check GetDeletionTimestamp to determine if the object is under deletion
@@ -143,17 +143,17 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 			delete(r.FlashSystemClusterMap[fscName].ScPoolMap, request.Name)
 		}
 
-		//poolName, ok := sc.Parameters[util.CsiIBMBlockScPool]
-		//if ok {
-		//	if _, exist := r.FlashSystemClusterMap[fscName]; !exist {
-		//		r.FlashSystemClusterMap[fscName] = util.FlashSystemClusterMapContent{
-		//			ScPoolMap: make(map[string]string), Secret: fscSecretName}
-		//	}
-		//	r.FlashSystemClusterMap[fscName].ScPoolMap[request.Name] = poolName
-		//
-		//} else {
-		//	r.Log.Error(nil, "Reconciling a StorageClass without a pool", "sc", request.Name)
-		//}
+		poolName, ok := sc.Parameters[util.CsiIBMBlockScPool]
+		if ok {
+			if _, exist := r.FlashSystemClusterMap[fscName]; !exist {
+				r.FlashSystemClusterMap[fscName] = util.FlashSystemClusterMapContent{
+					ScPoolMap: make(map[string]string), Secret: fscSecretName}
+			}
+			r.FlashSystemClusterMap[fscName].ScPoolMap[request.Name] = poolName
+
+		} else {
+			r.Log.Error(nil, "Reconciling a StorageClass without a pool", "sc", request.Name)
+		}
 
 		err = r.updateConfigmap()
 		if err != nil {
