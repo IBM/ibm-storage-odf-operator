@@ -108,7 +108,6 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 			r.Log.Info("StorageClass not found", "sc", request.Name)
 			for _, fscContent := range r.FlashSystemClusterMap {
 				delete(fscContent.ScPoolMap, request.Name)
-				delete(fscContent.ScPoolMap, sc.Name)
 			}
 			err = r.updateConfigmap()
 			if err != nil {
@@ -129,7 +128,6 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 		if !sc.GetDeletionTimestamp().IsZero() {
 			r.Log.Info("Object is terminated")
 			delete(r.FlashSystemClusterMap[fscName].ScPoolMap, request.Name)
-			delete(r.FlashSystemClusterMap[fscName].ScPoolMap, fscName)
 
 			err = r.updateConfigmap()
 			if err != nil {
@@ -143,7 +141,6 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 		if ok {
 			r.Log.Info("Reconciling a existing StorageClass: ", "sc", request.Name)
 			delete(r.FlashSystemClusterMap[fscName].ScPoolMap, request.Name)
-			delete(r.FlashSystemClusterMap[fscName].ScPoolMap, fscName)
 		}
 
 		poolName, ok := sc.Parameters[util.CsiIBMBlockScPool]
@@ -255,6 +252,7 @@ func (r *StorageClassWatcher) getCreateConfigmap() (*corev1.ConfigMap, error) {
 
 func (r *StorageClassWatcher) updateConfigmap() error {
 	configMap, err := r.getCreateConfigmap()
+	configMap2, err := r.getCreateConfigmap()
 	if err != nil {
 		return err
 	}
@@ -262,8 +260,23 @@ func (r *StorageClassWatcher) updateConfigmap() error {
 	if configMap.Data == nil {
 		configMap.Data = make(map[string]string)
 	}
-
+	for fscName, fsc := range r.FlashSystemClusterMap {
+		configMap2.Data[fscName] = fsc.Secret
+	}
 	value, err := util.GenerateFSCConfigmapContent(r.FSCConfigMapData)
+	// loop over keys in value, and if the key doesn't exist in configMap2, then delete it from value
+	for key := range value {
+		if _, ok := configMap2.Data[key]; !ok {
+			delete(value, key)
+		}
+	}
+	for key, value := range value {
+		if _, ok := configMap.Data[key]; !ok {
+			delete(configMap.Data, key)
+		} else {
+			configMap.Data[key] = value
+		}
+	}
 	if err != nil {
 		r.Log.Error(err, "configMap marshal failed")
 		return err
