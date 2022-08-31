@@ -108,6 +108,7 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 			r.Log.Info("StorageClass not found", "sc", request.Name)
 			for _, fscContent := range r.FlashSystemClusterMap {
 				delete(fscContent.ScPoolMap, request.Name)
+				delete(fscContent.ScPoolMap, sc.Name)
 			}
 			err = r.updateConfigmap()
 			if err != nil {
@@ -142,6 +143,7 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 		if ok {
 			r.Log.Info("Reconciling a existing StorageClass: ", "sc", request.Name)
 			delete(r.FlashSystemClusterMap[fscName].ScPoolMap, request.Name)
+			delete(r.FlashSystemClusterMap[fscName].ScPoolMap, fscName)
 		}
 
 		poolName, ok := sc.Parameters[util.CsiIBMBlockScPool]
