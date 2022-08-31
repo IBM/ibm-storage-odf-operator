@@ -412,7 +412,7 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alph
 	// If flashsystemcluster is deleted, we delete it from the foundScPoolConfigMap.Data
 	err = r.Client.Get(
 		context.TODO(),
-		types.NamespacedName{Name: instance.Spec.Name},
+		types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace},
 		instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
