@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
+	"k8s.io/apimachinery/pkg/util/json"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -98,9 +99,14 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 			err = nil
 		}
 	}()
+	// Reading the configmap and put it into a variable named fsMap
+	configMap, err := r.getCreateConfigmap()
+	if err != nil {
+		r.Log.Error(err, "get configMap failed")
+		return result, err
+	}
 
 	r.Log = r.Log.WithValues("Request.Name", request.NamespacedName)
-
 	sc := &storagev1.StorageClass{}
 	err = r.Client.Get(context.TODO(), request.NamespacedName, sc)
 	if err != nil {
@@ -108,8 +114,11 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 			r.Log.Info("StorageClass not found", "sc", request.Name)
 			for _, fscContent := range r.FlashSystemClusterMap {
 				delete(fscContent.ScPoolMap, request.Name)
+				delete(configMap.Data, sc.Name)
+				delete(configMap.Data, sc.GetClusterName())
 			}
-			err = r.updateConfigmap()
+			err = r.Client.Update(context.TODO(), configMap)
+			//err = r.updateConfigmap(*configMap)
 			if err != nil {
 				return result, err
 			} else {
@@ -128,8 +137,11 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 		if !sc.GetDeletionTimestamp().IsZero() {
 			r.Log.Info("Object is terminated")
 			delete(r.FlashSystemClusterMap[fscName].ScPoolMap, request.Name)
+			delete(configMap.Data, request.Name)
+			delete(configMap.Data, fscName)
 
-			err = r.updateConfigmap()
+			//err = r.updateConfigmap(*configMap)
+			err = r.Client.Update(context.TODO(), configMap)
 			if err != nil {
 				return result, err
 			} else {
@@ -140,22 +152,45 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 		_, ok := r.FlashSystemClusterMap[fscName].ScPoolMap[request.Name]
 		if ok {
 			r.Log.Info("Reconciling a existing StorageClass: ", "sc", request.Name)
-			delete(r.FlashSystemClusterMap[fscName].ScPoolMap, request.Name)
+			//delete(r.FlashSystemClusterMap[fscName].ScPoolMap, request.Name)
+			delete(configMap.Data, fscName)
+			err = r.Client.Update(context.TODO(), configMap)
+			if err != nil {
+				return result, err
+			} else {
+				return result, nil
+			}
 		}
 
 		poolName, ok := sc.Parameters[util.CsiIBMBlockScPool]
 		if ok {
 			if _, exist := r.FlashSystemClusterMap[fscName]; !exist {
-				r.FlashSystemClusterMap[fscName] = util.FlashSystemClusterMapContent{
+				//r.FlashSystemClusterMap[fscName] = util.FlashSystemClusterMapContent{
+				//	ScPoolMap: make(map[string]string), Secret: fscSecretName}
+				value := util.FlashSystemClusterMapContent{
 					ScPoolMap: make(map[string]string), Secret: fscSecretName}
+				value.ScPoolMap[request.Name] = poolName
+				val, err := json.Marshal(value)
+				if err != nil {
+					return result, err
+				}
+				configMap.Data[fscName] = string(val)
+
 			}
-			r.FlashSystemClusterMap[fscName].ScPoolMap[request.Name] = poolName
+			//r.FlashSystemClusterMap[fscName].ScPoolMap[request.Name] = poolName
+			err = r.Client.Update(context.TODO(), configMap)
+			if err != nil {
+				return result, err
+			} else {
+				return result, nil
+			}
 
 		} else {
 			r.Log.Error(nil, "Reconciling a StorageClass without a pool", "sc", request.Name)
 		}
 
-		err = r.updateConfigmap()
+		//err = r.updateConfigmap(*configMap)
+		err = r.Client.Update(context.TODO(), configMap)
 		if err != nil {
 			r.Log.Error(err, "Failed to update configmap")
 			return result, err
@@ -250,33 +285,16 @@ func (r *StorageClassWatcher) getCreateConfigmap() (*corev1.ConfigMap, error) {
 	return configMap, nil
 }
 
-func (r *StorageClassWatcher) updateConfigmap() error {
-	configMap, err := r.getCreateConfigmap()
-	configMap2, err := r.getCreateConfigmap()
-	if err != nil {
-		return err
-	}
+func (r *StorageClassWatcher) updateConfigmap(configMap corev1.ConfigMap) error {
+	//configMap, err := r.getCreateConfigmap()
+	//if err != nil {
+	//	return err
+	//}
 
 	if configMap.Data == nil {
 		configMap.Data = make(map[string]string)
 	}
-	for fscName, fsc := range r.FlashSystemClusterMap {
-		configMap2.Data[fscName] = fsc.Secret
-	}
 	value, err := util.GenerateFSCConfigmapContent(r.FSCConfigMapData)
-	// loop over keys in value, and if the key doesn't exist in configMap2, then delete it from value
-	for key := range value {
-		if _, ok := configMap2.Data[key]; !ok {
-			delete(value, key)
-		}
-	}
-	for key, value := range value {
-		if _, ok := configMap.Data[key]; !ok {
-			delete(configMap.Data, key)
-		} else {
-			configMap.Data[key] = value
-		}
-	}
 	if err != nil {
 		r.Log.Error(err, "configMap marshal failed")
 		return err
@@ -284,7 +302,7 @@ func (r *StorageClassWatcher) updateConfigmap() error {
 		configMap.Data = value
 	}
 
-	err = r.Client.Update(context.Background(), configMap)
+	err = r.Client.Update(context.Background(), &configMap)
 	if err != nil {
 		r.Log.Error(err, "configMap update failed")
 		return err
