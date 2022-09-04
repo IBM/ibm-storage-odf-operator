@@ -115,6 +115,7 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 			for _, fscContent := range r.FlashSystemClusterMap {
 				delete(fscContent.ScPoolMap, request.Name)
 			}
+			r.updateConfigmap()
 			err = r.Client.Update(context.TODO(), configMap)
 			if err != nil {
 				return result, err
@@ -134,7 +135,7 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 		if !sc.GetDeletionTimestamp().IsZero() {
 			r.Log.Info("Object is terminated")
 			delete(r.FlashSystemClusterMap[fscName].ScPoolMap, request.Name)
-
+			r.updateConfigmap()
 			err = r.Client.Update(context.TODO(), configMap)
 			if err != nil {
 				return result, err
@@ -291,7 +292,7 @@ func (r *StorageClassWatcher) updateConfigmap() error {
 		configMap.Data = value
 	}
 
-	err = r.Client.Update(context.Background(), configMap)
+	//err = r.Client.Update(context.Background(), configMap)
 	if err != nil {
 		r.Log.Error(err, "configMap update failed")
 		return err
