@@ -141,12 +141,16 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 	if err != nil {
 		if errors.IsNotFound(err) {
 			r.Log.Info("FlashSystemCluster resource was not found")
+			err := r.deleteEntryFromConfigMap(req)
+			if err != nil {
+				r.Log.Error(err, "failed to delete entry from configmap")
+				return ctrl.Result{}, err
+			}
 			return result, nil
 		}
 		// Error reading the object - requeue the request.
 		return result, err
 	}
-
 	result, err = r.reconcile(instance)
 
 	statusError := r.Client.Status().Update(context.TODO(), instance)
@@ -419,11 +423,6 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alph
 		return r.Client.Update(context.TODO(), foundScPoolConfigMap)
 	}
 
-	//if !instance.DeletionTimestamp.IsZero() {
-	//	delete(foundScPoolConfigMap.Data, instance.Name)
-	//	return r.Client.Update(context.TODO(), foundScPoolConfigMap)
-	//}
-
 	// If flashsystemcluster is created and not located , add it to the foundScPoolConfigMap.Data
 	if _, ok := foundScPoolConfigMap.Data[instance.Name]; !ok {
 		value := util.FlashSystemClusterMapContent{
@@ -436,6 +435,27 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alph
 		return r.Client.Update(context.TODO(), foundScPoolConfigMap)
 	}
 
+	return nil
+}
+
+func (r *FlashSystemClusterReconciler) deleteEntryFromConfigMap(req ctrl.Request) error {
+	deletedInstanceName := req.Name
+	foundScPoolConfigMap := &corev1.ConfigMap{}
+	err := r.Client.Get(
+		context.TODO(),
+		types.NamespacedName{Name: util.PoolConfigmapName, Namespace: watchNamespace},
+		foundScPoolConfigMap)
+	if err != nil {
+		r.Log.Error(err, "failed to get pool configmap")
+		return err
+	}
+	// delete the pool configmap entry
+	delete(foundScPoolConfigMap.Data, deletedInstanceName)
+	err = r.Client.Update(context.TODO(), foundScPoolConfigMap)
+	if err != nil {
+		r.Log.Error(err, "failed to update pool configmap")
+		return err
+	}
 	return nil
 }
 

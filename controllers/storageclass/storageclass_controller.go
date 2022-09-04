@@ -114,11 +114,9 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 			r.Log.Info("StorageClass not found", "sc", request.Name)
 			for _, fscContent := range r.FlashSystemClusterMap {
 				delete(fscContent.ScPoolMap, request.Name)
-				delete(configMap.Data, sc.Name)
-				delete(configMap.Data, sc.GetClusterName())
 			}
 			err = r.Client.Update(context.TODO(), configMap)
-			//err = r.updateConfigmap(*configMap)
+			//err = r.updateConfigmap()
 			if err != nil {
 				return result, err
 			} else {
@@ -137,10 +135,8 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 		if !sc.GetDeletionTimestamp().IsZero() {
 			r.Log.Info("Object is terminated")
 			delete(r.FlashSystemClusterMap[fscName].ScPoolMap, request.Name)
-			delete(configMap.Data, request.Name)
-			delete(configMap.Data, fscName)
 
-			//err = r.updateConfigmap(*configMap)
+			//err = r.updateConfigmap()
 			err = r.Client.Update(context.TODO(), configMap)
 			if err != nil {
 				return result, err
@@ -152,8 +148,7 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 		_, ok := r.FlashSystemClusterMap[fscName].ScPoolMap[request.Name]
 		if ok {
 			r.Log.Info("Reconciling a existing StorageClass: ", "sc", request.Name)
-			//delete(r.FlashSystemClusterMap[fscName].ScPoolMap, request.Name)
-			delete(configMap.Data, fscName)
+			delete(r.FlashSystemClusterMap[fscName].ScPoolMap, request.Name)
 			err = r.Client.Update(context.TODO(), configMap)
 			if err != nil {
 				return result, err
@@ -189,7 +184,7 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 			r.Log.Error(nil, "Reconciling a StorageClass without a pool", "sc", request.Name)
 		}
 
-		//err = r.updateConfigmap(*configMap)
+		//err = r.updateConfigmap()
 		err = r.Client.Update(context.TODO(), configMap)
 		if err != nil {
 			r.Log.Error(err, "Failed to update configmap")
@@ -285,11 +280,11 @@ func (r *StorageClassWatcher) getCreateConfigmap() (*corev1.ConfigMap, error) {
 	return configMap, nil
 }
 
-func (r *StorageClassWatcher) updateConfigmap(configMap corev1.ConfigMap) error {
-	//configMap, err := r.getCreateConfigmap()
-	//if err != nil {
-	//	return err
-	//}
+func (r *StorageClassWatcher) updateConfigmap() error {
+	configMap, err := r.getCreateConfigmap()
+	if err != nil {
+		return err
+	}
 
 	if configMap.Data == nil {
 		configMap.Data = make(map[string]string)
@@ -302,7 +297,7 @@ func (r *StorageClassWatcher) updateConfigmap(configMap corev1.ConfigMap) error 
 		configMap.Data = value
 	}
 
-	err = r.Client.Update(context.Background(), &configMap)
+	err = r.Client.Update(context.Background(), configMap)
 	if err != nil {
 		r.Log.Error(err, "configMap update failed")
 		return err
