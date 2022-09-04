@@ -116,7 +116,6 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 				delete(fscContent.ScPoolMap, request.Name)
 			}
 			err = r.Client.Update(context.TODO(), configMap)
-			//err = r.updateConfigmap()
 			if err != nil {
 				return result, err
 			} else {
@@ -136,7 +135,6 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 			r.Log.Info("Object is terminated")
 			delete(r.FlashSystemClusterMap[fscName].ScPoolMap, request.Name)
 
-			//err = r.updateConfigmap()
 			err = r.Client.Update(context.TODO(), configMap)
 			if err != nil {
 				return result, err
@@ -160,8 +158,6 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 		poolName, ok := sc.Parameters[util.CsiIBMBlockScPool]
 		if ok {
 			if _, exist := r.FlashSystemClusterMap[fscName]; !exist {
-				//r.FlashSystemClusterMap[fscName] = util.FlashSystemClusterMapContent{
-				//	ScPoolMap: make(map[string]string), Secret: fscSecretName}
 				value := util.FlashSystemClusterMapContent{
 					ScPoolMap: make(map[string]string), Secret: fscSecretName}
 				value.ScPoolMap[request.Name] = poolName
@@ -172,7 +168,6 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 				configMap.Data[fscName] = string(val)
 
 			}
-			//r.FlashSystemClusterMap[fscName].ScPoolMap[request.Name] = poolName
 			err = r.Client.Update(context.TODO(), configMap)
 			if err != nil {
 				return result, err
@@ -184,7 +179,6 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 			r.Log.Error(nil, "Reconciling a StorageClass without a pool", "sc", request.Name)
 		}
 
-		//err = r.updateConfigmap()
 		err = r.Client.Update(context.TODO(), configMap)
 		if err != nil {
 			r.Log.Error(err, "Failed to update configmap")
