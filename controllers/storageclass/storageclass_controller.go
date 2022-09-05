@@ -112,14 +112,11 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 	if err != nil {
 		if errors.IsNotFound(err) {
 			r.Log.Info("StorageClass not found", "sc", request.Name)
-			for _, fscContent := range r.FlashSystemClusterMap {
-				delete(fscContent.ScPoolMap, request.Name)
-			}
-			err = r.Client.Update(context.TODO(), configMap)
-			if err != nil {
-				return result, err
-			} else {
-				return result, nil
+			for fscName := range configMap.Data {
+				_, err := r.removeStorageClassFromFSC(*configMap, fscName, request.Name)
+				if err != nil {
+					return reconcile.Result{}, err
+				}
 			}
 		}
 		return result, err
@@ -133,46 +130,31 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 		// Check GetDeletionTimestamp to determine if the object is under deletion
 		if !sc.GetDeletionTimestamp().IsZero() {
 			r.Log.Info("Object is terminated")
-			delete(r.FlashSystemClusterMap[fscName].ScPoolMap, request.Name)
-
-			err = r.Client.Update(context.TODO(), configMap)
+			_, err := r.removeStorageClassFromFSC(*configMap, fscName, request.Name)
 			if err != nil {
-				return result, err
-			} else {
-				return result, nil
+				return reconcile.Result{}, err
 			}
 		}
 
-		_, ok := r.FlashSystemClusterMap[fscName].ScPoolMap[request.Name]
+		// check if request.Name is in the configmap
+		fscContent := configMap.Data[fscName]
+		var fsMap util.FlashSystemClusterMapContent
+		err = json.Unmarshal([]byte(fscContent), &fsMap)
+		if err != nil {
+			r.Log.Error(err, "Unmarshal failed")
+			return result, err
+		}
+		_, ok := fsMap.ScPoolMap[request.Name]
 		if ok {
 			r.Log.Info("Reconciling a existing StorageClass: ", "sc", request.Name)
-			delete(r.FlashSystemClusterMap[fscName].ScPoolMap, request.Name)
-			err = r.Client.Update(context.TODO(), configMap)
-			if err != nil {
-				return result, err
-			} else {
-				return result, nil
-			}
 		}
 
 		poolName, ok := sc.Parameters[util.CsiIBMBlockScPool]
 		if ok {
-			if _, exist := r.FlashSystemClusterMap[fscName]; !exist {
-				value := util.FlashSystemClusterMapContent{
-					ScPoolMap: make(map[string]string), Secret: fscSecretName}
-				value.ScPoolMap[request.Name] = poolName
-				val, err := json.Marshal(value)
-				if err != nil {
-					return result, err
-				}
-				configMap.Data[fscName] = string(val)
-
-			}
-			err = r.Client.Update(context.TODO(), configMap)
+			r.Log.Info("Reconciling a new StorageClass: ", "sc", request.Name)
+			_, err = r.addStorageClass(*configMap, fscName, request.Name, poolName, fscSecretName)
 			if err != nil {
-				return result, err
-			} else {
-				return result, nil
+				return reconcile.Result{}, err
 			}
 
 		} else {
@@ -274,28 +256,95 @@ func (r *StorageClassWatcher) getCreateConfigmap() (*corev1.ConfigMap, error) {
 	return configMap, nil
 }
 
-func (r *StorageClassWatcher) updateConfigmap() error {
-	configMap, err := r.getCreateConfigmap()
+func (r *StorageClassWatcher) removeStorageClassFromFSC(configMap corev1.ConfigMap, fscName string, scName string) (result reconcile.Result, err error) {
+	fscContent := configMap.Data[fscName]
+	var fsMap util.FlashSystemClusterMapContent
+	err = json.Unmarshal([]byte(fscContent), &fsMap)
 	if err != nil {
-		return err
+		r.Log.Error(err, "Unmarshal failed")
+		return result, err
 	}
-
-	if configMap.Data == nil {
-		configMap.Data = make(map[string]string)
+	// if the storageclass is found in the fsMap, remove it
+	for value := range fsMap.ScPoolMap {
+		if value == scName {
+			delete(fsMap.ScPoolMap, scName)
+		}
 	}
-	value, err := util.GenerateFSCConfigmapContent(r.FSCConfigMapData)
+	err = r.Client.Update(context.TODO(), &configMap)
 	if err != nil {
-		r.Log.Error(err, "configMap marshal failed")
-		return err
-	} else {
-		configMap.Data = value
+		return result, err
 	}
-
-	err = r.Client.Update(context.Background(), configMap)
-	if err != nil {
-		r.Log.Error(err, "configMap update failed")
-		return err
-	}
-
-	return nil
+	return result, nil
 }
+
+func (r *StorageClassWatcher) addStorageClass(configMap corev1.ConfigMap, fscName string, scName string, poolName string, secretName string) (result reconcile.Result, err error) {
+	fscContent := configMap.Data[fscName]
+	var fsMap util.FlashSystemClusterMapContent
+	err = json.Unmarshal([]byte(fscContent), &fsMap)
+	if err != nil {
+		r.Log.Error(err, "Unmarshal failed")
+		return result, err
+	}
+
+	value := util.FlashSystemClusterMapContent{
+		ScPoolMap: make(map[string]string), Secret: secretName}
+	value.ScPoolMap[scName] = poolName
+	val, err := json.Marshal(value)
+	if err != nil {
+		return result, err
+	}
+	if _, exists := configMap.Data[fscName]; !exists {
+		r.Log.Info("Creating a new entry in configmap", "fscName", fscName)
+		configMap.Data[fscName] = string(val)
+	} else {
+		if _, exists := fsMap.ScPoolMap[scName]; !exists {
+			r.Log.Info("Adding a new sc entry in configmap for existing fsc", "fsc", fscName)
+			fscContent := configMap.Data[fscName]
+			var fsMap util.FlashSystemClusterMapContent
+			err = json.Unmarshal([]byte(fscContent), &fsMap)
+			if err != nil {
+				r.Log.Error(err, "Unmarshal failed")
+				return result, err
+			}
+			fsMap.ScPoolMap[scName] = poolName
+			val, err := json.Marshal(fsMap)
+			if err != nil {
+				return result, err
+			}
+			configMap.Data[fscName] = string(val)
+		}
+	}
+
+	err = r.Client.Update(context.TODO(), &configMap)
+	if err != nil {
+		return result, err
+	} else {
+		return result, nil
+	}
+}
+
+//func (r *StorageClassWatcher) updateConfigmap() error {
+//	configMap, err := r.getCreateConfigmap()
+//	if err != nil {
+//		return err
+//	}
+//
+//	if configMap.Data == nil {
+//		configMap.Data = make(map[string]string)
+//	}
+//	value, err := util.GenerateFSCConfigmapContent(r.FSCConfigMapData)
+//	if err != nil {
+//		r.Log.Error(err, "configMap marshal failed")
+//		return err
+//	} else {
+//		configMap.Data = value
+//	}
+//
+//	err = r.Client.Update(context.Background(), configMap)
+//	if err != nil {
+//		r.Log.Error(err, "configMap update failed")
+//		return err
+//	}
+//
+//	return nil
+//}
