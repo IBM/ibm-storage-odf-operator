@@ -220,7 +220,6 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 
 func InitScPoolConfigMap(ns string) *corev1.ConfigMap {
 	selectLabels := util.GetLabels()
-
 	scPoolConfigMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      util.PoolConfigmapName,
@@ -228,6 +227,7 @@ func InitScPoolConfigMap(ns string) *corev1.ConfigMap {
 			Labels:    selectLabels,
 		},
 	}
+	scPoolConfigMap.Data = make(map[string]string)
 	return scPoolConfigMap
 }
 
@@ -243,6 +243,7 @@ func (r *StorageClassWatcher) getCreateConfigmap() (*corev1.ConfigMap, error) {
 		if errors.IsNotFound(err) {
 			configMap = InitScPoolConfigMap(r.Namespace)
 			err = r.Client.Create(context.Background(), configMap)
+			r.Log.Info("Created ConfigMap", "configmap", configMap.Name)
 			if err != nil {
 				r.Log.Error(err, "create configMap failed", "cm", util.PoolConfigmapName)
 				return nil, err
@@ -317,10 +318,11 @@ func (r *StorageClassWatcher) addStorageClass(configMap corev1.ConfigMap, fscNam
 
 	err = r.Client.Update(context.TODO(), &configMap)
 	if err != nil {
+		r.Log.Error(err, "Failed to update configmap")
 		return result, err
-	} else {
-		return result, nil
 	}
+
+	return result, nil
 }
 
 //func (r *StorageClassWatcher) updateConfigmap() error {
