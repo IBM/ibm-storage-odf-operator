@@ -406,6 +406,7 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alph
 		foundScPoolConfigMap)
 	if err != nil {
 		if errors.IsNotFound(err) {
+			expectedScPoolConfigMap.Data = make(map[string]string)
 			r.Log.Info("create StorageClassPool ConfigMap for FlashSystemCluster", "name", expectedScPoolConfigMap.Name)
 			value := util.FlashSystemClusterMapContent{
 				ScPoolMap: make(map[string]string), Secret: instance.Spec.Secret.Name}
@@ -416,7 +417,6 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alph
 			expectedScPoolConfigMap.Data[instance.Name] = string(val)
 			return r.Client.Create(context.TODO(), expectedScPoolConfigMap)
 		}
-
 		r.Log.Error(err, "failed to create StorageClassPool ConfigMap")
 		return err
 	}

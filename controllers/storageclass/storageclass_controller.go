@@ -248,7 +248,6 @@ func InitScPoolConfigMap(ns string) *corev1.ConfigMap {
 			Labels:    selectLabels,
 		},
 	}
-	scPoolConfigMap.Data = make(map[string]string)
 	return scPoolConfigMap
 }
 
@@ -300,10 +299,11 @@ func (r *StorageClassWatcher) removeStorageClassFromFSC(configMap corev1.ConfigM
 }
 
 func (r *StorageClassWatcher) addStorageClass(configMap corev1.ConfigMap, fscName string, scName string, poolName string, secretName string) (result reconcile.Result, err error) {
-	// if configMap.Data is empty, create a new map
-	if len(configMap.Data) == 0 {
-		r.Log.Info("configMap.Data is empty, creating a new map in configMap.Data")
-		configMap.Data = make(map[string]string)
+	// if configMap.Data is empty, exit
+	if configMap.Data == nil {
+		r.Log.Info("configMap.Data is empty, exiting addStorageClass function")
+		// return an error indicating the empty configMap
+		return result, fmt.Errorf("configMap.Data is empty, exiting storageclass reconcile")
 	}
 	if configMap.Data[fscName] == "" {
 		r.Log.Info("configMap.Data[fscName] is empty, creating a new map in configMap.Data[fscName]")
