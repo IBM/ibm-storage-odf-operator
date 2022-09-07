@@ -396,6 +396,7 @@ func (r *FlashSystemClusterReconciler) createEvent(instance *odfv1alpha1.FlashSy
 
 // this object will not bind with instance
 func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alpha1.FlashSystemCluster) error {
+	r.Log.Info("ensureScPoolConfigMap", "instance", instance)
 	expectedScPoolConfigMap := storageclass.InitScPoolConfigMap(watchNamespace)
 	foundScPoolConfigMap := &corev1.ConfigMap{}
 
@@ -406,6 +407,13 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alph
 	if err != nil {
 		if errors.IsNotFound(err) {
 			r.Log.Info("create StorageClassPool ConfigMap for FlashSystemCluster", "name", expectedScPoolConfigMap.Name)
+			value := util.FlashSystemClusterMapContent{
+				ScPoolMap: make(map[string]string), Secret: instance.Spec.Secret.Name}
+			val, err := json.Marshal(value)
+			if err != nil {
+				return err
+			}
+			expectedScPoolConfigMap.Data[instance.Name] = string(val)
 			return r.Client.Create(context.TODO(), expectedScPoolConfigMap)
 		}
 
@@ -419,6 +427,7 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alph
 		types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace},
 		instance)
 	if err != nil {
+		r.Log.Info("deleting flashsystemcluster from configmap", "name", instance.Name, "configmap", foundScPoolConfigMap.Name)
 		delete(foundScPoolConfigMap.Data, instance.Name)
 		return r.Client.Update(context.TODO(), foundScPoolConfigMap)
 	}
@@ -431,6 +440,7 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alph
 		if err != nil {
 			return err
 		}
+		r.Log.Info("adding flashsystemcluster to configmap", "name", instance.Name, "configmap", foundScPoolConfigMap.Name)
 		foundScPoolConfigMap.Data[instance.Name] = string(val)
 		return r.Client.Update(context.TODO(), foundScPoolConfigMap)
 	}

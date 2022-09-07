@@ -135,20 +135,6 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 				return reconcile.Result{}, err
 			}
 		}
-
-		// check if request.Name is in the configmap
-		fscContent := configMap.Data[fscName]
-		var fsMap util.FlashSystemClusterMapContent
-		err = json.Unmarshal([]byte(fscContent), &fsMap)
-		if err != nil {
-			r.Log.Error(err, "Unmarshal failed")
-			return result, err
-		}
-		_, ok := fsMap.ScPoolMap[request.Name]
-		if ok {
-			r.Log.Info("Reconciling a existing StorageClass: ", "sc", request.Name)
-		}
-
 		poolName, ok := sc.Parameters[util.CsiIBMBlockScPool]
 		if ok {
 			r.Log.Info("Reconciling a new StorageClass: ", "sc", request.Name)
@@ -160,6 +146,39 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 		} else {
 			r.Log.Error(nil, "Reconciling a StorageClass without a pool", "sc", request.Name)
 		}
+
+		// check if request.Name is in the configmap, if not, add it
+		if _, ok := configMap.Data[fscName]; !ok {
+			r.Log.Info("adding new fsc to configmap", "fsc", fscName)
+			_, err = r.addStorageClass(*configMap, fscName, request.Name, poolName, fscSecretName)
+			if err != nil {
+				return reconcile.Result{}, err
+			}
+
+		}
+		fscContent := configMap.Data[fscName]
+		var fsMap util.FlashSystemClusterMapContent
+		err = json.Unmarshal([]byte(fscContent), &fsMap)
+		if err != nil {
+			r.Log.Error(err, "Unmarshal failed in storageclass controller")
+			return result, err
+		}
+		_, ok = fsMap.ScPoolMap[request.Name]
+		if ok {
+			r.Log.Info("Reconciling a existing StorageClass: ", "sc", request.Name)
+		}
+
+		//poolName, ok := sc.Parameters[util.CsiIBMBlockScPool]
+		//if ok {
+		//	r.Log.Info("Reconciling a new StorageClass: ", "sc", request.Name)
+		//	_, err = r.addStorageClass(*configMap, fscName, request.Name, poolName, fscSecretName)
+		//	if err != nil {
+		//		return reconcile.Result{}, err
+		//	}
+		//
+		//} else {
+		//	r.Log.Error(nil, "Reconciling a StorageClass without a pool", "sc", request.Name)
+		//}
 
 		err = r.Client.Update(context.TODO(), configMap)
 		if err != nil {
@@ -191,12 +210,14 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 
 	clusters := &v1alpha1.FlashSystemClusterList{}
 	err = r.Client.List(context.Background(), clusters)
+	r.Log.Info("number of found clusters: ", "clusters", len(clusters.Items))
 	if err != nil {
 		r.Log.Error(nil, "failed to list FlashSystemClusterList", "sc", sc.Name)
 		return foundCluster, err
 	}
 
 	for _, c := range clusters.Items {
+		r.Log.Info("checking cluster", "cluster", c.Name)
 		clusterSecret := &corev1.Secret{}
 		err = r.Client.Get(context.Background(),
 			types.NamespacedName{
@@ -279,11 +300,20 @@ func (r *StorageClassWatcher) removeStorageClassFromFSC(configMap corev1.ConfigM
 }
 
 func (r *StorageClassWatcher) addStorageClass(configMap corev1.ConfigMap, fscName string, scName string, poolName string, secretName string) (result reconcile.Result, err error) {
+	// if configMap.Data is empty, create a new map
+	if len(configMap.Data) == 0 {
+		r.Log.Info("configMap.Data is empty, creating a new map in configMap.Data")
+		configMap.Data = make(map[string]string)
+	}
+	if configMap.Data[fscName] == "" {
+		r.Log.Info("configMap.Data[fscName] is empty, creating a new map in configMap.Data[fscName]")
+		configMap.Data[fscName] = "{}"
+	}
 	fscContent := configMap.Data[fscName]
 	var fsMap util.FlashSystemClusterMapContent
 	err = json.Unmarshal([]byte(fscContent), &fsMap)
 	if err != nil {
-		r.Log.Error(err, "Unmarshal failed")
+		r.Log.Error(err, "Unmarshal failed while adding storageclass to configmap")
 		return result, err
 	}
 
