@@ -300,9 +300,8 @@ func (r *StorageClassWatcher) removeStorageClassFromFSC(configMap corev1.ConfigM
 
 func (r *StorageClassWatcher) addStorageClass(configMap corev1.ConfigMap, fscName string, scName string, poolName string, secretName string) (result reconcile.Result, err error) {
 	// if configMap.Data is empty, create a new map
-	if configMap.Data == nil {
+	if len(configMap.Data) == 0 {
 		r.Log.Info("configMap.Data is empty, exiting function")
-
 	}
 	if configMap.Data[fscName] == "" {
 		r.Log.Info("configMap.Data[fscName] is empty, creating a new map in configMap.Data[fscName]")
