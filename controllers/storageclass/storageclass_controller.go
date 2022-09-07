@@ -197,7 +197,6 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 
 	clusters := &v1alpha1.FlashSystemClusterList{}
 	err = r.Client.List(context.Background(), clusters)
-	r.Log.Info("number of found clusters: ", "clusters", len(clusters.Items))
 	if err != nil {
 		r.Log.Error(nil, "failed to list FlashSystemClusterList", "sc", sc.Name)
 		return foundCluster, err
@@ -249,6 +248,7 @@ func (r *StorageClassWatcher) getCreateConfigmap() (*corev1.ConfigMap, error) {
 	if err != nil {
 		if errors.IsNotFound(err) {
 			configMap = InitScPoolConfigMap(r.Namespace)
+			configMap.Data = make(map[string]string)
 			err = r.Client.Create(context.Background(), configMap)
 			r.Log.Info("Created ConfigMap", "configmap", configMap.Name, "Data", configMap.Data)
 			if err != nil {
