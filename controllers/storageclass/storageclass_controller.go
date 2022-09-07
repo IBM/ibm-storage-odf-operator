@@ -21,8 +21,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
-	"k8s.io/apimachinery/pkg/util/json"
-
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -30,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/json"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -168,18 +167,6 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 			r.Log.Info("Reconciling a existing StorageClass: ", "sc", request.Name)
 		}
 
-		//poolName, ok := sc.Parameters[util.CsiIBMBlockScPool]
-		//if ok {
-		//	r.Log.Info("Reconciling a new StorageClass: ", "sc", request.Name)
-		//	_, err = r.addStorageClass(*configMap, fscName, request.Name, poolName, fscSecretName)
-		//	if err != nil {
-		//		return reconcile.Result{}, err
-		//	}
-		//
-		//} else {
-		//	r.Log.Error(nil, "Reconciling a StorageClass without a pool", "sc", request.Name)
-		//}
-
 		err = r.Client.Update(context.TODO(), configMap)
 		if err != nil {
 			r.Log.Error(err, "Failed to update configmap")
@@ -215,7 +202,7 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 		r.Log.Error(nil, "failed to list FlashSystemClusterList", "sc", sc.Name)
 		return foundCluster, err
 	}
-
+	r.Log.Info("number of found clusters: ", "clusters", len(clusters.Items))
 	for _, c := range clusters.Items {
 		r.Log.Info("checking cluster", "cluster", c.Name)
 		clusterSecret := &corev1.Secret{}
@@ -263,7 +250,7 @@ func (r *StorageClassWatcher) getCreateConfigmap() (*corev1.ConfigMap, error) {
 		if errors.IsNotFound(err) {
 			configMap = InitScPoolConfigMap(r.Namespace)
 			err = r.Client.Create(context.Background(), configMap)
-			r.Log.Info("Created ConfigMap", "configmap", configMap.Name)
+			r.Log.Info("Created ConfigMap", "configmap", configMap.Name, "Data", configMap.Data)
 			if err != nil {
 				r.Log.Error(err, "create configMap failed", "cm", util.PoolConfigmapName)
 				return nil, err
@@ -301,8 +288,10 @@ func (r *StorageClassWatcher) removeStorageClassFromFSC(configMap corev1.ConfigM
 func (r *StorageClassWatcher) addStorageClass(configMap corev1.ConfigMap, fscName string, scName string, poolName string, secretName string) (result reconcile.Result, err error) {
 	// if configMap.Data is empty, create a new map
 	if len(configMap.Data) == 0 {
-		r.Log.Info("configMap.Data is empty, creating a new map in configMap.Data")
-		configMap.Data = make(map[string]string)
+		//r.Log.Info("configMap.Data is empty, creating a new map in configMap.Data")
+		r.Log.Error(err, "configMap is empty when attempting to add storageClass", "configmap", configMap.Name)
+		//configMap.Data = make(map[string]string)
+		return result, fmt.Errorf("configMap is empty when attempting to add storageClass")
 	}
 	if configMap.Data[fscName] == "" {
 		r.Log.Info("configMap.Data[fscName] is empty, creating a new map in configMap.Data[fscName]")
@@ -312,7 +301,7 @@ func (r *StorageClassWatcher) addStorageClass(configMap corev1.ConfigMap, fscNam
 	var fsMap util.FlashSystemClusterMapContent
 	err = json.Unmarshal([]byte(fscContent), &fsMap)
 	if err != nil {
-		r.Log.Error(err, "Unmarshal failed while adding storageclass to configmap")
+		r.Log.Error(err, "Unmarshal failed while adding storageClass to configmap")
 		return result, err
 	}
 
