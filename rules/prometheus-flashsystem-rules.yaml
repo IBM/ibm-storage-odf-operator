@@ -109,11 +109,11 @@ spec:
         - alert: FlashsystemMgrIsAbsent
           annotations:
             description: Subsystem storage manager "{{$labels.service}}" has disappeared from Prometheus target discovery.Please check the pod  {{$labels.pod}} logs to find out the cause.
-            message: 'Storage subsystem "{{$labels.service}}" metrics collector services is not available.'
+            message: 'Subsystem storage "{{$labels.subsystem_name}}" is not responding.'
             severity_level: error
             storage_type: ibm_flashsystem
           expr: |
-            up{job="flashsystem-subsystem-name-template"} !=1
+            flashsystem_subsystem_response{subsystem_name="flashsystem-subsystem-name-template"} !=1
           for: 5m
           labels:
             severity: critical
