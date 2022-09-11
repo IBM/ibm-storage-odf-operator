@@ -21,6 +21,7 @@ import (
 	"fmt"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"reflect"
+	"strings"
 
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/storageclass"
@@ -471,12 +472,15 @@ func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1a
 }
 
 func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alpha1.FlashSystemCluster, newOwnerDetails v1.OwnerReference) error {
-
+	err := r.DeleteDuplicatedService(instance)
+	if err != nil {
+		return err
+	}
 	expectedService := InitExporterMetricsService(instance)
 	serviceName := getExporterMetricsServiceName()
 	foundService := &corev1.Service{}
 
-	err := r.Client.Get(
+	err = r.Client.Get(
 		context.TODO(),
 		types.NamespacedName{Name: serviceName, Namespace: instance.Namespace},
 		foundService)
@@ -485,7 +489,6 @@ func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alph
 			r.Log.Info("create exporter service")
 			return r.Client.Create(context.TODO(), expectedService)
 		}
-
 		r.Log.Error(err, "failed to create exporter service")
 		return err
 	}
@@ -495,12 +498,37 @@ func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alph
 		r.Log.Info("existing exporter service is expected with no change adding owner reference")
 		foundService.SetOwnerReferences(append(foundService.GetOwnerReferences(), newOwnerDetails))
 		return r.Client.Update(context.TODO(), foundService)
-
 	}
 
 	r.Log.Info("update exporter service")
 	updatedService.SetOwnerReferences(append(updatedService.GetOwnerReferences(), newOwnerDetails))
 	return r.Client.Update(context.TODO(), updatedService)
+}
+
+func (r *FlashSystemClusterReconciler) DeleteDuplicatedService(instance *odfv1alpha1.FlashSystemCluster) error {
+	ServicesList := &corev1.ServiceList{}
+	opts := []client.ListOption{client.InNamespace(instance.Namespace),
+		client.MatchingLabels{"odf": "storage.ibm.com"}}
+	err := r.Client.List(context.Background(), ServicesList, opts...)
+	if err != nil {
+		r.Log.Error(err, "failed to list services")
+		return err
+	}
+
+	for _, currentService := range ServicesList.Items {
+		if strings.Contains(currentService.Name, fsObjectsPrefix) {
+			labels := currentService.GetLabels()
+			if _, ok := labels["supportedStorage"]; !ok {
+				r.Log.Info(fmt.Sprintf("found an old FlashSystem ODF service. Deleting %v.", currentService.Name))
+				err = r.Client.Delete(context.Background(), &currentService)
+				if err != nil {
+					r.Log.Error(err, "failed to delete historical service")
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (r *FlashSystemClusterReconciler) ensureExporterServiceMonitor(instance *odfv1alpha1.FlashSystemCluster, newOwnerDetails v1.OwnerReference) error {

@@ -43,6 +43,7 @@ const (
 	// ExporterClusterConfigMapMountPoint = "/cluster-configmap"
 	ExporterClusterConfigMapVolumeName = "storageclass-pool"
 	ServiceAccount                     = "ibm-storage-odf-operator"
+	fsObjectsPrefix                    = "ibm-flashsystem-storage"
 	fsServiceName                      = "ibm-flashsystem-storage-service"
 	fsDeploymentName                   = "ibm-flashsystem-storage-deployment"
 	fsServiceMonitorName               = "ibm-flashsystem-storage-service-monitor"
