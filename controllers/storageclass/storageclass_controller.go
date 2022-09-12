@@ -140,8 +140,7 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 					return result, err
 				}
 			} else {
-				r.Log.Error(nil, "cannot reconcile StorageClass without a pool")
-				return result, fmt.Errorf("cannot reconcile a StorageClass without a pool")
+				r.Log.Error(nil, "cannot reconcile a StorageClass without a pool")
 			}
 		}
 		return result, nil

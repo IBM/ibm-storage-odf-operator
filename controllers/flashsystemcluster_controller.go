@@ -368,8 +368,6 @@ func (r *FlashSystemClusterReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		reconciler: r,
 	}
 
-	//TODO tal - Watches trigger the FlashSystemClusterReconcile function according to the given object
-
 	//TODO: it seems operator-sdk 1.5 + golang 1.5 fails to watch resources through Owns
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&odfv1alpha1.FlashSystemCluster{}).
