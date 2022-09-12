@@ -132,7 +132,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 	}()
 
-	r.Log = r.Log.WithValues("flashsystemcluster", req.NamespacedName)
+	r.Log = r.Log.WithValues("FlashSystemCluster", req.NamespacedName)
 	r.Log.Info("Reconciling FlashSystemCluster")
 
 	instance := &odfv1alpha1.FlashSystemCluster{}
