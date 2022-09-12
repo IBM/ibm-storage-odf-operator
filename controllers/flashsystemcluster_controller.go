@@ -618,7 +618,7 @@ func (r *FlashSystemClusterReconciler) DeleteDuplicatedServiceMonitor(instance *
 				deleteSM := currentSM
 				err = r.Client.Delete(context.Background(), deleteSM)
 				if err != nil {
-					r.Log.Error(err, "failed to delete historical serviceMonitor")
+					r.Log.Error(err, "failed to delete historical ServiceMonitor")
 					return err
 				}
 			}
