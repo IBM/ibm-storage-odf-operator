@@ -606,7 +606,7 @@ func (r *FlashSystemClusterReconciler) DeleteDuplicatedServiceMonitor(instance *
 		client.MatchingLabels{"odf": "storage.ibm.com"}}
 	err := r.Client.List(context.Background(), ServiceMonitorList, opts...)
 	if err != nil {
-		r.Log.Error(err, "failed to list deployments")
+		r.Log.Error(err, "failed to list serviceMonitor")
 		return err
 	}
 
@@ -618,7 +618,7 @@ func (r *FlashSystemClusterReconciler) DeleteDuplicatedServiceMonitor(instance *
 				deleteSM := currentSM
 				err = r.Client.Delete(context.Background(), deleteSM)
 				if err != nil {
-					r.Log.Error(err, "failed to delete historical deployment")
+					r.Log.Error(err, "failed to delete historical serviceMonitor")
 					return err
 				}
 			}
