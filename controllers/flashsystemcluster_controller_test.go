@@ -1,26 +1,26 @@
 /**
- * Copyright contributors to the ibm-storage-odf-operator project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+* Copyright contributors to the ibm-storage-odf-operator project
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
  */
 
 package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"reflect"
 
-	//	"fmt"
 	"time"
 
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
@@ -47,8 +47,8 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 		volPrefix        = "odf"
 		spaceEff         = "thick"
 
-		timeout  = time.Second * 10
-		interval = time.Millisecond * 250
+		timeout  = time.Second * 30
+		interval = time.Millisecond * 400
 	)
 
 	Context("when creating FlashSystemCluster CR", func() {
@@ -107,7 +107,7 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 
 		})
 
-		It("should create flashsystem csi operator cr successfully", func() {
+		It("should create CSI operator CR successfully", func() {
 			instance := &odfv1alpha1.FlashSystemCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      FlashSystemName,
@@ -134,7 +134,7 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 			Expect(isCSICRFound).Should(BeTrue())
 		})
 
-		It("should create successfully", func() {
+		It("should create FlashSystemCluster successfully", func() {
 			By("By creating a new FlashSystemCluster")
 			ctx := context.TODO()
 			instance := &odfv1alpha1.FlashSystemCluster{
@@ -180,11 +180,17 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, cmLookupKey, createdCm)
-				return err == nil
+				if err == nil {
+					var sp util.FlashSystemClusterMapContent
+					err = json.Unmarshal([]byte(createdCm.Data[FlashSystemName]), &sp)
+					if err == nil {
+						return sp.Secret == secretName
+					}
+				}
+				return false
 			}, timeout, interval).Should(BeTrue())
 
 			createdDeployment := &appsv1.Deployment{}
-
 			Eventually(func() bool {
 				err := k8sClient.Get(
 					ctx,
@@ -293,7 +299,44 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 				return currentFS.Status.Phase == util.PhaseReady && err == nil
 			}, timeout, interval).Should(BeTrue())
 
-			//fmt.Printf("created FlashSystemCluster: %v \n", *currentFS)
+		})
+
+		It("should delete FlashSystemCluster successfully", func() {
+			By("By deleting a FlashSystemCluster")
+
+			ctx := context.TODO()
+			fsLookupKey := types.NamespacedName{
+				Name:      FlashSystemName,
+				Namespace: namespace,
+			}
+			createdFs := &odfv1alpha1.FlashSystemCluster{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, fsLookupKey, createdFs)
+				return err == nil
+			}, timeout, interval).Should(BeTrue())
+
+			Expect(k8sClient.Delete(ctx, createdFs)).Should(Succeed())
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, fsLookupKey, createdFs)
+				return err != nil
+			}, timeout, interval).Should(BeTrue())
+
+			cmLookupKey := types.NamespacedName{
+				Name:      util.PoolConfigmapName,
+				Namespace: namespace,
+			}
+
+			createdCm := &corev1.ConfigMap{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, cmLookupKey, createdCm)
+				if err == nil {
+					_, ok := createdCm.Data[FlashSystemName]
+					return ok == false
+				}
+				return false
+			}, timeout, interval).Should(BeTrue())
+
 		})
 	})
 })
