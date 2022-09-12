@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"reflect"
 	"strings"
 
@@ -505,24 +506,61 @@ func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alph
 	return r.Client.Update(context.TODO(), updatedService)
 }
 
-func (r *FlashSystemClusterReconciler) DeleteDuplicatedService(instance *odfv1alpha1.FlashSystemCluster) error {
-	ServicesList := &corev1.ServiceList{}
+func (r *FlashSystemClusterReconciler) DeleteDuplicatedObject(instance *odfv1alpha1.FlashSystemCluster, generalObject client.ObjectList, originalKind schema.GroupVersionKind) error {
 	opts := []client.ListOption{client.InNamespace(instance.Namespace),
 		client.MatchingLabels{"odf": "storage.ibm.com"}}
-	err := r.Client.List(context.Background(), ServicesList, opts...)
+	err := r.Client.List(context.Background(), generalObject, opts...)
 	if err != nil {
 		r.Log.Error(err, "failed to list services")
 		return err
 	}
 
-	for _, currentService := range ServicesList.Items {
+	generalObject.GetObjectKind().SetGroupVersionKind(originalKind)
+	for _, currentService := range generalObject.Items {
 		if strings.Contains(currentService.Name, fsObjectsPrefix) {
 			labels := currentService.GetLabels()
 			if _, ok := labels["supportedStorage"]; !ok {
 				r.Log.Info(fmt.Sprintf("found an old FlashSystem ODF service. Deleting %v.", currentService.Name))
-				err = r.Client.Delete(context.Background(), &currentService)
+				deleteService := currentService
+				err = r.Client.Delete(context.Background(), &deleteService)
 				if err != nil {
 					r.Log.Error(err, "failed to delete historical service")
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (r *FlashSystemClusterReconciler) DeleteDuplicatedService(instance *odfv1alpha1.FlashSystemCluster) error {
+	ServicesList := &corev1.ServiceList{}
+	Groupkind := ServicesList.GetObjectKind().GroupVersionKind()
+	err := r.DeleteDuplicatedObject(instance, ServicesList, Groupkind)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *FlashSystemClusterReconciler) DeleteDuplicatedDeployment(instance *odfv1alpha1.FlashSystemCluster) error {
+	DeploymentList := &appsv1.DeploymentList{}
+	opts := []client.ListOption{client.InNamespace(instance.Namespace),
+		client.MatchingLabels{"odf": "storage.ibm.com"}}
+	err := r.Client.List(context.Background(), DeploymentList, opts...)
+	if err != nil {
+		r.Log.Error(err, "failed to list deployments")
+		return err
+	}
+
+	for _, currentDeployment := range DeploymentList.Items {
+		if strings.Contains(currentDeployment.Name, fsObjectsPrefix) {
+			labels := currentDeployment.GetLabels()
+			if _, ok := labels["supportedStorage"]; !ok {
+				r.Log.Info(fmt.Sprintf("found an old FlashSystem ODF deployment. Deleting %v.", currentDeployment.Name))
+				err = r.Client.Delete(context.Background(), &currentDeployment)
+				if err != nil {
+					r.Log.Error(err, "failed to delete historical deployment")
 					return err
 				}
 			}
