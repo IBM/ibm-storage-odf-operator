@@ -142,7 +142,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 			r.Log.Info("FlashSystemCluster resource was not found")
 			err = r.removeFscFromConfigMap(req.Name)
 			if err != nil {
-				r.Log.Error(err, "Failed to delete entry", "FlashSystemCluster", instance.Name)
+				r.Log.Error(err, "Failed to delete entry from pools ConfigMap")
 				return ctrl.Result{}, err
 			}
 			return result, nil
@@ -193,7 +193,7 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 				return reconcile.Result{}, err
 			}
 			if err = r.removeFscFromConfigMap(instance.Name); err != nil {
-				r.Log.Error(err, "Failed to delete entry", "FlashSystemCluster", instance.Name)
+				r.Log.Error(err, "Failed to delete entry from pools ConfigMap")
 				return reconcile.Result{}, err
 			}
 		}
@@ -418,8 +418,7 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alph
 		if err != nil {
 			return err
 		}
-		r.Log.Info("Adding FlashSystemCluster to pools configmap", "FlashSystemCluster", instance.Name,
-			"configmap", configmap.Name)
+		r.Log.Info("Adding FlashSystemCluster to pools ConfigMap", "ConfigMap", configmap.Name)
 		configmap.Data[instance.Name] = string(val)
 		return r.Client.Update(context.TODO(), configmap)
 	}
@@ -428,7 +427,7 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alph
 }
 
 func (r *FlashSystemClusterReconciler) removeFscFromConfigMap(fscName string) error {
-	r.Log.Info("Removing", "FlashSystemCluster", fscName, "from pools ConfigMap", util.PoolConfigmapName)
+	r.Log.Info("Removing FlashSystemCluster entry from pools ConfigMap", "ConfigMap", util.PoolConfigmapName)
 
 	configmap, err := util.GetCreateConfigmap(r.Client, r.Log, watchNamespace, true)
 	if err != nil {
@@ -437,7 +436,7 @@ func (r *FlashSystemClusterReconciler) removeFscFromConfigMap(fscName string) er
 	delete(configmap.Data, fscName)
 	err = r.Client.Update(context.TODO(), configmap)
 	if err != nil {
-		r.Log.Error(err, "Failed to update", "ConfigMap", configmap.Name)
+		r.Log.Error(err, "Failed to update pools ConfigMap", "ConfigMap", configmap.Name)
 		return err
 	}
 	return nil

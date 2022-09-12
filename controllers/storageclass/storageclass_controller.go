@@ -97,7 +97,7 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 	}()
 
 	r.Log = r.Log.WithValues("Request.Name", request.NamespacedName)
-	r.Log.Info("Reconciling", "StorageClass", request.NamespacedName)
+	r.Log.Info("Reconciling StorageClass")
 
 	configMap, err := util.GetCreateConfigmap(r.Client, r.Log, r.Namespace, false)
 	if err != nil {
@@ -108,7 +108,7 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 	err = r.Client.Get(context.TODO(), request.NamespacedName, sc)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			r.Log.Info("StorageClass not found", "StorageClass", request.Name)
+			r.Log.Info("StorageClass not found")
 			for fscName := range configMap.Data {
 				err = r.removeStorageClassFromConfigMap(*configMap, fscName, request.Name)
 				if err != nil {
@@ -140,19 +140,19 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 					return result, err
 				}
 			} else {
-				r.Log.Error(nil, "cannot reconcile StorageClass without a pool", "StorageClass", request.Name)
-				return result, fmt.Errorf("cannot reconcile a StorageClass without a pool. StorageClass: %s", request.Name)
+				r.Log.Error(nil, "cannot reconcile StorageClass without a pool")
+				return result, fmt.Errorf("cannot reconcile a StorageClass without a pool")
 			}
 		}
 		return result, nil
 	} else {
-		r.Log.Info("Cannot find FlashSystemCluster for StorageClass", "StorageClass", request.Name)
+		r.Log.Info("Cannot find FlashSystemCluster for StorageClass")
 		return result, fscErr
 	}
 }
 
 func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.StorageClass) (v1alpha1.FlashSystemCluster, error) {
-	r.Log.Info("Looking for flashSystemCluster by storageClass", "sc", sc.Name)
+	r.Log.Info("Looking for FlashSystemCluster by StorageClass", "sc", sc.Name)
 	storageClassSecret := &corev1.Secret{}
 	foundCluster := v1alpha1.FlashSystemCluster{}
 	err := r.Client.Get(context.Background(),
@@ -172,7 +172,7 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 		r.Log.Error(nil, "failed to list FlashSystemClusterList", "sc", sc.Name)
 		return foundCluster, err
 	}
-	r.Log.Info("number of found clusters: ", "clusters", len(clusters.Items))
+
 	for _, c := range clusters.Items {
 		r.Log.Info("checking cluster", "cluster", c.Name)
 		clusterSecret := &corev1.Secret{}
@@ -197,7 +197,7 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 }
 
 func (r *StorageClassWatcher) removeStorageClassFromConfigMap(configMap corev1.ConfigMap, fscName string, scName string) error {
-	r.Log.Info("Removing", "StorageClass", scName, "from pools ConfigMap", configMap)
+	r.Log.Info("Removing StorageClass from pools ConfigMap", "StorageClass", scName, "pools ConfigMap", configMap.Name)
 
 	fscContent, exist := configMap.Data[fscName]
 	if exist {
@@ -216,7 +216,7 @@ func (r *StorageClassWatcher) removeStorageClassFromConfigMap(configMap corev1.C
 		configMap.Data[fscName] = string(val)
 		err = r.Client.Update(context.TODO(), &configMap)
 		if err != nil {
-			r.Log.Error(err, "Failed to update", "ConfigMap", configMap.Name)
+			r.Log.Error(err, "Failed to update pools ConfigMap", "ConfigMap", configMap.Name)
 			return err
 		}
 	}
@@ -224,12 +224,12 @@ func (r *StorageClassWatcher) removeStorageClassFromConfigMap(configMap corev1.C
 }
 
 func (r *StorageClassWatcher) addStorageClassToConfigMap(configMap corev1.ConfigMap, fscName string, scName string, poolName string) error {
-	r.Log.Info("Adding", "StorageClass", scName, "to pools ConfigMap", configMap)
+	r.Log.Info("Adding StorageClass to pools ConfigMap", "StorageClass", scName, "pools ConfigMap", configMap.Name)
 
 	fscContent, exist := configMap.Data[fscName]
 	if !exist {
-		r.Log.Error(nil, "Failed to get", "FlashSystemCluster", fscName, "from ConfigMap", configMap.Name)
-		return fmt.Errorf("failed to get FlashSystemCluster name from configMap")
+		r.Log.Error(nil, "Failed to get FlashSystemCluster entry from pools ConfigMap", "FlashSystemCluster", fscName, "pools ConfigMap", configMap.Name)
+		return fmt.Errorf("failed to get FlashSystemCluster entry from configMap")
 	}
 
 	var fsMap util.FlashSystemClusterMapContent
@@ -248,7 +248,7 @@ func (r *StorageClassWatcher) addStorageClassToConfigMap(configMap corev1.Config
 
 	err = r.Client.Update(context.TODO(), &configMap)
 	if err != nil {
-		r.Log.Error(err, "Failed to update", "ConfigMap", configMap.Name)
+		r.Log.Error(err, "Failed to update pools ConfigMap", "ConfigMap", configMap.Name)
 		return err
 	}
 
