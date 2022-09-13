@@ -518,8 +518,7 @@ func (r *FlashSystemClusterReconciler) deleteDuplicatedService(instance *odfv1al
 	}
 
 	for _, currentService := range ServicesList.Items {
-		labels := currentService.GetLabels()
-		if r.isOldObject(labels, currentService.Name) {
+		if r.isOldObject(currentService.GetLabels(), currentService.Name) {
 			deleteService := currentService
 			err = r.Client.Delete(context.Background(), &deleteService)
 			if err != nil {
@@ -540,8 +539,7 @@ func (r *FlashSystemClusterReconciler) deleteDuplicatedDeployment(instance *odfv
 	}
 
 	for _, currentDeployment := range DeploymentList.Items {
-		labels := currentDeployment.GetLabels()
-		if r.isOldObject(labels, currentDeployment.Name) {
+		if r.isOldObject(currentDeployment.GetLabels(), currentDeployment.Name) {
 			deleteDeployment := currentDeployment
 			err = r.Client.Delete(context.Background(), &deleteDeployment)
 			if err != nil {
@@ -562,8 +560,7 @@ func (r *FlashSystemClusterReconciler) deleteDuplicatedServiceMonitor(instance *
 	}
 
 	for _, currentSM := range serviceMonitorList.Items {
-		labels := currentSM.GetLabels()
-		if r.isOldObject(labels, currentSM.Name) {
+		if r.isOldObject(currentSM.GetLabels(), currentSM.Name) {
 			deleteSM := currentSM
 			err = r.Client.Delete(context.Background(), deleteSM)
 			if err != nil {
