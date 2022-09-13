@@ -511,22 +511,20 @@ func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alph
 
 func (r *FlashSystemClusterReconciler) deleteDuplicatedService(instance *odfv1alpha1.FlashSystemCluster) error {
 	ServicesList := &corev1.ServiceList{}
-	err := r.getObjectListPerFilter(instance, ServicesList)
+	err := r.getObjectListByLabel(instance, ServicesList)
 	if err != nil {
 		r.Log.Error(err, "failed to list services")
 		return err
 	}
 
 	for _, currentService := range ServicesList.Items {
-		if strings.HasPrefix(currentService.Name, fsObjectsPrefix) {
-			labels := currentService.GetLabels()
-			if r.isOldObject(labels, currentService.Name) {
-				deleteService := currentService
-				err = r.Client.Delete(context.Background(), &deleteService)
-				if err != nil {
-					r.Log.Error(err, "failed to delete historical service")
-					return err
-				}
+		labels := currentService.GetLabels()
+		if r.isOldObject(labels, currentService.Name) {
+			deleteService := currentService
+			err = r.Client.Delete(context.Background(), &deleteService)
+			if err != nil {
+				r.Log.Error(err, "failed to delete historical service")
+				return err
 			}
 		}
 	}
@@ -535,22 +533,20 @@ func (r *FlashSystemClusterReconciler) deleteDuplicatedService(instance *odfv1al
 
 func (r *FlashSystemClusterReconciler) deleteDuplicatedDeployment(instance *odfv1alpha1.FlashSystemCluster) error {
 	DeploymentList := &appsv1.DeploymentList{}
-	err := r.getObjectListPerFilter(instance, DeploymentList)
+	err := r.getObjectListByLabel(instance, DeploymentList)
 	if err != nil {
 		r.Log.Error(err, "failed to list deployments")
 		return err
 	}
 
 	for _, currentDeployment := range DeploymentList.Items {
-		if strings.HasPrefix(currentDeployment.Name, fsObjectsPrefix) {
-			labels := currentDeployment.GetLabels()
-			if r.isOldObject(labels, currentDeployment.Name) {
-				deleteDeployment := currentDeployment
-				err = r.Client.Delete(context.Background(), &deleteDeployment)
-				if err != nil {
-					r.Log.Error(err, "failed to delete historical deployment")
-					return err
-				}
+		labels := currentDeployment.GetLabels()
+		if r.isOldObject(labels, currentDeployment.Name) {
+			deleteDeployment := currentDeployment
+			err = r.Client.Delete(context.Background(), &deleteDeployment)
+			if err != nil {
+				r.Log.Error(err, "failed to delete historical deployment")
+				return err
 			}
 		}
 	}
@@ -559,37 +555,35 @@ func (r *FlashSystemClusterReconciler) deleteDuplicatedDeployment(instance *odfv
 
 func (r *FlashSystemClusterReconciler) deleteDuplicatedServiceMonitor(instance *odfv1alpha1.FlashSystemCluster) error {
 	serviceMonitorList := &monitoringv1.ServiceMonitorList{}
-	err := r.getObjectListPerFilter(instance, serviceMonitorList)
+	err := r.getObjectListByLabel(instance, serviceMonitorList)
 	if err != nil {
 		r.Log.Error(err, "failed to list serviceMonitors")
 		return err
 	}
 
 	for _, currentSM := range serviceMonitorList.Items {
-		if strings.HasPrefix(currentSM.Name, fsObjectsPrefix) {
-			labels := currentSM.GetLabels()
-			if r.isOldObject(labels, currentSM.Name) {
-				deleteSM := currentSM
-				err = r.Client.Delete(context.Background(), deleteSM)
-				if err != nil {
-					r.Log.Error(err, "failed to delete historical serviceMonitor")
-					return err
-				}
+		labels := currentSM.GetLabels()
+		if r.isOldObject(labels, currentSM.Name) {
+			deleteSM := currentSM
+			err = r.Client.Delete(context.Background(), deleteSM)
+			if err != nil {
+				r.Log.Error(err, "failed to delete historical serviceMonitor")
+				return err
 			}
 		}
 	}
 	return nil
 }
 
-func (r *FlashSystemClusterReconciler) getObjectListPerFilter(instance *odfv1alpha1.FlashSystemCluster, list client.ObjectList) error {
+func (r *FlashSystemClusterReconciler) getObjectListByLabel(instance *odfv1alpha1.FlashSystemCluster, list client.ObjectList) error {
 	opts := []client.ListOption{client.InNamespace(instance.Namespace),
-		client.MatchingLabels{"odf": "storage.ibm.com"}}
+		client.MatchingLabels{util.OdfLabel.Name: util.OdfLabel.Value}}
 	err := r.Client.List(context.Background(), list, opts...)
 	return err
 }
 
 func (r *FlashSystemClusterReconciler) isOldObject(labels map[string]string, objectName string) bool {
-	if _, ok := labels["odf-fs"]; !ok {
+	if _, keyFound := labels[util.OdfFsLabel.Name]; !keyFound && strings.HasPrefix(objectName, fsObjectsPrefix) {
 		r.Log.Info(fmt.Sprintf("found an old FlashSystem ODF object. Deleting %v.", objectName))
 		return true
 	}
