@@ -19,9 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"reflect"
-
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/storageclass"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
@@ -31,10 +28,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
+	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -414,6 +413,16 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap() error {
 	return nil
 }
 
+func isOwnerExist(ownerReferences []v1.OwnerReference, newOwner v1.OwnerReference) bool {
+	ownerReferencesSet := make(map[types.UID]v1.OwnerReference, len(ownerReferences))
+	for _, owner := range ownerReferences {
+		ownerReferencesSet[owner.UID] = owner
+	}
+
+	_, ok := ownerReferencesSet[newOwner.UID]
+	return ok
+}
+
 func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1alpha1.FlashSystemCluster, newOwnerDetails v1.OwnerReference) error {
 
 	exporterImg, err := util.GetExporterImage()
@@ -454,16 +463,21 @@ func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1a
 		r.Log.Error(err, "failed to create exporter deployment")
 		return err
 	}
+
 	if reflect.DeepEqual(foundDeployment.Spec, expectedDeployment.Spec) {
 		r.Log.Info("existing exporter deployment is expected with no change, adding owner reference")
-		foundDeployment.SetOwnerReferences(append(foundDeployment.GetOwnerReferences(), newOwnerDetails))
+		if !isOwnerExist(foundDeployment.GetOwnerReferences(), newOwnerDetails) {
+			foundDeployment.SetOwnerReferences(append(foundDeployment.GetOwnerReferences(), newOwnerDetails))
+		}
 		return r.Client.Update(context.TODO(), foundDeployment)
 	}
 
 	updatedDeployment := updateExporterDeployment(foundDeployment, expectedDeployment)
 	if updatedDeployment != nil {
 		r.Log.Info("update exporter deployment")
-		updatedDeployment.SetOwnerReferences(append(updatedDeployment.GetOwnerReferences(), newOwnerDetails))
+		if !isOwnerExist(updatedDeployment.GetOwnerReferences(), newOwnerDetails) {
+			updatedDeployment.SetOwnerReferences(append(updatedDeployment.GetOwnerReferences(), newOwnerDetails))
+		}
 		return r.Client.Update(context.TODO(), updatedDeployment)
 	}
 
@@ -491,15 +505,19 @@ func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alph
 	}
 
 	updatedService := updateExporterMetricsService(foundService, expectedService)
-	if updatedService == nil {
-		r.Log.Info("existing exporter service is expected with no change adding owner reference")
-		foundService.SetOwnerReferences(append(foundService.GetOwnerReferences(), newOwnerDetails))
-		return r.Client.Update(context.TODO(), foundService)
 
+	if updatedService == nil {
+		r.Log.Info("existing exporter service is expected with no change. adding owner reference")
+		if !isOwnerExist(foundService.GetOwnerReferences(), newOwnerDetails) {
+			foundService.SetOwnerReferences(append(foundService.GetOwnerReferences(), newOwnerDetails))
+		}
+		return r.Client.Update(context.TODO(), foundService)
 	}
 
 	r.Log.Info("update exporter service")
-	updatedService.SetOwnerReferences(append(updatedService.GetOwnerReferences(), newOwnerDetails))
+	if !isOwnerExist(updatedService.GetOwnerReferences(), newOwnerDetails) {
+		updatedService.SetOwnerReferences(append(updatedService.GetOwnerReferences(), newOwnerDetails))
+	}
 	return r.Client.Update(context.TODO(), updatedService)
 }
 
@@ -524,12 +542,16 @@ func (r *FlashSystemClusterReconciler) ensureExporterServiceMonitor(instance *od
 	updatedServiceMonitor := updateExporterMetricsServiceMonitor(foundServiceMonitor, expectedServiceMonitor)
 	if updatedServiceMonitor == nil {
 		r.Log.Info("existing exporter servicemonitor is expected with no change, adding owner reference")
-		foundServiceMonitor.SetOwnerReferences(append(foundServiceMonitor.GetOwnerReferences(), newOwnerDetails))
+		if !isOwnerExist(foundServiceMonitor.GetOwnerReferences(), newOwnerDetails) {
+			foundServiceMonitor.SetOwnerReferences(append(foundServiceMonitor.GetOwnerReferences(), newOwnerDetails))
+		}
 		return r.Client.Update(context.TODO(), foundServiceMonitor)
 	}
 
 	r.Log.Info("update exporter servicemonitor")
-	updatedServiceMonitor.SetOwnerReferences(append(updatedServiceMonitor.GetOwnerReferences(), newOwnerDetails))
+	if !isOwnerExist(updatedServiceMonitor.GetOwnerReferences(), newOwnerDetails) {
+		updatedServiceMonitor.SetOwnerReferences(append(updatedServiceMonitor.GetOwnerReferences(), newOwnerDetails))
+	}
 	return r.Client.Update(context.TODO(), updatedServiceMonitor)
 }
 
