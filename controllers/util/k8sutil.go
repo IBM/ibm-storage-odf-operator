@@ -53,7 +53,7 @@ func GetLabels() map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/component": "ibm-storage-odf-operator",
 		"odf":                         "storage.ibm.com",
-		"supportedStorage":            "multiple",
+		"odf-fs":                      "odf-fs-workspace",
 	}
 }
 
