@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
-	"github.com/IBM/ibm-storage-odf-operator/controllers/storageclass"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	"github.com/go-logr/logr"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -33,6 +32,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -133,7 +133,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 	}()
 
-	r.Log = r.Log.WithValues("flashsystemcluster", req.NamespacedName)
+	r.Log = r.Log.WithValues("FlashSystemCluster", req.NamespacedName)
 	r.Log.Info("Reconciling FlashSystemCluster")
 
 	instance := &odfv1alpha1.FlashSystemCluster{}
@@ -141,12 +141,16 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 	if err != nil {
 		if errors.IsNotFound(err) {
 			r.Log.Info("FlashSystemCluster resource was not found")
+			err = r.removeFscFromConfigMap(req.Name)
+			if err != nil {
+				r.Log.Error(err, "Failed to delete entry from pools ConfigMap")
+				return ctrl.Result{}, err
+			}
 			return result, nil
 		}
 		// Error reading the object - requeue the request.
 		return result, err
 	}
-
 	result, err = r.reconcile(instance)
 
 	statusError := r.Client.Status().Update(context.TODO(), instance)
@@ -170,7 +174,7 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 		if !util.IsContain(instance.GetFinalizers(), flashSystemClusterFinalizer) {
 			r.Log.Info("Append flashsystemcluster to finalizer")
 			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, flashSystemClusterFinalizer)
-			if err := r.Client.Update(context.TODO(), instance); err != nil {
+			if err = r.Client.Update(context.TODO(), instance); err != nil {
 				r.Log.Info("Update Error", "MetaUpdateErr", "Failed to update FlashSystemCluster with finalizer")
 				return reconcile.Result{}, err
 			}
@@ -179,14 +183,18 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 		// The object is marked for deletion
 		if util.IsContain(instance.GetFinalizers(), flashSystemClusterFinalizer) {
 			r.Log.Info("Removing finalizer")
-			if err := r.deleteDefaultStorageClass(instance); err != nil {
+			if err = r.deleteDefaultStorageClass(instance); err != nil {
 				return reconcile.Result{}, err
 			}
 
 			// Once all finalizers have been removed, the object will be deleted
 			instance.ObjectMeta.Finalizers = util.Remove(instance.ObjectMeta.Finalizers, flashSystemClusterFinalizer)
-			if err := r.Client.Update(context.TODO(), instance); err != nil {
+			if err = r.Client.Update(context.TODO(), instance); err != nil {
 				r.Log.Info("Update Error", "MetaUpdateErr", "Failed to remove finalizer from FlashSystemCluster")
+				return reconcile.Result{}, err
+			}
+			if err = r.removeFscFromConfigMap(instance.Name); err != nil {
+				r.Log.Error(err, "Failed to delete entry from pools ConfigMap")
 				return reconcile.Result{}, err
 			}
 		}
@@ -217,7 +225,7 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 			UID:        instance.UID,
 		}
 		secret.SetOwnerReferences([]v1.OwnerReference{newOwnerForSecret})
-		err := r.Client.Update(context.TODO(), secret)
+		err = r.Client.Update(context.TODO(), secret)
 		if err != nil {
 			r.Log.Error(err, "Update Error: Failed to update secret with owner reference")
 			return reconcile.Result{}, err
@@ -241,7 +249,7 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 	}
 
 	r.Log.Info("step: ensureScPoolConfigMap")
-	if err = r.ensureScPoolConfigMap(); err != nil {
+	if err = r.ensureScPoolConfigMap(instance); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to ensureScPoolConfigMap: %v", err)
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
@@ -391,26 +399,45 @@ func (r *FlashSystemClusterReconciler) createEvent(instance *odfv1alpha1.FlashSy
 }
 
 // this object will not bind with instance
-func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap() error {
-	expectedScPoolConfigMap := storageclass.InitScPoolConfigMap(watchNamespace)
-	foundScPoolConfigMap := &corev1.ConfigMap{}
+func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alpha1.FlashSystemCluster) error {
+	r.Log.Info("ensureScPoolConfigMap", "instance", instance)
 
-	err := r.Client.Get(
-		context.TODO(),
-		types.NamespacedName{Name: util.PoolConfigmapName, Namespace: watchNamespace},
-		foundScPoolConfigMap)
+	configmap, err := util.GetCreateConfigmap(r.Client, r.Log, watchNamespace, true)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			r.Log.Info("create StorageClassPool ConfigMap")
-			return r.Client.Create(context.TODO(), expectedScPoolConfigMap)
-		}
-
-		r.Log.Error(err, "failed to create StorageClassPool ConfigMap")
 		return err
 	}
 
-	// storageclass_controller will update it.
+	if configmap.Data == nil {
+		configmap.Data = make(map[string]string)
+	}
+	if _, exist := configmap.Data[instance.Name]; !exist {
+		value := util.FlashSystemClusterMapContent{
+			ScPoolMap: make(map[string]string), Secret: instance.Spec.Secret.Name}
+		val, err := json.Marshal(value)
+		if err != nil {
+			return err
+		}
+		r.Log.Info("Adding FlashSystemCluster to pools ConfigMap", "ConfigMap", configmap.Name)
+		configmap.Data[instance.Name] = string(val)
+		return r.Client.Update(context.TODO(), configmap)
+	}
 
+	return nil
+}
+
+func (r *FlashSystemClusterReconciler) removeFscFromConfigMap(fscName string) error {
+	r.Log.Info("Removing FlashSystemCluster entry from pools ConfigMap", "ConfigMap", util.PoolConfigmapName)
+
+	configmap, err := util.GetCreateConfigmap(r.Client, r.Log, watchNamespace, true)
+	if err != nil {
+		return err
+	}
+	delete(configmap.Data, fscName)
+	err = r.Client.Update(context.TODO(), configmap)
+	if err != nil {
+		r.Log.Error(err, "Failed to update pools ConfigMap", "ConfigMap", configmap.Name)
+		return err
+	}
 	return nil
 }
 

@@ -17,10 +17,17 @@
 package util
 
 import (
+	"context"
 	"encoding/json"
+	"github.com/go-logr/logr"
 	"io/ioutil"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 )
 
@@ -43,19 +50,6 @@ type FlashSystemClusterMapContent struct {
 
 type FSCConfigMapData struct {
 	FlashSystemClusterMap map[string]FlashSystemClusterMapContent
-}
-
-func GenerateFSCConfigmapContent(sp FSCConfigMapData) (map[string]string, error) {
-	var configMapContent = make(map[string]string)
-	for FSCName, FSCMapContent := range sp.FlashSystemClusterMap {
-		val, err := json.Marshal(FSCMapContent)
-		if err != nil {
-			return make(map[string]string), err
-		}
-		configMapContent[FSCName] = string(val)
-	}
-
-	return configMapContent, nil
 }
 
 func ReadPoolConfigMapFile() (map[string]FlashSystemClusterMapContent, error) {
@@ -91,4 +85,42 @@ func getFileContent(filePath string) (FlashSystemClusterMapContent, error) {
 	fileContent, _ := ioutil.ReadAll(fileReader)
 	err = json.Unmarshal(fileContent, &fscContent)
 	return fscContent, err
+}
+
+func GetCreateConfigmap(client client.Client, log logr.Logger, ns string, createIfMissing bool) (*corev1.ConfigMap, error) {
+	configMap := &corev1.ConfigMap{}
+
+	err := client.Get(
+		context.Background(),
+		types.NamespacedName{Namespace: ns, Name: PoolConfigmapName},
+		configMap)
+
+	if err != nil && createIfMissing {
+		if errors.IsNotFound(err) {
+			configMap = initScPoolConfigMap(ns)
+			configMap.Data = make(map[string]string)
+			log.Info("Creating pools ConfigMap", "ConfigMap", PoolConfigmapName)
+			err = client.Create(context.Background(), configMap)
+			if err != nil {
+				log.Error(err, "Failed to create pools ConfigMap", "ConfigMap", PoolConfigmapName)
+				return nil, err
+			}
+		} else {
+			log.Error(err, "Failed to get pools ConfigMap", "ConfigMap", PoolConfigmapName)
+			return nil, err
+		}
+	}
+	return configMap, err
+}
+
+func initScPoolConfigMap(ns string) *corev1.ConfigMap {
+	selectLabels := GetLabels()
+	scPoolConfigMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      PoolConfigmapName,
+			Namespace: ns,
+			Labels:    selectLabels,
+		},
+	}
+	return scPoolConfigMap
 }
