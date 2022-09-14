@@ -30,6 +30,15 @@ import (
 const WatchNamespaceEnvVar = "WATCH_NAMESPACE"
 const ExporterImageEnvVar = "EXPORTER_IMAGE"
 
+type Label struct {
+	Name  string
+	Value string
+}
+
+var OdfLabel = Label{"odf", "storage.ibm.com"}
+var ComponentLabel = Label{"app.kubernetes.io/component", "ibm-storage-odf-operator"}
+var OdfFsLabel = Label{"odf-fs", "odf-fs-workspace"}
+
 // GetWatchNamespace returns the namespace the operator should be watching for changes
 func GetWatchNamespace() (string, error) {
 	ns, found := os.LookupEnv(WatchNamespaceEnvVar)
@@ -51,8 +60,9 @@ func GetExporterImage() (string, error) {
 // GetLabels returns the labels with cluster name
 func GetLabels() map[string]string {
 	return map[string]string{
-		"app.kubernetes.io/component": "ibm-storage-odf-operator",
-		"odf":                         "storage.ibm.com",
+		OdfLabel.Name:       OdfLabel.Value,
+		ComponentLabel.Name: ComponentLabel.Value,
+		OdfFsLabel.Name:     OdfFsLabel.Value,
 	}
 }
 
