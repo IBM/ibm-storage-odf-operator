@@ -367,13 +367,13 @@ func (r *FlashSystemClusterReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		For(&odfv1alpha1.FlashSystemCluster{}).
 		Watches(&source.Kind{
 			Type: &appsv1.Deployment{},
-		}, &handler.EnqueueRequestForObject{}).
+		}, &handler.EnqueueRequestForOwner{OwnerType: &odfv1alpha1.FlashSystemCluster{}}).
 		Watches(&source.Kind{
 			Type: &corev1.Service{},
-		}, &handler.EnqueueRequestForObject{}).
+		}, &handler.EnqueueRequestForOwner{OwnerType: &odfv1alpha1.FlashSystemCluster{}}).
 		Watches(&source.Kind{
 			Type: &monitoringv1.ServiceMonitor{},
-		}, &handler.EnqueueRequestForObject{}).
+		}, &handler.EnqueueRequestForOwner{OwnerType: &odfv1alpha1.FlashSystemCluster{}}).
 		Watches(&source.Kind{
 			Type: &corev1.Secret{},
 		}, handler.EnqueueRequestsFromMapFunc(secretMapper.SecretToClusterMapFunc)).
