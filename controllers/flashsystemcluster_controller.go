@@ -21,6 +21,7 @@ import (
 	"fmt"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"reflect"
+	"strings"
 
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/storageclass"
@@ -415,6 +416,10 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap() error {
 }
 
 func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1alpha1.FlashSystemCluster, newOwnerDetails v1.OwnerReference) error {
+	err := r.deleteDuplicatedDeployment(instance)
+	if err != nil {
+		return err
+	}
 
 	exporterImg, err := util.GetExporterImage()
 	if err != nil {
@@ -471,12 +476,15 @@ func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1a
 }
 
 func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alpha1.FlashSystemCluster, newOwnerDetails v1.OwnerReference) error {
-
+	err := r.deleteDuplicatedService(instance)
+	if err != nil {
+		return err
+	}
 	expectedService := InitExporterMetricsService(instance)
 	serviceName := getExporterMetricsServiceName()
 	foundService := &corev1.Service{}
 
-	err := r.Client.Get(
+	err = r.Client.Get(
 		context.TODO(),
 		types.NamespacedName{Name: serviceName, Namespace: instance.Namespace},
 		foundService)
@@ -485,7 +493,6 @@ func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alph
 			r.Log.Info("create exporter service")
 			return r.Client.Create(context.TODO(), expectedService)
 		}
-
 		r.Log.Error(err, "failed to create exporter service")
 		return err
 	}
@@ -495,7 +502,6 @@ func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alph
 		r.Log.Info("existing exporter service is expected with no change adding owner reference")
 		foundService.SetOwnerReferences(append(foundService.GetOwnerReferences(), newOwnerDetails))
 		return r.Client.Update(context.TODO(), foundService)
-
 	}
 
 	r.Log.Info("update exporter service")
@@ -503,12 +509,95 @@ func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alph
 	return r.Client.Update(context.TODO(), updatedService)
 }
 
+func (r *FlashSystemClusterReconciler) deleteDuplicatedService(instance *odfv1alpha1.FlashSystemCluster) error {
+	ServicesList := &corev1.ServiceList{}
+	err := r.getObjectListByLabel(instance, ServicesList)
+	if err != nil {
+		r.Log.Error(err, "failed to list services")
+		return err
+	}
+
+	for _, currentService := range ServicesList.Items {
+		if r.isOldObject(currentService.GetLabels(), currentService.Name) {
+			deleteService := currentService
+			err = r.Client.Delete(context.Background(), &deleteService)
+			if err != nil {
+				r.Log.Error(err, "failed to delete historical service")
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (r *FlashSystemClusterReconciler) deleteDuplicatedDeployment(instance *odfv1alpha1.FlashSystemCluster) error {
+	DeploymentList := &appsv1.DeploymentList{}
+	err := r.getObjectListByLabel(instance, DeploymentList)
+	if err != nil {
+		r.Log.Error(err, "failed to list deployments")
+		return err
+	}
+
+	for _, currentDeployment := range DeploymentList.Items {
+		if r.isOldObject(currentDeployment.GetLabels(), currentDeployment.Name) {
+			deleteDeployment := currentDeployment
+			err = r.Client.Delete(context.Background(), &deleteDeployment)
+			if err != nil {
+				r.Log.Error(err, "failed to delete historical deployment")
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (r *FlashSystemClusterReconciler) deleteDuplicatedServiceMonitor(instance *odfv1alpha1.FlashSystemCluster) error {
+	serviceMonitorList := &monitoringv1.ServiceMonitorList{}
+	err := r.getObjectListByLabel(instance, serviceMonitorList)
+	if err != nil {
+		r.Log.Error(err, "failed to list serviceMonitors")
+		return err
+	}
+
+	for _, currentSM := range serviceMonitorList.Items {
+		if r.isOldObject(currentSM.GetLabels(), currentSM.Name) {
+			deleteSM := currentSM
+			err = r.Client.Delete(context.Background(), deleteSM)
+			if err != nil {
+				r.Log.Error(err, "failed to delete historical serviceMonitor")
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (r *FlashSystemClusterReconciler) getObjectListByLabel(instance *odfv1alpha1.FlashSystemCluster, list client.ObjectList) error {
+	opts := []client.ListOption{client.InNamespace(instance.Namespace),
+		client.MatchingLabels{util.OdfLabel.Name: util.OdfLabel.Value}}
+	err := r.Client.List(context.Background(), list, opts...)
+	return err
+}
+
+func (r *FlashSystemClusterReconciler) isOldObject(labels map[string]string, objectName string) bool {
+	if _, keyFound := labels[util.OdfFsLabel.Name]; !keyFound && strings.HasPrefix(objectName, fsObjectsPrefix) {
+		r.Log.Info(fmt.Sprintf("found an old FlashSystem ODF object. Deleting %v.", objectName))
+		return true
+	}
+	return false
+}
+
 func (r *FlashSystemClusterReconciler) ensureExporterServiceMonitor(instance *odfv1alpha1.FlashSystemCluster, newOwnerDetails v1.OwnerReference) error {
+	err := r.deleteDuplicatedServiceMonitor(instance)
+	if err != nil {
+		return err
+	}
+
 	expectedServiceMonitor := InitExporterMetricsServiceMonitor(instance)
 	serviceMonitorName := getExporterMetricsServiceMonitorName()
 	foundServiceMonitor := &monitoringv1.ServiceMonitor{}
 
-	err := r.Client.Get(
+	err = r.Client.Get(
 		context.TODO(),
 		types.NamespacedName{Name: serviceMonitorName, Namespace: instance.Namespace},
 		foundServiceMonitor)
