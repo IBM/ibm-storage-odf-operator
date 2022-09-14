@@ -19,8 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"reflect"
 	"strings"
 
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
@@ -32,6 +30,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
@@ -459,19 +458,14 @@ func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1a
 		r.Log.Error(err, "failed to create exporter deployment")
 		return err
 	}
-	if reflect.DeepEqual(foundDeployment.Spec, expectedDeployment.Spec) {
-		r.Log.Info("existing exporter deployment is expected with no change, adding owner reference")
-		foundDeployment.SetOwnerReferences(append(foundDeployment.GetOwnerReferences(), newOwnerDetails))
-		return r.Client.Update(context.TODO(), foundDeployment)
-	}
 
-	updatedDeployment := updateExporterDeployment(foundDeployment, expectedDeployment)
+	updatedDeployment := updateExporterDeployment(foundDeployment, expectedDeployment, newOwnerDetails)
 	if updatedDeployment != nil {
 		r.Log.Info("update exporter deployment")
-		updatedDeployment.SetOwnerReferences(append(updatedDeployment.GetOwnerReferences(), newOwnerDetails))
 		return r.Client.Update(context.TODO(), updatedDeployment)
 	}
 
+	r.Log.Info("existing exporter deployment is expected with no change")
 	return nil
 }
 
@@ -497,16 +491,14 @@ func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alph
 		return err
 	}
 
-	updatedService := updateExporterMetricsService(foundService, expectedService)
-	if updatedService == nil {
-		r.Log.Info("existing exporter service is expected with no change adding owner reference")
-		foundService.SetOwnerReferences(append(foundService.GetOwnerReferences(), newOwnerDetails))
-		return r.Client.Update(context.TODO(), foundService)
+	updatedService := updateExporterMetricsService(foundService, expectedService, newOwnerDetails)
+	if updatedService != nil {
+		r.Log.Info("update exporter service")
+		return r.Client.Update(context.TODO(), updatedService)
 	}
 
-	r.Log.Info("update exporter service")
-	updatedService.SetOwnerReferences(append(updatedService.GetOwnerReferences(), newOwnerDetails))
-	return r.Client.Update(context.TODO(), updatedService)
+	r.Log.Info("existing exporter service is expected with no change")
+	return nil
 }
 
 func (r *FlashSystemClusterReconciler) deleteDuplicatedService(instance *odfv1alpha1.FlashSystemCluster) error {
@@ -610,16 +602,15 @@ func (r *FlashSystemClusterReconciler) ensureExporterServiceMonitor(instance *od
 		r.Log.Error(err, "failed to get exporter servicemonitor")
 		return err
 	}
-	updatedServiceMonitor := updateExporterMetricsServiceMonitor(foundServiceMonitor, expectedServiceMonitor)
-	if updatedServiceMonitor == nil {
-		r.Log.Info("existing exporter servicemonitor is expected with no change, adding owner reference")
-		foundServiceMonitor.SetOwnerReferences(append(foundServiceMonitor.GetOwnerReferences(), newOwnerDetails))
-		return r.Client.Update(context.TODO(), foundServiceMonitor)
+
+	updatedServiceMonitor := updateExporterMetricsServiceMonitor(foundServiceMonitor, expectedServiceMonitor, newOwnerDetails)
+	if updatedServiceMonitor != nil {
+		r.Log.Info("update exporter servicemonitor")
+		return r.Client.Update(context.TODO(), updatedServiceMonitor)
 	}
 
-	r.Log.Info("update exporter servicemonitor")
-	updatedServiceMonitor.SetOwnerReferences(append(updatedServiceMonitor.GetOwnerReferences(), newOwnerDetails))
-	return r.Client.Update(context.TODO(), updatedServiceMonitor)
+	r.Log.Info("existing exporter servicemonitor is expected with no change")
+	return nil
 }
 
 // create storage class in case of pool parameters provided.
