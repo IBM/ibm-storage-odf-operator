@@ -43,6 +43,7 @@ const (
 	// ExporterClusterConfigMapMountPoint = "/cluster-configmap"
 	ExporterClusterConfigMapVolumeName = "storageclass-pool"
 	ServiceAccount                     = "ibm-storage-odf-operator"
+	fsObjectsPrefix                    = "ibm-flashsystem-storage"
 	fsServiceName                      = "ibm-flashsystem-storage-service"
 	fsDeploymentName                   = "ibm-flashsystem-storage-deployment"
 	fsServiceMonitorName               = "ibm-flashsystem-storage-service-monitor"
@@ -69,6 +70,15 @@ func getExporterMetricsServiceName() string {
 
 func getExporterMetricsServiceMonitorName() string {
 	return fsServiceMonitorName
+}
+
+func isOwnerExist(ownerReferences []metav1.OwnerReference, newOwner metav1.OwnerReference) bool {
+	for _, owner := range ownerReferences {
+		if owner.UID == newOwner.UID {
+			return true
+		}
+	}
+	return false
 }
 
 func InitExporterMetricsService(instance *odfv1alpha1.FlashSystemCluster) *corev1.Service {
@@ -108,8 +118,8 @@ func InitExporterMetricsService(instance *odfv1alpha1.FlashSystemCluster) *corev
 	}
 }
 
-func updateExporterMetricsService(foundService *corev1.Service, expectedService *corev1.Service) *corev1.Service {
-	var isChanged bool
+func updateExporterMetricsService(foundService *corev1.Service, expectedService *corev1.Service, newOwner metav1.OwnerReference) *corev1.Service {
+	isChanged := false
 
 	if foundService.Spec.Type != expectedService.Spec.Type {
 		isChanged = true
@@ -118,6 +128,11 @@ func updateExporterMetricsService(foundService *corev1.Service, expectedService 
 	if len(foundService.Spec.Ports) != 1 ||
 		!reflect.DeepEqual(foundService.Spec.Ports[0], expectedService.Spec.Ports[0]) {
 
+		isChanged = true
+	}
+
+	if !isOwnerExist(foundService.GetOwnerReferences(), newOwner) {
+		foundService.SetOwnerReferences(append(foundService.GetOwnerReferences(), newOwner))
 		isChanged = true
 	}
 
@@ -137,7 +152,6 @@ func updateExporterMetricsService(foundService *corev1.Service, expectedService 
 			},
 		}
 		updatedService.Spec.Selector = util.GetLabels()
-
 		return updatedService
 	}
 
@@ -258,8 +272,12 @@ func InitExporterDeployment(
 	}, nil
 }
 
-func updateExporterDeployment(found *appsv1.Deployment, expected *appsv1.Deployment) *appsv1.Deployment {
-	if !reflect.DeepEqual(found.Spec, expected.Spec) {
+func updateExporterDeployment(found *appsv1.Deployment, expected *appsv1.Deployment, newOwner metav1.OwnerReference) *appsv1.Deployment {
+	isExist := isOwnerExist(found.GetOwnerReferences(), newOwner)
+	if !isExist {
+		found.SetOwnerReferences(append(found.GetOwnerReferences(), newOwner))
+	}
+	if !reflect.DeepEqual(found.Spec, expected.Spec) || !isExist {
 		updated := found.DeepCopy()
 		updated.Spec = *expected.Spec.DeepCopy()
 		return updated
@@ -304,11 +322,15 @@ func InitExporterMetricsServiceMonitor(instance *odfv1alpha1.FlashSystemCluster)
 	return serviceMonitor
 }
 
-func updateExporterMetricsServiceMonitor(
-	foundServiceMonitor *monitoringv1.ServiceMonitor,
-	expectedServiceMonitor *monitoringv1.ServiceMonitor) *monitoringv1.ServiceMonitor {
+func updateExporterMetricsServiceMonitor(foundServiceMonitor *monitoringv1.ServiceMonitor,
+	expectedServiceMonitor *monitoringv1.ServiceMonitor, newOwner metav1.OwnerReference) *monitoringv1.ServiceMonitor {
 
-	if reflect.DeepEqual(foundServiceMonitor.Spec, expectedServiceMonitor.Spec) {
+	isExist := isOwnerExist(foundServiceMonitor.GetOwnerReferences(), newOwner)
+	if !isExist {
+		foundServiceMonitor.SetOwnerReferences(append(foundServiceMonitor.GetOwnerReferences(), newOwner))
+	}
+
+	if reflect.DeepEqual(foundServiceMonitor.Spec, expectedServiceMonitor.Spec) && isExist {
 		return nil
 	}
 
