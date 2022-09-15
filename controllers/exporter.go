@@ -168,6 +168,9 @@ func InitExporterDeployment(
 	deploymentName := getExporterDeploymentName()
 	labels := util.GetLabels()
 
+	runAsNonRoot := true
+	allowPrivilegeEscalation := false
+
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      deploymentName,
@@ -250,6 +253,16 @@ func InitExporterDeployment(
 								PeriodSeconds:       10,
 								SuccessThreshold:    1,
 								FailureThreshold:    3,
+							},
+							SecurityContext: &corev1.SecurityContext{
+								RunAsNonRoot:             &runAsNonRoot,
+								AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+								SeccompProfile: &corev1.SeccompProfile{
+									Type: corev1.SeccompProfileTypeRuntimeDefault,
+								},
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{"ALL"},
+								},
 							},
 						},
 					},
