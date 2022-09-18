@@ -99,14 +99,14 @@ func GetCreateConfigmap(client client.Client, log logr.Logger, ns string, create
 		if errors.IsNotFound(err) {
 			configMap = initScPoolConfigMap(ns)
 			configMap.Data = make(map[string]string)
-			log.Info("Creating pools ConfigMap", "ConfigMap", PoolConfigmapName)
+			log.Info("creating pools ConfigMap", "ConfigMap", PoolConfigmapName)
 			err = client.Create(context.Background(), configMap)
 			if err != nil {
-				log.Error(err, "Failed to create pools ConfigMap", "ConfigMap", PoolConfigmapName)
+				log.Error(err, "failed to create pools ConfigMap", "ConfigMap", PoolConfigmapName)
 				return nil, err
 			}
 		} else {
-			log.Error(err, "Failed to get pools ConfigMap", "ConfigMap", PoolConfigmapName)
+			log.Error(err, "failed to get pools ConfigMap", "ConfigMap", PoolConfigmapName)
 			return nil, err
 		}
 	}

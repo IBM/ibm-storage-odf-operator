@@ -58,11 +58,11 @@ func (s *SecretMapper) SecretToClusterMapFunc(object client.Object) []reconcile.
 
 	err := s.reconciler.Client.List(context.TODO(), clusters)
 	if err != nil {
-		s.reconciler.Log.Error(err, "failed to list flashsystemcluster", "SecretMapper", s)
+		s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "SecretMapper", s)
 		return nil
 	}
 
-	requests := []reconcile.Request{}
+	var requests []reconcile.Request
 	for _, c := range clusters.Items {
 		if c.Spec.Secret.Name == object.GetName() &&
 			c.Spec.Secret.Namespace == object.GetNamespace() {
@@ -78,7 +78,7 @@ func (s *SecretMapper) SecretToClusterMapFunc(object client.Object) []reconcile.
 	}
 
 	if len(requests) > 0 {
-		s.reconciler.Log.Info("reflect secret update to flashsystemcluster instance", "SecretMapper", requests)
+		s.reconciler.Log.Info("reflect secret update to FlashSystemCluster instance", "SecretMapper", requests)
 	}
 
 	return requests
@@ -95,19 +95,19 @@ type FlashSystemClusterReconciler struct {
 	IsCSICRCreated   bool
 }
 
-//+kubebuilder:rbac:groups=odf.ibm.com,resources=flashsystemclusters,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=odf.ibm.com,resources=flashsystemclusters/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=odf.ibm.com,resources=flashsystemclusters/finalizers,verbs=update
-//+kubebuilder:rbac:groups=csi.ibm.com,resources=ibmblockcsis,verbs=get;list;create;update;patch;delete
-//+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list
-//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;update;patch
-//+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors;prometheusrules,verbs=get;list;watch;create;update;delete
-//+kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,verbs=get;create;update
+/* +kubebuilder:rbac:groups=odf.ibm.com,resources=flashsystemclusters,verbs=get;list;watch;create;update;patch;delete
++kubebuilder:rbac:groups=odf.ibm.com,resources=flashsystemclusters/status,verbs=get;update;patch
++kubebuilder:rbac:groups=odf.ibm.com,resources=flashsystemclusters/finalizers,verbs=update
++kubebuilder:rbac:groups=csi.ibm.com,resources=ibmblockcsis,verbs=get;list;create;update;patch;delete
++kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list
++kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
++kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
++kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;update;patch
++kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
++kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
++kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch;create;update;patch;delete
++kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors;prometheusrules,verbs=get;list;watch;create;update;delete
++kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,verbs=get;create;update */
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -134,7 +134,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}()
 
 	r.Log = r.Log.WithValues("FlashSystemCluster", req.NamespacedName)
-	r.Log.Info("Reconciling FlashSystemCluster")
+	r.Log.Info("reconciling FlashSystemCluster")
 
 	instance := &odfv1alpha1.FlashSystemCluster{}
 	err = r.Client.Get(context.TODO(), req.NamespacedName, instance)
@@ -143,7 +143,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 			r.Log.Info("FlashSystemCluster resource was not found")
 			err = r.removeFscFromConfigMap(req.Name)
 			if err != nil {
-				r.Log.Error(err, "Failed to delete entry from pools ConfigMap")
+				r.Log.Error(err, "failed to delete entry from pools ConfigMap")
 				return ctrl.Result{}, err
 			}
 			return result, nil
@@ -172,17 +172,17 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 	// Check GetDeletionTimestamp to determine if the object is under deletion
 	if instance.GetDeletionTimestamp().IsZero() {
 		if !util.IsContain(instance.GetFinalizers(), flashSystemClusterFinalizer) {
-			r.Log.Info("Append flashsystemcluster to finalizer")
+			r.Log.Info("append FlashSystemCluster to finalizer")
 			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, flashSystemClusterFinalizer)
 			if err = r.Client.Update(context.TODO(), instance); err != nil {
-				r.Log.Info("Update Error", "MetaUpdateErr", "Failed to update FlashSystemCluster with finalizer")
+				r.Log.Info("Update Error", "MetaUpdateErr", "failed to update FlashSystemCluster with finalizer")
 				return reconcile.Result{}, err
 			}
 		}
 	} else {
 		// The object is marked for deletion
 		if util.IsContain(instance.GetFinalizers(), flashSystemClusterFinalizer) {
-			r.Log.Info("Removing finalizer")
+			r.Log.Info("removing finalizer")
 			if err = r.deleteDefaultStorageClass(instance); err != nil {
 				return reconcile.Result{}, err
 			}
@@ -190,15 +190,15 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 			// Once all finalizers have been removed, the object will be deleted
 			instance.ObjectMeta.Finalizers = util.Remove(instance.ObjectMeta.Finalizers, flashSystemClusterFinalizer)
 			if err = r.Client.Update(context.TODO(), instance); err != nil {
-				r.Log.Info("Update Error", "MetaUpdateErr", "Failed to remove finalizer from FlashSystemCluster")
+				r.Log.Info("Update Error", "MetaUpdateErr", "failed to remove finalizer from FlashSystemCluster")
 				return reconcile.Result{}, err
 			}
 			if err = r.removeFscFromConfigMap(instance.Name); err != nil {
-				r.Log.Error(err, "Failed to delete entry from pools ConfigMap")
+				r.Log.Error(err, "failed to delete entry from pools ConfigMap")
 				return reconcile.Result{}, err
 			}
 		}
-		r.Log.Info("Object is terminated, skipping reconciliation")
+		r.Log.Info("object is terminated, skipping reconciliation")
 		return reconcile.Result{}, nil
 	}
 	// Reading the secret, if it has ownership then skip, else update the secret with details of the FlashSystemCluster
@@ -210,13 +210,13 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 
 	if err != nil {
 		if errors.IsNotFound(err) {
-			r.Log.Info("Secret not found")
+			r.Log.Info("secret not found")
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
 	}
 	if secret.OwnerReferences == nil {
-		r.Log.Info("FlashSystemCluster Secret does not have an owner reference, adding it now.")
+		r.Log.Info("FlashSystemCluster secret does not have an owner reference, adding owner")
 		// Creating an OwnerReference object with the info of the FlashSystemCluster for it to be the owner of the secret
 		newOwnerForSecret := v1.OwnerReference{
 			Name:       instance.Name,
@@ -227,7 +227,7 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 		secret.SetOwnerReferences([]v1.OwnerReference{newOwnerForSecret})
 		err = r.Client.Update(context.TODO(), secret)
 		if err != nil {
-			r.Log.Error(err, "Update Error: Failed to update secret with owner reference")
+			r.Log.Error(err, "failed to update secret with owner reference")
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{}, nil
@@ -243,8 +243,7 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 	r.Log.Info("step: reset progressing conditions of the FlashSystemCluster resource")
 	if util.IsStatusConditionFalse(instance.Status.Conditions, odfv1alpha1.ConditionProgressing) {
 		reason := odfv1alpha1.ReasonReconcileInit
-		message := "processing flashsystem ODF resources"
-		util.SetReconcileProgressingCondition(&instance.Status.Conditions, reason, message)
+		util.SetReconcileProgressingCondition(&instance.Status.Conditions, reason, "processing FlashSystem ODF resources")
 		instance.Status.Phase = util.PhaseProgressing
 	}
 
@@ -388,19 +387,19 @@ func (r *FlashSystemClusterReconciler) SetupWithManager(mgr ctrl.Manager) error 
 
 }
 
-func (r *FlashSystemClusterReconciler) createEvent(instance *odfv1alpha1.FlashSystemCluster, eventtype, reason, message string) {
+func (r *FlashSystemClusterReconciler) createEvent(instance *odfv1alpha1.FlashSystemCluster, eventType, reason, message string) {
 	r.Log.Info(message)
 
-	event := util.InitK8sEvent(instance, eventtype, reason, message)
+	event := util.InitK8sEvent(instance, eventType, reason, message)
 	err := r.Client.Create(context.TODO(), event)
 	if err != nil {
-		r.Log.Error(err, "failed to create Event", "reason", reason, "message", message)
+		r.Log.Error(err, "failed to create event", "reason", reason, "message", message)
 	}
 }
 
 // this object will not bind with instance
 func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alpha1.FlashSystemCluster) error {
-	r.Log.Info("ensureScPoolConfigMap", "instance", instance)
+	r.Log.Info("ensureScPoolConfigMap")
 
 	configmap, err := util.GetCreateConfigmap(r.Client, r.Log, watchNamespace, true)
 	if err != nil {
@@ -417,7 +416,7 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alph
 		if err != nil {
 			return err
 		}
-		r.Log.Info("Adding FlashSystemCluster to pools ConfigMap", "ConfigMap", configmap.Name)
+		r.Log.Info("adding FlashSystemCluster to pools ConfigMap", "ConfigMap", configmap.Name)
 		configmap.Data[instance.Name] = string(val)
 		return r.Client.Update(context.TODO(), configmap)
 	}
@@ -426,7 +425,7 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alph
 }
 
 func (r *FlashSystemClusterReconciler) removeFscFromConfigMap(fscName string) error {
-	r.Log.Info("Removing FlashSystemCluster entry from pools ConfigMap", "ConfigMap", util.PoolConfigmapName)
+	r.Log.Info("removing FlashSystemCluster entry from pools ConfigMap", "ConfigMap", util.PoolConfigmapName)
 
 	configmap, err := util.GetCreateConfigmap(r.Client, r.Log, watchNamespace, true)
 	if err != nil {
@@ -435,7 +434,7 @@ func (r *FlashSystemClusterReconciler) removeFscFromConfigMap(fscName string) er
 	delete(configmap.Data, fscName)
 	err = r.Client.Update(context.TODO(), configmap)
 	if err != nil {
-		r.Log.Error(err, "Failed to update pools ConfigMap", "ConfigMap", configmap.Name)
+		r.Log.Error(err, "failed to update pools ConfigMap", "ConfigMap", configmap.Name)
 		return err
 	}
 	return nil
@@ -622,21 +621,21 @@ func (r *FlashSystemClusterReconciler) ensureExporterServiceMonitor(instance *od
 		foundServiceMonitor)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			r.Log.Info("create exporter servicemonitor")
+			r.Log.Info("create exporter serviceMonitor")
 			return r.Client.Create(context.TODO(), expectedServiceMonitor)
 		}
 
-		r.Log.Error(err, "failed to get exporter servicemonitor")
+		r.Log.Error(err, "failed to get exporter serviceMonitor")
 		return err
 	}
 
 	updatedServiceMonitor := updateExporterMetricsServiceMonitor(foundServiceMonitor, expectedServiceMonitor, newOwnerDetails)
 	if updatedServiceMonitor != nil {
-		r.Log.Info("update exporter servicemonitor")
+		r.Log.Info("update exporter serviceMonitor")
 		return r.Client.Update(context.TODO(), updatedServiceMonitor)
 	}
 
-	r.Log.Info("existing exporter servicemonitor is expected with no change")
+	r.Log.Info("existing exporter serviceMonitor is expected with no change")
 	return nil
 }
 
@@ -735,7 +734,7 @@ func (r *FlashSystemClusterReconciler) enablePrometheusRules(instance *odfv1alph
 	}
 	err = r.CreateOrUpdatePrometheusRules(rule)
 	if err != nil {
-		r.Log.Error(err, "unable to deploy Prometheus rules")
+		r.Log.Error(err, "unable to deploy prometheus rules")
 		return err
 	}
 	return nil
@@ -765,7 +764,7 @@ func (r *FlashSystemClusterReconciler) CreateOrUpdatePrometheusRules(rule *monit
 
 func (r *FlashSystemClusterReconciler) ensureFlashSystemCSICR(instance *odfv1alpha1.FlashSystemCluster) error {
 	if r.IsCSICRCreated {
-		r.Log.Info("flashsystem CSI CR is already created, skip")
+		r.Log.Info("FlashSystem CSI CR is already created, skip")
 		return nil
 	}
 

@@ -100,11 +100,9 @@ func compareDefaultStorageClass(
 	return false
 }
 
-// flashsystem CSI CR operation related
-
-// refer to "github.com/IBM/ibm-block-csi-operator/pkg/apis/csi/v1"
-// NAME            SHORTNAMES  APIVERSION    NAMESPACED      KIND
-// ibmblockcsis      ibc     csi.ibm.com/v1   true         IBMBlockCSI
+// getFlashSystemCSIOperatorResource FlashSystem CSI CR operation related refer to
+// "github.com/IBM/ibm-block-csi-operator/pkg/apis/csi/v1" NAME SHORTNAMES
+// APIVERSION NAMESPACED KIND ibmblockcsis ibc csi.ibm.com/v1 true IBMBlockCSI
 func getFlashSystemCSIOperatorResource() schema.GroupVersionKind {
 	return schema.GroupVersionKind{
 		Group:   "csi.ibm.com",
@@ -123,15 +121,14 @@ func getFlashSystemCRFilePath() string {
 }
 
 func LoadFlashSystemCRFromFile() (*unstructured.Unstructured, error) {
-
 	crFile := getFlashSystemCRFilePath()
 	fmt.Printf("cr file: %s", crFile)
-	filebytes, err := ioutil.ReadFile(crFile)
+	fileBytes, err := ioutil.ReadFile(crFile)
 	if err != nil {
 		return nil, err
 	}
 
-	decoder := yamlutil.NewYAMLOrJSONDecoder(bytes.NewReader(filebytes), 128)
+	decoder := yamlutil.NewYAMLOrJSONDecoder(bytes.NewReader(fileBytes), 128)
 
 	var rawObj runtime.RawExtension
 	if err = decoder.Decode(&rawObj); err != nil {
@@ -178,7 +175,7 @@ func CreateIBMBlockCSICR(dc dynamic.NamespaceableResourceInterface, namespace st
 func GetIBMBlockCSIDynamicClient(config *rest.Config) (dynamic.NamespaceableResourceInterface, error) {
 	gvk := getFlashSystemCSIOperatorResource()
 
-	resoureIsFound := false
+	resourceIsFound := false
 	res := metav1.APIResource{}
 
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
@@ -192,17 +189,17 @@ func GetIBMBlockCSIDynamicClient(config *rest.Config) (dynamic.NamespaceableReso
 	}
 
 	for _, resource := range resList.APIResources {
-		//if a resource contains a "/" it's referencing a subresource. we don't support suberesource for now.
+		//if a resource contains a "/" it's referencing a subresource. we don't support sub-resource for now.
 		if resource.Kind == gvk.Kind && !strings.Contains(resource.Name, "/") {
 			res = resource
 			res.Group = gvk.Group
 			res.Version = gvk.Version
-			resoureIsFound = true
+			resourceIsFound = true
 			break
 		}
 	}
 
-	if !resoureIsFound {
+	if !resourceIsFound {
 		return nil, fmt.Errorf("unable to find the resource:%v", gvk)
 	}
 
@@ -219,8 +216,6 @@ func GetIBMBlockCSIDynamicClient(config *rest.Config) (dynamic.NamespaceableReso
 }
 
 func GetAllNamespace(config *rest.Config) ([]string, error) {
-	//namespaces := []string{}
-
 	scheme := runtime.NewScheme()
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
@@ -235,16 +230,14 @@ func GetAllNamespace(config *rest.Config) ([]string, error) {
 		return nil, err
 	}
 
-	namespaceList := []string{}
+	var namespaceList []string
 	for _, ns := range namespaces.Items {
 		namespaceList = append(namespaceList, ns.Namespace)
 	}
-
 	return namespaceList, nil
 }
 
 func HasIBMBlockCSICRExisted(namespaces []string, dc dynamic.NamespaceableResourceInterface) (bool, error) {
-
 	for _, ns := range namespaces {
 		obj, err := dc.Namespace(ns).List(context.Background(), metav1.ListOptions{})
 		if err != nil {
@@ -259,6 +252,5 @@ func HasIBMBlockCSICRExisted(namespaces []string, dc dynamic.NamespaceableResour
 			return true, nil
 		}
 	}
-
 	return false, nil
 }

@@ -36,7 +36,7 @@ type StorageClassConfig struct {
 type FlashSystemClusterSpec struct {
 	// Name is the name of the flashsystem storage cluster
 	Name string `json:"name"`
-	// Secret refers to a secret that has the credentials for flashsystem csi storageclass
+	// Secret refers to a secret that has the credentials for FlashSystem csi StorageClass
 	Secret corev1.SecretReference `json:"secret"`
 	// InsecureSkipVerify disables target certificate validation if true
 	InsecureSkipVerify bool `json:"insecureSkipVerify,omitempty"`
@@ -62,13 +62,13 @@ type FlashSystemClusterStatus struct {
 	// RelatedObjects []corev1.ObjectReference `json:"relatedObjects,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:printcolumn:name="Age",type=date,JSONPath=.metadata.creationTimestamp
-//+kubebuilder:printcolumn:name="Phase",type=string,JSONPath=.status.phase,description="Current Phase"
-//+kubebuilder:printcolumn:name="Created At",type=string,JSONPath=.metadata.creationTimestamp
+/* +kubebuilder:object:root=true
++kubebuilder:subresource:status
++kubebuilder:printcolumn:name="Age",type=date,JSONPath=.metadata.creationTimestamp
++kubebuilder:printcolumn:name="Phase",type=string,JSONPath=.status.phase,description="Current Phase"
++kubebuilder:printcolumn:name="Created At",type=string,JSONPath=.metadata.creationTimestamp */
 
-// FlashSystemCluster is the Schema for the flashsystemclusters API
+// FlashSystemCluster is the Schema for the FlashSystemClusters API
 type FlashSystemCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -86,20 +86,20 @@ type FlashSystemClusterList struct {
 	Items           []FlashSystemCluster `json:"items"`
 }
 
-const (
-	// PhaseProgressing is used during launch exporter & CSI CR creation phase
-	PhaseProgressing = "Progressing"
-	// PhaseError is used when reconcile fails or there is any of false ready from conditions
-	PhaseError = "Error"
-	// PhaseReady is used when reconcile is successful
-	PhaseReady = "Ready"
-	// PhaseNotReady is used if reconcile fails
-	PhaseNotReady = "Not Ready"
-	// PhaseDeleting is used if deleting flashsystemcluster is happening
-	PhaseDeleting = "Deleting"
-	// PhaseConnecting is reserved for later usage
-	PhaseConnecting = "Connecting"
-)
+//const (
+//	// PhaseProgressing is used during launch exporter & CSI CR creation phase
+//	PhaseProgressing = "Progressing"
+//	// PhaseError is used when reconcile fails or there is any of false ready from conditions
+//	PhaseError = "Error"
+//	// PhaseReady is used when reconcile is successful
+//	PhaseReady = "Ready"
+//	// PhaseNotReady is used if reconcile fails
+//	PhaseNotReady = "Not Ready"
+//	// PhaseDeleting is used if deleting FlashSystemCluster is happening
+//	PhaseDeleting = "Deleting"
+//	// PhaseConnecting is reserved for later usage
+//	PhaseConnecting = "Connecting"
+//)
 
 func init() {
 	SchemeBuilder.Register(&FlashSystemCluster{}, &FlashSystemClusterList{})

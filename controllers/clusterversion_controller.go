@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	console "github.com/IBM/ibm-storage-odf-operator/console"
+	"github.com/IBM/ibm-storage-odf-operator/console"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 )
 
@@ -48,7 +48,7 @@ type ClusterVersionReconciler struct {
 //+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=console.openshift.io,resources=consoleplugins,verbs=*
 
-// For more details, check Reconcile and its Result here:
+// Reconcile - For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *ClusterVersionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
@@ -57,7 +57,7 @@ func (r *ClusterVersionReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 	if err := r.ensureConsolePlugin(instance.Status.Desired.Version); err != nil {
-		logger.Error(err, "Could not ensure compatibility for IBM consolePlugin")
+		logger.Error(err, "could not ensure compatibility for IBM consolePlugin")
 		return ctrl.Result{}, err
 	}
 

@@ -35,12 +35,11 @@ var (
 	PhaseError = "Error"
 	// PhaseReady is used when SetCompleteCondition is called
 	PhaseReady = "Ready"
-	// PhaseNotReady is used when waiting for system to be ready
-	// after reconcile is successful
+	// PhaseNotReady is used when waiting for system to be ready after reconcile is successful
 	PhaseNotReady = "Not Ready"
 )
 
-// SetProgressingCondition sets the ProgressingCondition to True and other conditions to
+// SetReconcileProgressingCondition sets the ProgressingCondition to True and other conditions to
 // false or Unknown. Used when we are just starting to reconcile, and there are no existing
 // conditions.
 func SetReconcileProgressingCondition(conditions *[]odfv1alpha1.Condition, reason string, message string) {
@@ -67,8 +66,8 @@ func SetReconcileProgressingCondition(conditions *[]odfv1alpha1.Condition, reaso
 	})
 }
 
-// SetErrorCondition sets the ConditionReconcileComplete to False in case of any errors
-// during the reconciliation process.
+// SetReconcileErrorCondition sets the ConditionReconcileComplete to False in
+// case of any errors during the reconciliation process.
 func SetReconcileErrorCondition(conditions *[]odfv1alpha1.Condition, reason string, message string) {
 	SetStatusCondition(conditions, odfv1alpha1.Condition{
 		Type:    odfv1alpha1.ConditionReconcileComplete,
@@ -78,7 +77,7 @@ func SetReconcileErrorCondition(conditions *[]odfv1alpha1.Condition, reason stri
 	})
 }
 
-// SetCompleteCondition sets the ConditionReconcileComplete to True and other Conditions
+// SetReconcileCompleteCondition sets the ConditionReconcileComplete to True and other Conditions
 // to indicate that the reconciliation process has completed successfully.
 func SetReconcileCompleteCondition(conditions *[]odfv1alpha1.Condition, reason string, message string) {
 	SetStatusCondition(conditions, odfv1alpha1.Condition{
@@ -127,20 +126,20 @@ func SetStatusCondition(conditions *[]odfv1alpha1.Condition, newCondition odfv1a
 	existingCondition.LastHeartbeatTime = metav1.NewTime(time.Now())
 }
 
-// RemoveStatusCondition removes the corresponding conditionType from conditions.
-func RemoveStatusCondition(conditions *[]odfv1alpha1.Condition, conditionType odfv1alpha1.ConditionType) {
-	if conditions == nil {
-		return
-	}
-	newConditions := []odfv1alpha1.Condition{}
-	for _, condition := range *conditions {
-		if condition.Type != conditionType {
-			newConditions = append(newConditions, condition)
-		}
-	}
-
-	*conditions = newConditions
-}
+//// RemoveStatusCondition removes the corresponding conditionType from conditions.
+//func RemoveStatusCondition(conditions *[]odfv1alpha1.Condition, conditionType odfv1alpha1.ConditionType) {
+//	if conditions == nil {
+//		return
+//	}
+//	var newConditions []odfv1alpha1.Condition
+//	for _, condition := range *conditions {
+//		if condition.Type != conditionType {
+//			newConditions = append(newConditions, condition)
+//		}
+//	}
+//
+//	*conditions = newConditions
+//}
 
 // FindStatusCondition finds the conditionType in conditions.
 func FindStatusCondition(conditions []odfv1alpha1.Condition, conditionType odfv1alpha1.ConditionType) *odfv1alpha1.Condition {
