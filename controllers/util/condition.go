@@ -126,20 +126,20 @@ func SetStatusCondition(conditions *[]odfv1alpha1.Condition, newCondition odfv1a
 	existingCondition.LastHeartbeatTime = metav1.NewTime(time.Now())
 }
 
-//// RemoveStatusCondition removes the corresponding conditionType from conditions.
-//func RemoveStatusCondition(conditions *[]odfv1alpha1.Condition, conditionType odfv1alpha1.ConditionType) {
-//	if conditions == nil {
-//		return
-//	}
-//	var newConditions []odfv1alpha1.Condition
-//	for _, condition := range *conditions {
-//		if condition.Type != conditionType {
-//			newConditions = append(newConditions, condition)
-//		}
-//	}
-//
-//	*conditions = newConditions
-//}
+// RemoveStatusCondition removes the corresponding conditionType from conditions.
+func RemoveStatusCondition(conditions *[]odfv1alpha1.Condition, conditionType odfv1alpha1.ConditionType) {
+	if conditions == nil {
+		return
+	}
+	newConditions := []odfv1alpha1.Condition{}
+	for _, condition := range *conditions {
+		if condition.Type != conditionType {
+			newConditions = append(newConditions, condition)
+		}
+	}
+
+	*conditions = newConditions
+}
 
 // FindStatusCondition finds the conditionType in conditions.
 func FindStatusCondition(conditions []odfv1alpha1.Condition, conditionType odfv1alpha1.ConditionType) *odfv1alpha1.Condition {

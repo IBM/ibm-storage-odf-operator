@@ -230,7 +230,7 @@ func GetAllNamespace(config *rest.Config) ([]string, error) {
 		return nil, err
 	}
 
-	var namespaceList []string
+	namespaceList := []string{}
 	for _, ns := range namespaces.Items {
 		namespaceList = append(namespaceList, ns.Namespace)
 	}

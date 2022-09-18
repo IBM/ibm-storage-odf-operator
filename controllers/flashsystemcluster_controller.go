@@ -62,7 +62,7 @@ func (s *SecretMapper) SecretToClusterMapFunc(object client.Object) []reconcile.
 		return nil
 	}
 
-	var requests []reconcile.Request
+	requests := []reconcile.Request{}
 	for _, c := range clusters.Items {
 		if c.Spec.Secret.Name == object.GetName() &&
 			c.Spec.Secret.Namespace == object.GetNamespace() {
@@ -95,19 +95,19 @@ type FlashSystemClusterReconciler struct {
 	IsCSICRCreated   bool
 }
 
-/* +kubebuilder:rbac:groups=odf.ibm.com,resources=flashsystemclusters,verbs=get;list;watch;create;update;patch;delete
-+kubebuilder:rbac:groups=odf.ibm.com,resources=flashsystemclusters/status,verbs=get;update;patch
-+kubebuilder:rbac:groups=odf.ibm.com,resources=flashsystemclusters/finalizers,verbs=update
-+kubebuilder:rbac:groups=csi.ibm.com,resources=ibmblockcsis,verbs=get;list;create;update;patch;delete
-+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list
-+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
-+kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;update;patch
-+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
-+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
-+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch;create;update;patch;delete
-+kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors;prometheusrules,verbs=get;list;watch;create;update;delete
-+kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,verbs=get;create;update */
+//+kubebuilder:rbac:groups=odf.ibm.com,resources=flashsystemclusters,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=odf.ibm.com,resources=flashsystemclusters/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=odf.ibm.com,resources=flashsystemclusters/finalizers,verbs=update
+//+kubebuilder:rbac:groups=csi.ibm.com,resources=ibmblockcsis,verbs=get;list;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list
+//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors;prometheusrules,verbs=get;list;watch;create;update;delete
+//+kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,verbs=get;create;update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

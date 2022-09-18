@@ -88,10 +88,10 @@ func GetConsolePluginCR(consolePort int, basePath string, serviceNamespace strin
 	}
 }
 
-/* +kubebuilder:rbac:groups="apps",resources=deployments,verbs=get;list;watch;create;update;patch;delete
-+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
-+kubebuilder:rbac:groups=console.openshift.io,resources=consoleplugins,verbs=*
-+kubebuilder:rbac:groups=operator.openshift.io,resources=consoles,verbs=* */
+//+kubebuilder:rbac:groups="apps",resources=deployments,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=console.openshift.io,resources=consoleplugins,verbs=*
+//+kubebuilder:rbac:groups=operator.openshift.io,resources=consoles,verbs=*
 
 // RemoveConsole ensure plugin is cleaned when uninstall operator
 func RemoveConsole(client client.Client, namespace string) error {

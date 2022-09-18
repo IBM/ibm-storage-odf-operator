@@ -17,6 +17,9 @@
 package util
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"os"
 )
@@ -63,17 +66,17 @@ func GetLabels() map[string]string {
 	}
 }
 
-//// CalculateDataHash generates a sha256 hex-digest for a data object
-//func CalculateDataHash(dataObject interface{}) (string, error) {
-//	data, err := json.Marshal(dataObject)
-//	if err != nil {
-//		return "", err
-//	}
-//
-//	hash := sha256.New()
-//	hash.Write(data)
-//	return hex.EncodeToString(hash.Sum(nil)), nil
-//}
+// CalculateDataHash generates a sha256 hex-digest for a data object
+func CalculateDataHash(dataObject interface{}) (string, error) {
+	data, err := json.Marshal(dataObject)
+	if err != nil {
+		return "", err
+	}
+
+	hash := sha256.New()
+	hash.Write(data)
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
 
 func IsContain(slice []string, s string) bool {
 	for _, item := range slice {
