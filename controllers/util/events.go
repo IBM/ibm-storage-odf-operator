@@ -27,8 +27,7 @@ import (
 
 // Reasons for ibm storage odf events
 const (
-	// SuccessfulCreateBlockCSIReason is added in an event when Block CSI
-	// is successfully launched.
+	// SuccessfulLaunchBlockCSIReason is added in an event when Block CSI is successfully launched.
 	SuccessfulLaunchBlockCSIReason      = "SuccessfulLaunchBlockCSI"
 	FailedLaunchBlockCSIReason          = "FailedLaunchBlockCSI"
 	SuccessfulDetectBlockCSIReason      = "SuccessfulDetectBlockCSI"
@@ -40,7 +39,7 @@ const (
 	FailedCreatePromRuleReason          = "FailedCreatePromRule"
 )
 
-func InitK8sEvent(instance *odfv1alpha1.FlashSystemCluster, eventtype, reason, message string) *corev1.Event {
+func InitK8sEvent(instance *odfv1alpha1.FlashSystemCluster, eventType, reason, message string) *corev1.Event {
 	t := metav1.Time{Time: time.Now()}
 	selectLabels := GetLabels()
 	return &corev1.Event{
@@ -62,7 +61,7 @@ func InitK8sEvent(instance *odfv1alpha1.FlashSystemCluster, eventtype, reason, m
 		FirstTimestamp: t,
 		LastTimestamp:  t,
 		Count:          1,
-		Type:           eventtype,
+		Type:           eventType,
 	}
 
 }

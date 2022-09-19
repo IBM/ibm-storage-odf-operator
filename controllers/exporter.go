@@ -41,6 +41,7 @@ const (
 	// FlashSystemClusterSpec.Name as resource name for multiple flashSystem clusters
 
 	// ExporterClusterConfigMapMountPoint = "/cluster-configmap"
+
 	ExporterClusterConfigMapVolumeName = "storageclass-pool"
 	ServiceAccount                     = "ibm-storage-odf-operator"
 	fsObjectsPrefix                    = "ibm-flashsystem-storage"
@@ -52,11 +53,11 @@ const (
 	scrapeInterval = "1m"
 	scrapeTimeout  = "20s"
 
-	flashsystemPrometheusRuleFilepath = "/prometheus-rules/prometheus-flashsystem-rules.yaml"
+	FlashSystemPrometheusRuleFilepath = "/prometheus-rules/prometheus-flashsystem-rules.yaml"
 	// ruleName                          = "prometheus-flashsystem-rules"
 
-	// FlashsystemPrometheusRuleFileEnv is only for UT
-	FlashsystemPrometheusRuleFileEnv = "TEST_FS_PROM_RULE_FILE"
+	// FlashSystemPrometheusRuleFileEnv is only for UT
+	FlashSystemPrometheusRuleFileEnv = "TEST_FS_PROM_RULE_FILE"
 )
 
 // TODO: wrapper func for deployment name translation from cluster name
@@ -353,24 +354,24 @@ func updateExporterMetricsServiceMonitor(foundServiceMonitor *monitoringv1.Servi
 	return updatedServiceMonitor
 }
 
-func getFlashsystemPrometheusRuleFilepath() string {
-	file, found := os.LookupEnv(FlashsystemPrometheusRuleFileEnv)
+func getFlashSystemPrometheusRuleFilepath() string {
+	file, found := os.LookupEnv(FlashSystemPrometheusRuleFileEnv)
 	if found {
 		return file
 	}
 
-	return flashsystemPrometheusRuleFilepath
+	return FlashSystemPrometheusRuleFilepath
 }
 
 func getPrometheusRules(instance *odfv1alpha1.FlashSystemCluster) (*monitoringv1.PrometheusRule, error) {
-	ruleFile, err := ioutil.ReadFile(filepath.Clean(getFlashsystemPrometheusRuleFilepath()))
+	ruleFile, err := ioutil.ReadFile(filepath.Clean(getFlashSystemPrometheusRuleFilepath()))
 	if err != nil {
-		return nil, fmt.Errorf("prometheusRules file could not be fetched. %v", err)
+		return nil, fmt.Errorf("PrometheusRules file could not be fetched. %v", err)
 	}
 	var promRule monitoringv1.PrometheusRule
 	err = k8sYAML.NewYAMLOrJSONDecoder(bytes.NewBufferString(string(ruleFile)), 8192).Decode(&promRule)
 	if err != nil {
-		return nil, fmt.Errorf("prometheusRules could not be decoded. %v", err)
+		return nil, fmt.Errorf("PrometheusRules could not be decoded. %v", err)
 	}
 
 	template := promRule.GetName()

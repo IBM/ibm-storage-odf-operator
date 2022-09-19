@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
-	util "github.com/IBM/ibm-storage-odf-operator/controllers/util"
+	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	//+kubebuilder:scaffold:imports
 )
 

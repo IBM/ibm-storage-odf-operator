@@ -35,12 +35,11 @@ var (
 	PhaseError = "Error"
 	// PhaseReady is used when SetCompleteCondition is called
 	PhaseReady = "Ready"
-	// PhaseNotReady is used when waiting for system to be ready
-	// after reconcile is successful
+	// PhaseNotReady is used when waiting for system to be ready after reconcile is successful
 	PhaseNotReady = "Not Ready"
 )
 
-// SetProgressingCondition sets the ProgressingCondition to True and other conditions to
+// SetReconcileProgressingCondition sets the ProgressingCondition to True and other conditions to
 // false or Unknown. Used when we are just starting to reconcile, and there are no existing
 // conditions.
 func SetReconcileProgressingCondition(conditions *[]odfv1alpha1.Condition, reason string, message string) {
@@ -67,8 +66,8 @@ func SetReconcileProgressingCondition(conditions *[]odfv1alpha1.Condition, reaso
 	})
 }
 
-// SetErrorCondition sets the ConditionReconcileComplete to False in case of any errors
-// during the reconciliation process.
+// SetReconcileErrorCondition sets the ConditionReconcileComplete to False in
+// case of any errors during the reconciliation process.
 func SetReconcileErrorCondition(conditions *[]odfv1alpha1.Condition, reason string, message string) {
 	SetStatusCondition(conditions, odfv1alpha1.Condition{
 		Type:    odfv1alpha1.ConditionReconcileComplete,
@@ -78,7 +77,7 @@ func SetReconcileErrorCondition(conditions *[]odfv1alpha1.Condition, reason stri
 	})
 }
 
-// SetCompleteCondition sets the ConditionReconcileComplete to True and other Conditions
+// SetReconcileCompleteCondition sets the ConditionReconcileComplete to True and other Conditions
 // to indicate that the reconciliation process has completed successfully.
 func SetReconcileCompleteCondition(conditions *[]odfv1alpha1.Condition, reason string, message string) {
 	SetStatusCondition(conditions, odfv1alpha1.Condition{

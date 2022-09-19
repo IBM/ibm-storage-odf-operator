@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
-	util "github.com/IBM/ibm-storage-odf-operator/controllers/util"
+	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	//+kubebuilder:scaffold:imports
 )
