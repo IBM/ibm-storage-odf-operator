@@ -3,7 +3,7 @@ kind: Service
 metadata:
   creationTimestamp: null
   labels:
-    odf: storage.ibm.com
+    odf-fs: odf-fs-workspace
   name: ibm-storage-odf-operator-metrics-service
 spec:
   ports:
@@ -11,6 +11,6 @@ spec:
     port: 8443
     targetPort: https
   selector:
-    odf: storage.ibm.com
+    odf-fs: odf-fs-workspace
 status:
   loadBalancer: {}

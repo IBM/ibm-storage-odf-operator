@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    odf: storage.ibm.com
+    odf-fs: odf-fs-workspace
   name: ibm-storage-odf-operator-metrics-service
   namespace: openshift-storage
 spec:
@@ -11,4 +11,4 @@ spec:
     port: 8443
     targetPort: https
   selector:
-    odf: storage.ibm.com
+    odf-fs: odf-fs-workspace

@@ -30,7 +30,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: FlashSystemCluster is the Schema for the flashsystemclusters
+        description: FlashSystemCluster is the Schema for the FlashSystemClusters
           API
         properties:
           apiVersion:
@@ -84,7 +84,7 @@ spec:
                 type: string
               secret:
                 description: Secret refers to a secret that has the credentials for
-                  flashsystem csi storageclass
+                  FlashSystem csi StorageClass
                 properties:
                   name:
                     description: Name is unique within a namespace to reference a

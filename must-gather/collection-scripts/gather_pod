@@ -32,7 +32,7 @@ LOG_PATH="${BASE_COLLECTION_PATH}/pod/"
 mkdir -p ${LOG_PATH}
 
 echo "INFO: Gathering Pods"
-ODF_PODS=($(oc -n ${ODF_NAMESPACE} get pod --no-headers -o custom-columns=":metadata.name" -l odf="storage.ibm.com"))
+ODF_PODS=($(oc -n ${ODF_NAMESPACE} get pod --no-headers -o custom-columns=":metadata.name" -l odf-fs="odf-fs-workspace"))
 
 if [ "${FILTER_STRING}" != "" ]; then
 

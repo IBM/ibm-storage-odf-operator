@@ -32,7 +32,7 @@ LOG_PATH="${BASE_COLLECTION_PATH}/deployment/"
 mkdir -p ${LOG_PATH}
 
 echo "INFO: Gathering Deployments"
-ODF_DEPLOYMENTS=($(oc -n ${ODF_NAMESPACE} get deployment --no-headers -o custom-columns=":metadata.name" -l odf="storage.ibm.com"))
+ODF_DEPLOYMENTS=($(oc -n ${ODF_NAMESPACE} get deployment --no-headers -o custom-columns=":metadata.name" -l odf-fs="odf-fs-workspace"))
 
 if [ "${FILTER_STRING}" != "" ]; then
 

@@ -32,7 +32,7 @@ LOG_PATH="${BASE_COLLECTION_PATH}/configmap/"
 mkdir -p ${LOG_PATH}
 
 echo "INFO: Gathering ConfigMaps"
-ODF_CONFIGMAPS=($(oc -n ${ODF_NAMESPACE} get configmap --no-headers -o custom-columns=":metadata.name" -l odf="storage.ibm.com"))
+ODF_CONFIGMAPS=($(oc -n ${ODF_NAMESPACE} get configmap --no-headers -o custom-columns=":metadata.name" -l odf-fs="odf-fs-workspace"))
 
 if [ "${FILTER_STRING}" != "" ]; then
 
