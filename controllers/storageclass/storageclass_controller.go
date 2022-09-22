@@ -19,6 +19,7 @@ package storageclass
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	"github.com/go-logr/logr"
@@ -193,6 +194,58 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 	msg := "failed to match StorageClass to FlashSystemCluster item"
 	r.Log.Error(nil, msg)
 	return foundCluster, fmt.Errorf(msg)
+}
+
+func (r *StorageClassWatcher) getManagementMapFromSecret(topologySecret corev1.Secret) (map[string]v1alpha1.FlashSystemCluster, error) {
+	managementMap := make(map[string]v1alpha1.FlashSystemCluster)
+	jsonMap := make(map[string]interface{})
+	topologySecretData := topologySecret.Data["config"]
+	// The next commented lines are in case we don't know that the key name is "config", and we need to iterate over all keys
+	// to find the one that contains the hashed json data.
+
+	//for _, v := range topologySecret.Data {
+	//	err := json.Unmarshal(v, &jsonMap)
+	//	if err != nil {
+	//		r.Log.Error(err, "failed to unmarshal json")
+	//		return managementMap, err
+	//	}
+	//}
+	// decoding topologySecretData from base64
+	decodedSecretData, err := base64.StdEncoding.DecodeString(string(topologySecretData))
+	if err != nil {
+		r.Log.Error(nil, "failed to decode configData")
+		return managementMap, err
+	}
+	if err = json.Unmarshal(decodedSecretData, &jsonMap); err != nil {
+		r.Log.Error(nil, "failed to unmarshal configData")
+		return managementMap, err
+	}
+	clusters := &v1alpha1.FlashSystemClusterList{}
+	if err = r.Client.List(context.Background(), clusters); err != nil {
+		r.Log.Error(nil, "failed to list FlashSystemClusterList")
+		return managementMap, err
+	}
+	for mgmt_id, mgmt_data := range jsonMap {
+		mgmt_address := mgmt_data.(map[string]interface{})["management_address"]
+		for _, cluster := range clusters.Items {
+			clusterSecret := &corev1.Secret{}
+			err = r.Client.Get(context.Background(),
+				types.NamespacedName{
+					Namespace: cluster.Spec.Secret.Namespace,
+					Name:      cluster.Spec.Secret.Name},
+				clusterSecret)
+			if err != nil {
+				r.Log.Error(nil, "failed to get FlashSystemCluster secret for management address comparison")
+				return managementMap, err
+			}
+			clusterSecretManagement := clusterSecret.Data[util.SecretManagementAddressKey]
+			if bytes.Equal(clusterSecretManagement, []byte(mgmt_address.(string))) {
+				r.Log.Info("found matching FlashSystemCluster for management address in topology secret")
+				managementMap[mgmt_id] = cluster
+			}
+		}
+	}
+	return managementMap, nil
 }
 
 func (r *StorageClassWatcher) removeStorageClassFromConfigMap(configMap corev1.ConfigMap, fscName string, scName string) error {
