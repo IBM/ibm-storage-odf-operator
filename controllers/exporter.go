@@ -128,7 +128,6 @@ func updateExporterMetricsService(foundService *corev1.Service, expectedService 
 
 	if len(foundService.Spec.Ports) != 1 ||
 		!reflect.DeepEqual(foundService.Spec.Ports[0], expectedService.Spec.Ports[0]) {
-
 		isChanged = true
 	}
 
@@ -155,7 +154,6 @@ func updateExporterMetricsService(foundService *corev1.Service, expectedService 
 		updatedService.Spec.Selector = util.GetLabels()
 		return updatedService
 	}
-
 	return nil
 }
 
@@ -296,7 +294,6 @@ func updateExporterDeployment(found *appsv1.Deployment, expected *appsv1.Deploym
 		updated.Spec = *expected.Spec.DeepCopy()
 		return updated
 	}
-
 	return nil
 }
 
@@ -363,7 +360,7 @@ func getFlashSystemPrometheusRuleFilepath() string {
 	return FlashSystemPrometheusRuleFilepath
 }
 
-func getPrometheusRules(instance *odfv1alpha1.FlashSystemCluster) (*monitoringv1.PrometheusRule, error) {
+func getPrometheusRules(instance *odfv1alpha1.FlashSystemCluster, newOwnerDetails metav1.OwnerReference) (*monitoringv1.PrometheusRule, error) {
 	ruleFile, err := ioutil.ReadFile(filepath.Clean(getFlashSystemPrometheusRuleFilepath()))
 	if err != nil {
 		return nil, fmt.Errorf("PrometheusRules file could not be fetched. %v", err)
@@ -398,17 +395,7 @@ func getPrometheusRules(instance *odfv1alpha1.FlashSystemCluster) (*monitoringv1
 			}
 		}
 	}
-
-	owner := []metav1.OwnerReference{
-		{
-			APIVersion: instance.APIVersion,
-			Kind:       instance.Kind,
-			Name:       instance.Name,
-			UID:        instance.UID,
-		},
-	}
-
-	promRule.ObjectMeta.SetOwnerReferences(owner)
+	promRule.ObjectMeta.SetOwnerReferences([]metav1.OwnerReference{newOwnerDetails})
 
 	return &promRule, nil
 }
