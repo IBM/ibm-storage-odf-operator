@@ -339,7 +339,7 @@ func (r *FlashSystemClusterReconciler) ensureSecretOwnership(instance *odfv1alph
 		secret)
 
 	if err != nil {
-		r.Log.Error(err, "flashSystemCluster secret not found")
+		r.Log.Error(err, "failed to get secret for FlashSystemCluster")
 		return err
 	}
 	if secret.OwnerReferences == nil {
