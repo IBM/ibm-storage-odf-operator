@@ -325,7 +325,7 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 		instance.Status.Phase = util.PhaseProgressing
 	} else {
 		instance.Status.Phase = util.PhaseNotReady
-	} // vered : TODO why not to return error in case reconcile is not complete?
+	}
 
 	return reconcile.Result{}, nil
 }
@@ -671,7 +671,6 @@ func (r *FlashSystemClusterReconciler) ensureDefaultStorageClass(instance *odfv1
 			return err
 		}
 
-		// vered TODO: Why to delete SC with same name ??
 		r.createEvent(instance, corev1.EventTypeWarning,
 			util.DeletedDuplicatedStorageClassReason, "delete StorageClass with same name as default StorageClass")
 	}
