@@ -199,40 +199,47 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 func (r *StorageClassWatcher) getManagementMapFromSecret(topologySecret corev1.Secret) (map[string]v1alpha1.FlashSystemCluster, error) {
 	managementMap := make(map[string]v1alpha1.FlashSystemCluster)
 	jsonSecretConfigData := make(map[string]interface{})
-	//var topologySecretData []byte
 	topologySecretData := topologySecret.Data["config"]
 	//for _, value := range topologySecret.Data {
 	//	topologySecretData = value
 	//	break
 	//}
-	// check if topologySecretData is base64 encoded and decoding it from base64 to json if needed
-	if _, err := base64.StdEncoding.DecodeString(string(topologySecretData)); err == nil {
-		r.Log.Info("alon - topologySecretData is base64 encoded")
-		topologySecretData, err = base64.StdEncoding.DecodeString(string(topologySecretData))
-		r.Log.Info("alon - topologySecretData after decoding is: ", "topologySecretData", topologySecretData)
-		if err != nil {
-			r.Log.Error(nil, "failed to decode configData from topology secret")
-			return managementMap, err
-		}
+	// decoding topologySecretData from base64 to json
+	decodedSecretData, err := base64.StdEncoding.DecodeString(string(topologySecretData))
+	if err != nil {
+		r.Log.Error(nil, "failed to decode configData from topology secret")
+		return managementMap, err
 	}
-	if err := json.Unmarshal(topologySecretData, &jsonSecretConfigData); err != nil {
+
+	if err := json.Unmarshal(decodedSecretData, &jsonSecretConfigData); err != nil {
 		r.Log.Error(nil, "failed to unmarshal configData")
 		return managementMap, err
 	}
-	cluster := v1alpha1.FlashSystemCluster{}
-	clusterSecret := &corev1.Secret{}
-	err := r.Client.Get(context.Background(),
-		types.NamespacedName{
-			Namespace: cluster.Spec.Secret.Namespace,
-			Name:      cluster.Spec.Secret.Name},
-		clusterSecret)
-	if err != nil {
-		r.Log.Error(nil, "failed to get FlashSystemCluster secret")
-		return managementMap, err
+	clusters := &v1alpha1.FlashSystemClusterList{}
+	if err := r.Client.List(context.Background(), clusters); err != nil {
+		r.Log.Error(nil, "failed to list FlashSystemClusterList")
+	}
+	clusterMap := make(map[string]v1alpha1.FlashSystemCluster)
+	for _, cluster := range clusters.Items {
+		clusterSecret := &corev1.Secret{}
+		if err := r.Client.Get(context.Background(),
+			types.NamespacedName{
+				Namespace: cluster.Spec.Secret.Namespace,
+				Name:      cluster.Spec.Secret.Name},
+			clusterSecret); err != nil {
+			r.Log.Error(nil, "failed to get FlashSystemCluster secret")
+			return managementMap, err
+		}
+		clusterSecretManagementAddress := clusterSecret.Data[util.SecretManagementAddressKey]
+		clusterMap[string(clusterSecretManagementAddress)] = cluster
 	}
 	for _, managementData := range jsonSecretConfigData {
 		managementAddress := managementData.(map[string]interface{})["management_address"].(string)
-		managementMap[managementAddress] = cluster
+		// checking if managementAddress is in clusterMap and if it is, adding it to the final managementMap
+		if cluster, ok := clusterMap[managementAddress]; ok {
+			r.Log.Info("found FlashSystemCluster with a matching secret address")
+			managementMap[managementAddress] = cluster
+		}
 	}
 	return managementMap, nil
 }
