@@ -93,10 +93,8 @@ func compareDefaultStorageClass(
 				return false
 			}
 		}
-
 		return true
 	}
-
 	return false
 }
 

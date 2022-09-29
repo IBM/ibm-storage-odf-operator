@@ -105,13 +105,11 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 	}
 
 	sc := &storagev1.StorageClass{}
-	err = r.Client.Get(context.TODO(), request.NamespacedName, sc)
-	if err != nil {
+	if err = r.Client.Get(context.TODO(), request.NamespacedName, sc); err != nil {
 		if errors.IsNotFound(err) {
 			r.Log.Info("StorageClass not found")
 			for fscName := range configMap.Data {
-				err = r.removeStorageClassFromConfigMap(*configMap, fscName, request.Name)
-				if err != nil {
+				if err = r.removeStorageClassFromConfigMap(*configMap, fscName, request.Name); err != nil {
 					return result, err
 				}
 			}
@@ -135,8 +133,7 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 		} else {
 			poolName, ok := sc.Parameters[util.CsiIBMBlockScPool]
 			if ok {
-				err = r.addStorageClassToConfigMap(*configMap, fscName, request.Name, poolName)
-				if err != nil {
+				if err = r.addStorageClassToConfigMap(*configMap, fscName, request.Name, poolName); err != nil {
 					return result, err
 				}
 			} else {
@@ -213,8 +210,7 @@ func (r *StorageClassWatcher) removeStorageClassFromConfigMap(configMap corev1.C
 			return err
 		}
 		configMap.Data[fscName] = string(val)
-		err = r.Client.Update(context.TODO(), &configMap)
-		if err != nil {
+		if err = r.Client.Update(context.TODO(), &configMap); err != nil {
 			r.Log.Error(err, "failed to update pools ConfigMap", "ConfigMap", configMap.Name)
 			return err
 		}
@@ -233,8 +229,7 @@ func (r *StorageClassWatcher) addStorageClassToConfigMap(configMap corev1.Config
 	}
 
 	var fsMap util.FlashSystemClusterMapContent
-	err := json.Unmarshal([]byte(fscContent), &fsMap)
-	if err != nil {
+	if err := json.Unmarshal([]byte(fscContent), &fsMap); err != nil {
 		r.Log.Error(err, "failed to unmarshal value from pools ConfigMap", "ConfigMap", configMap.Name)
 		return err
 	}
@@ -246,8 +241,7 @@ func (r *StorageClassWatcher) addStorageClassToConfigMap(configMap corev1.Config
 	}
 	configMap.Data[fscName] = string(val)
 
-	err = r.Client.Update(context.TODO(), &configMap)
-	if err != nil {
+	if err = r.Client.Update(context.TODO(), &configMap); err != nil {
 		r.Log.Error(err, "failed to update pools ConfigMap", "ConfigMap", configMap.Name)
 		return err
 	}

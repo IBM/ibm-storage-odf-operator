@@ -95,8 +95,8 @@ func GetCreateConfigmap(client client.Client, log logr.Logger, ns string, create
 		types.NamespacedName{Namespace: ns, Name: PoolConfigmapName},
 		configMap)
 
-	if err != nil && createIfMissing {
-		if errors.IsNotFound(err) {
+	if err != nil {
+		if errors.IsNotFound(err) && createIfMissing {
 			configMap = initScPoolConfigMap(ns)
 			configMap.Data = make(map[string]string)
 			log.Info("creating pools ConfigMap", "ConfigMap", PoolConfigmapName)
