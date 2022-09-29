@@ -323,8 +323,10 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 		instance.Status.Phase = util.PhaseReady
 	} else if util.IsStatusConditionTrue(instance.Status.Conditions, odfv1alpha1.ConditionProgressing) {
 		instance.Status.Phase = util.PhaseProgressing
+		r.Log.Info("flashSystemCluster reconcile finished with 'progressing' state")
 	} else {
 		instance.Status.Phase = util.PhaseNotReady
+		r.Log.Info("flashSystemCluster reconcile finished with 'not ready' state")
 	}
 
 	return reconcile.Result{}, nil
