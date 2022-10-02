@@ -668,7 +668,6 @@ func (r *FlashSystemClusterReconciler) ensureDefaultStorageClass(instance *odfv1
 		msg := "storageClass with same name already exists and doesn't match ODF-FS requirements. " +
 			"Deletion of existing StorageClass is required. Failing FlashSystemCluster reconcile"
 		r.createEvent(instance, corev1.EventTypeWarning, util.DeletedDuplicatedStorageClassReason, msg)
-		r.Log.Error(nil, msg)
 		return fmt.Errorf(msg)
 	}
 
