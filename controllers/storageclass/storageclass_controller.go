@@ -197,27 +197,24 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 }
 
 func (r *StorageClassWatcher) getManagementMapFromSecret(topologySecret corev1.Secret) (map[string]v1alpha1.FlashSystemCluster, error) {
-	managementMap := make(map[string]v1alpha1.FlashSystemCluster)
-	jsonSecretConfigData := make(map[string]interface{})
+	clustersByMgmtAddr := make(map[string]v1alpha1.FlashSystemCluster)
+	jsonSecretConfigData := make(map[string]map[string]string)
 	topologySecretData := topologySecret.Data["config"]
-	//for _, value := range topologySecret.Data {
-	//	topologySecretData = value
-	//	break
-	//}
+
 	// decoding topologySecretData from base64 to json
 	decodedSecretData, err := base64.StdEncoding.DecodeString(string(topologySecretData))
 	if err != nil {
 		r.Log.Error(nil, "failed to decode configData from topology secret")
-		return managementMap, err
+		return clustersByMgmtAddr, err
 	}
 
 	if err := json.Unmarshal(decodedSecretData, &jsonSecretConfigData); err != nil {
-		r.Log.Error(nil, "failed to unmarshal configData")
-		return managementMap, err
+		r.Log.Error(nil, "failed to unmarshal the decoded configData from topology secret")
+		return clustersByMgmtAddr, err
 	}
 	clusters := &v1alpha1.FlashSystemClusterList{}
 	if err := r.Client.List(context.Background(), clusters); err != nil {
-		r.Log.Error(nil, "failed to list FlashSystemClusterList")
+		r.Log.Error(nil, "failed to list FlashSystemClusterList for topology secret")
 	}
 	clusterMap := make(map[string]v1alpha1.FlashSystemCluster)
 	for _, cluster := range clusters.Items {
@@ -227,21 +224,21 @@ func (r *StorageClassWatcher) getManagementMapFromSecret(topologySecret corev1.S
 				Namespace: cluster.Spec.Secret.Namespace,
 				Name:      cluster.Spec.Secret.Name},
 			clusterSecret); err != nil {
-			r.Log.Error(nil, "failed to get FlashSystemCluster secret")
-			return managementMap, err
+			r.Log.Error(nil, "failed to get FlashSystemCluster secret for topology secret")
+			return clustersByMgmtAddr, err
 		}
 		clusterSecretManagementAddress := clusterSecret.Data[util.SecretManagementAddressKey]
 		clusterMap[string(clusterSecretManagementAddress)] = cluster
 	}
 	for _, managementData := range jsonSecretConfigData {
-		managementAddress := managementData.(map[string]interface{})["management_address"].(string)
+		managementAddress := managementData["management_address"]
 		// checking if managementAddress is in clusterMap and if it is, adding it to the final managementMap
 		if cluster, ok := clusterMap[managementAddress]; ok {
-			r.Log.Info("found FlashSystemCluster with a matching secret address")
-			managementMap[managementAddress] = cluster
+			r.Log.Info("found FlashSystemCluster with a matching secret address for topology secret")
+			clustersByMgmtAddr[managementAddress] = cluster
 		}
 	}
-	return managementMap, nil
+	return clustersByMgmtAddr, nil
 }
 
 func (r *StorageClassWatcher) removeStorageClassFromConfigMap(configMap corev1.ConfigMap, fscName string, scName string) error {
