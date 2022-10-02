@@ -34,6 +34,7 @@ import (
 const (
 	PoolConfigmapName     = "ibm-flashsystem-pools"
 	FSCConfigmapMountPath = "/config"
+	TopologySecretDataKey = "config"
 
 	CsiIBMBlockDriver = "block.csi.ibm.com"
 	CsiIBMBlockScPool = "pool"
