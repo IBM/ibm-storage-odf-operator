@@ -19,7 +19,6 @@ package storageclass
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"fmt"
 	"github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	"github.com/go-logr/logr"
@@ -197,18 +196,12 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 }
 
 //lint:ignore U1000 Ignore unused function - planned for future use
-func (r *StorageClassWatcher) getManagementMapFromSecret(topologySecret corev1.Secret) (map[string]v1alpha1.FlashSystemCluster, error) {
+func (r *StorageClassWatcher) getManagementMapFromSecret(topologySecret *corev1.Secret) (map[string]v1alpha1.FlashSystemCluster, error) {
 	clustersByMgmtId := make(map[string]v1alpha1.FlashSystemCluster)
-	mgmtDataByMgmtId := make(map[string]map[string]string)
-	topologySecretData := topologySecret.Data[util.TopologySecretDataKey]
+	mgmtDataByMgmtId := make(map[string]interface{})
+	topologySecretData := string(topologySecret.Data[util.TopologySecretDataKey])
 
-	decodedSecretData, err := base64.StdEncoding.DecodeString(string(topologySecretData))
-	if err != nil {
-		r.Log.Error(nil, "failed to decode configData from topology secret")
-		return clustersByMgmtId, err
-	}
-
-	if err = json.Unmarshal(decodedSecretData, &mgmtDataByMgmtId); err != nil {
+	if err := json.Unmarshal([]byte(topologySecretData), &mgmtDataByMgmtId); err != nil {
 		r.Log.Error(nil, "failed to unmarshal the decoded configData from topology secret")
 		return clustersByMgmtId, err
 	}
@@ -217,9 +210,8 @@ func (r *StorageClassWatcher) getManagementMapFromSecret(topologySecret corev1.S
 		r.Log.Error(nil, "failed to get clusters mapped by mgmt address")
 		return clustersByMgmtId, err
 	}
-
 	for mgmtId, mgmtData := range mgmtDataByMgmtId {
-		mgmtAddress := mgmtData[util.SecretManagementAddressKey]
+		mgmtAddress := mgmtData.(map[string]interface{})[util.SecretManagementAddressKey].(string)
 		if cluster, ok := clustersMapByMgmtAddr[mgmtAddress]; ok {
 			r.Log.Info("found FlashSystemCluster with a matching secret address for topology secret")
 			clustersByMgmtId[mgmtId] = cluster
