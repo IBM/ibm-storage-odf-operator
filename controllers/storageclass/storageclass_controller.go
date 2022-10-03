@@ -192,6 +192,54 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 	return foundCluster, fmt.Errorf(msg)
 }
 
+//lint:ignore U1000 Ignore unused function - planned for future use
+func (r *StorageClassWatcher) getManagementMapFromSecret(topologySecret *corev1.Secret) (map[string]v1alpha1.FlashSystemCluster, error) {
+	clustersByMgmtId := make(map[string]v1alpha1.FlashSystemCluster)
+	mgmtDataByMgmtId := make(map[string]interface{})
+	topologySecretData := string(topologySecret.Data[util.TopologySecretDataKey])
+
+	if err := json.Unmarshal([]byte(topologySecretData), &mgmtDataByMgmtId); err != nil {
+		r.Log.Error(nil, "failed to unmarshal the decoded configData from topology secret")
+		return clustersByMgmtId, err
+	}
+	clustersMapByMgmtAddr, err := r.mapClustersByMgmtAddress()
+	if err != nil {
+		r.Log.Error(nil, "failed to get clusters mapped by mgmt address")
+		return clustersByMgmtId, err
+	}
+	for mgmtId, mgmtData := range mgmtDataByMgmtId {
+		mgmtAddress := mgmtData.(map[string]interface{})[util.SecretManagementAddressKey].(string)
+		if cluster, ok := clustersMapByMgmtAddr[mgmtAddress]; ok {
+			r.Log.Info("found FlashSystemCluster with a matching secret address for topology secret")
+			clustersByMgmtId[mgmtId] = cluster
+		}
+	}
+	return clustersByMgmtId, nil
+}
+
+func (r *StorageClassWatcher) mapClustersByMgmtAddress() (map[string]v1alpha1.FlashSystemCluster, error) {
+	clusters := &v1alpha1.FlashSystemClusterList{}
+	if err := r.Client.List(context.Background(), clusters); err != nil {
+		r.Log.Error(nil, "failed to list FlashSystemClusterList for topology secret")
+		return nil, err
+	}
+	clusterMap := make(map[string]v1alpha1.FlashSystemCluster)
+	for _, cluster := range clusters.Items {
+		clusterSecret := &corev1.Secret{}
+		if err := r.Client.Get(context.Background(),
+			types.NamespacedName{
+				Namespace: cluster.Spec.Secret.Namespace,
+				Name:      cluster.Spec.Secret.Name},
+			clusterSecret); err != nil {
+			r.Log.Error(nil, "failed to get FlashSystemCluster secret for topology secret")
+			return nil, err
+		}
+		clusterSecretManagementAddress := clusterSecret.Data[util.SecretManagementAddressKey]
+		clusterMap[string(clusterSecretManagementAddress)] = cluster
+	}
+	return clusterMap, nil
+}
+
 func (r *StorageClassWatcher) removeStorageClassFromConfigMap(configMap corev1.ConfigMap, fscName string, scName string) error {
 	r.Log.Info("removing StorageClass from pools ConfigMap", "FlashSystemCluster", fscName, "ConfigMap", configMap.Name)
 
