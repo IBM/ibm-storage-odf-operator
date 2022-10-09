@@ -232,13 +232,13 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 }
 
 func (r *StorageClassWatcher) extractPoolName(topologyStorageClass storagev1.StorageClass, secretMgmtDataByMgmtId map[string]interface{}, fsc v1alpha1.FlashSystemCluster) (string, error) {
-	r.Log.Info("extracting the pools from topology aware StorageClass per management id")
+	r.Log.Info("extracting the pool name from topology aware StorageClass")
 	poolName := ""
-	scByMgmtIdData := topologyStorageClass.Parameters["by_management_id"]
+	byMgmtIdDataOfSc := topologyStorageClass.Parameters["by_management_id"]
 	var mgmtDataByMgmtId map[string]interface{}
-	err := json.Unmarshal([]byte(scByMgmtIdData), &mgmtDataByMgmtId)
+	err := json.Unmarshal([]byte(byMgmtIdDataOfSc), &mgmtDataByMgmtId)
 	if err != nil {
-		r.Log.Error(nil, "failed to unmarshal the topology storage class \"by_management_id\" data")
+		r.Log.Error(nil, "failed to unmarshal the topology storage class \"by_management_id\" parameter data")
 		return poolName, err
 	}
 	clustersMapByMgmtAddr, err := r.mapClustersByMgmtAddress()
