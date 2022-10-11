@@ -207,7 +207,7 @@ func (r *StorageClassWatcher) getSecret(sc *storagev1.StorageClass) (corev1.Secr
 		isSamePrefixCheck = false
 	}
 	if isSamePrefixCheck {
-		return *secret, fmt.Errorf("cannot find secret namespace in StorageClass")
+		return *secret, fmt.Errorf("secret name and namespace in StorageClass parameters are not the same")
 	}
 
 	err := r.Client.Get(context.Background(),
