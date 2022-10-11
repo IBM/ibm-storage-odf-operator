@@ -189,27 +189,14 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 
 func (r *StorageClassWatcher) getSecret(sc *storagev1.StorageClass) (corev1.Secret, error) {
 	secret := &corev1.Secret{}
-	isSamePrefixCheck := false
-	secretName, ok := sc.Parameters[util.DefaultSecretNameKey]
-	if !ok {
-		secretName, ok = sc.Parameters[util.ProvisionerSecretNameKey]
-		if !ok {
-			return *secret, fmt.Errorf("cannot find secret name in StorageClass")
+	secretName, secretNamespace := sc.Parameters[util.DefaultSecretNameKey], sc.Parameters[util.DefaultSecretNamespaceKey]
+	if secretName == "" || secretNamespace == "" {
+		secretName, secretNamespace = sc.Parameters[util.ProvisionerSecretNameKey], sc.Parameters[util.ProvisionerSecretNamespaceKey]
+		if secretName == "" || secretNamespace == "" {
+			r.Log.Error(nil, "failed to find secret name or namespace in StorageClass")
+			return *secret, fmt.Errorf("failed to find secret name or namespace in StorageClass")
 		}
-		isSamePrefixCheck = true
 	}
-	secretNamespace, ok := sc.Parameters[util.DefaultSecretNamespaceKey]
-	if !ok && isSamePrefixCheck {
-		secretNamespace, ok = sc.Parameters[util.ProvisionerSecretNamespaceKey]
-		if !ok {
-			return *secret, fmt.Errorf("cannot find secret namespace in StorageClass")
-		}
-		isSamePrefixCheck = false
-	}
-	if isSamePrefixCheck {
-		return *secret, fmt.Errorf("secret name and namespace in StorageClass parameters are not the same")
-	}
-
 	err := r.Client.Get(context.Background(),
 		types.NamespacedName{
 			Namespace: secretNamespace,
