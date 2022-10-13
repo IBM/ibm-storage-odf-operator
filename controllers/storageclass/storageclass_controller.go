@@ -193,8 +193,9 @@ func (r *StorageClassWatcher) getSecret(sc *storagev1.StorageClass) (corev1.Secr
 	if secretName == "" || secretNamespace == "" {
 		secretName, secretNamespace = sc.Parameters[util.ProvisionerSecretNameKey], sc.Parameters[util.ProvisionerSecretNamespaceKey]
 		if secretName == "" || secretNamespace == "" {
-			r.Log.Error(nil, "failed to find secret name or namespace in StorageClass")
-			return *secret, fmt.Errorf("failed to find secret name or namespace in StorageClass")
+			err_msg := "failed to find secret name or namespace in StorageClass"
+			r.Log.Error(nil, err_msg)
+			return *secret, fmt.Errorf(err_msg)
 		}
 	}
 	err := r.Client.Get(context.Background(),
