@@ -171,7 +171,6 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.StorageClass, isTopology bool) ([]v1alpha1.FlashSystemCluster, map[string]interface{}, error) {
 	var flashSystemClusters []v1alpha1.FlashSystemCluster
 	r.Log.Info("looking for FlashSystemCluster by StorageClass")
-	foundCluster := v1alpha1.FlashSystemCluster{}
 	storageClassSecret, err := r.getSecret(sc)
 	if err != nil {
 		r.Log.Error(nil, "failed to find StorageClass secret")
@@ -199,7 +198,7 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 		}
 		clusterSecretManagementAddress := clusterSecret.Data[util.SecretManagementAddressKey]
 		if isTopology {
-			clustersMapByMgmtId, secretMgmtDataByMgmtId, err := r.getManagementMapFromSecret(storageClassSecret)
+			clustersMapByMgmtId, secretMgmtDataByMgmtId, err := r.getManagementMapFromSecret(&storageClassSecret)
 			if err != nil {
 				r.Log.Error(nil, "failed to get management map from topology secret from StorageClass")
 				return flashSystemClusters, secretMgmtDataByMgmtId, err
