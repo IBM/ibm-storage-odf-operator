@@ -119,8 +119,7 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 	}
 
 	isTopology := false
-	if _, ok := sc.Parameters["by_management_id"]; ok {
-		isTopology = true
+	if _, isTopology = sc.Parameters["by_management_id"]; isTopology {
 		r.Log.Info("StorageClass is a topology aware StorageClass", "isTopology", isTopology)
 	}
 	flashSystemClusters, secretMgmtDataByMgmtId, fscErr := r.getFlashSystemClusterByStorageClass(sc, isTopology)
