@@ -118,8 +118,8 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 		return result, err
 	}
 
-	isTopology := false
-	if _, isTopology = sc.Parameters["by_management_id"]; isTopology {
+	_, isTopology := sc.Parameters[util.TopologyStorageClassByMgmtId]
+	if isTopology {
 		r.Log.Info("StorageClass is a topology aware StorageClass", "isTopology", isTopology)
 	}
 	flashSystemClusters, secretMgmtDataByMgmtId, fscErr := r.getFlashSystemClusterByStorageClass(sc, isTopology)
@@ -226,7 +226,7 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 func (r *StorageClassWatcher) extractPoolName(topologyStorageClass storagev1.StorageClass, secretMgmtDataByMgmtId map[string]interface{}, fsc v1alpha1.FlashSystemCluster) (string, error) {
 	r.Log.Info("extracting the pool name from topology aware StorageClass")
 	poolName := ""
-	byMgmtIdDataOfSc := topologyStorageClass.Parameters["by_management_id"]
+	byMgmtIdDataOfSc := topologyStorageClass.Parameters[util.TopologyStorageClassByMgmtId]
 	var mgmtDataByMgmtId map[string]interface{}
 	err := json.Unmarshal([]byte(byMgmtIdDataOfSc), &mgmtDataByMgmtId)
 	if err != nil {
