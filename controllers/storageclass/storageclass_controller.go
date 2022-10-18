@@ -122,7 +122,7 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 	if isTopology {
 		r.Log.Info("StorageClass is a topology aware StorageClass", "isTopology", isTopology)
 	}
-	flashSystemClusters, secretMgmtDataByMgmtId, fscErr := r.getFlashSystemClusterByStorageClass(sc, isTopology)
+	flashSystemClusters, fscErr := r.getFlashSystemClusterByStorageClass(sc, isTopology)
 	for _, fsc := range flashSystemClusters {
 		if fscErr == nil {
 			fscName := fsc.GetName()
@@ -137,7 +137,7 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 				}
 			} else {
 				if isTopology {
-					poolName, err := r.extractPoolName(*sc, secretMgmtDataByMgmtId, fsc)
+					poolName, err := r.extractPoolName(*sc, fsc)
 					if err != nil {
 						r.Log.Error(err, "failed to extract pool name from topology aware storageClass")
 						return result, err
@@ -167,13 +167,13 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 	return result, nil
 }
 
-func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.StorageClass, isTopology bool) ([]v1alpha1.FlashSystemCluster, map[string]interface{}, error) {
+func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.StorageClass, isTopology bool) ([]v1alpha1.FlashSystemCluster, error) {
 	var flashSystemClusters []v1alpha1.FlashSystemCluster
 	r.Log.Info("looking for FlashSystemCluster by StorageClass")
 	storageClassSecret, err := r.getSecret(sc)
 	if err != nil {
 		r.Log.Error(nil, "failed to find StorageClass secret")
-		return flashSystemClusters, nil, err
+		return flashSystemClusters, err
 	}
 	secretManagementAddress := storageClassSecret.Data[util.SecretManagementAddressKey]
 
@@ -181,7 +181,7 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 	err = r.Client.List(context.Background(), clusters)
 	if err != nil {
 		r.Log.Error(nil, "failed to list FlashSystemClusterList")
-		return flashSystemClusters, nil, err
+		return flashSystemClusters, err
 	}
 
 	for _, c := range clusters.Items {
@@ -193,37 +193,40 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 			clusterSecret)
 		if err != nil {
 			r.Log.Error(nil, "failed to get FlashSystemCluster secret")
-			return flashSystemClusters, nil, err
+			return flashSystemClusters, err
 		}
 		clusterSecretManagementAddress := clusterSecret.Data[util.SecretManagementAddressKey]
 		if isTopology {
-			clustersMapByMgmtId, secretMgmtDataByMgmtId, err := r.getManagementMapFromSecret(&storageClassSecret)
+			clustersMapByMgmtId, err := r.getManagementMapFromSecret(&storageClassSecret)
 			if err != nil {
 				r.Log.Error(nil, "failed to get management map from topology secret from StorageClass")
-				return flashSystemClusters, secretMgmtDataByMgmtId, err
+				return flashSystemClusters, err
+			}
+			currentClusterSecretMapByMgmtId, err := r.getManagementMapFromSecret(clusterSecret)
+			if err != nil {
+				r.Log.Error(nil, "failed to get management map from topology secret from FlashSystemCluster")
+				return flashSystemClusters, err
 			}
 			for mgmtId := range clustersMapByMgmtId {
-				secretManagementAddress = secretMgmtDataByMgmtId[mgmtId].(map[string]interface{})[util.SecretManagementAddressKey].([]byte)
-				if bytes.Equal(clusterSecretManagementAddress, secretManagementAddress) {
-					r.Log.Info("found topology StorageClass with a matching secret address")
+				if _, ok := currentClusterSecretMapByMgmtId[mgmtId]; ok {
 					flashSystemClusters = append(flashSystemClusters, c)
 				}
 			}
-			return flashSystemClusters, secretMgmtDataByMgmtId, nil
+			return flashSystemClusters, nil
 		}
 		secretsEqual := bytes.Compare(clusterSecretManagementAddress, secretManagementAddress)
 		if secretsEqual == 0 {
 			r.Log.Info("found StorageClass with a matching secret address")
 			flashSystemClusters = append(flashSystemClusters, c)
-			return flashSystemClusters, nil, nil
+			return flashSystemClusters, nil
 		}
 	}
 	msg := "failed to match StorageClass to FlashSystemCluster item"
 	r.Log.Error(nil, msg)
-	return flashSystemClusters, nil, fmt.Errorf(msg)
+	return flashSystemClusters, fmt.Errorf(msg)
 }
 
-func (r *StorageClassWatcher) extractPoolName(topologyStorageClass storagev1.StorageClass, secretMgmtDataByMgmtId map[string]interface{}, fsc v1alpha1.FlashSystemCluster) (string, error) {
+func (r *StorageClassWatcher) extractPoolName(topologyStorageClass storagev1.StorageClass, fsc v1alpha1.FlashSystemCluster) (string, error) {
 	r.Log.Info("extracting the pool name from topology aware StorageClass")
 	poolName := ""
 	byMgmtIdDataOfSc := topologyStorageClass.Parameters[util.TopologyStorageClassByMgmtId]
@@ -233,20 +236,16 @@ func (r *StorageClassWatcher) extractPoolName(topologyStorageClass storagev1.Sto
 		r.Log.Error(nil, "failed to unmarshal the topology storage class \"by_management_id\" parameter data")
 		return poolName, err
 	}
-	clustersMapByMgmtAddr, err := r.mapClustersByMgmtAddress()
+	secret, _ := r.getSecret(&topologyStorageClass)
+	clustersByMgmtId, err := r.getManagementMapFromSecret(&secret)
 	if err != nil {
-		r.Log.Error(nil, "failed to map clusters by management address")
+		r.Log.Error(nil, "failed to get management map from topology secret from StorageClass")
 		return poolName, err
 	}
 	for mgmtId, mgmtDataPerMgmtId := range mgmtDataByMgmtId {
-		mgmtAddrOfCurrentMgmtId := secretMgmtDataByMgmtId[mgmtId].(map[string]interface{})[util.SecretManagementAddressKey].([]byte)
-		cluster, ok := clustersMapByMgmtAddr[string(mgmtAddrOfCurrentMgmtId)]
-		if !ok {
-			r.Log.Error(nil, "failed to find FlashSystemCluster for management address")
-			return poolName, fmt.Errorf("failed to find FlashSystemCluster for management address")
-		}
+		cluster := clustersByMgmtId[mgmtId]
 		if cluster.Name == fsc.Name {
-			poolName, ok = mgmtDataPerMgmtId.(map[string]interface{})[util.CsiIBMBlockScPool].(string)
+			poolName, ok := mgmtDataPerMgmtId.(map[string]interface{})[util.CsiIBMBlockScPool].(string)
 			if !ok {
 				poolName = topologyStorageClass.Parameters[util.CsiIBMBlockScPool]
 			}
@@ -281,20 +280,19 @@ func (r *StorageClassWatcher) getSecret(sc *storagev1.StorageClass) (corev1.Secr
 	return *secret, nil
 }
 
-//lint:ignore U1000 Ignore unused function - planned for future use
-func (r *StorageClassWatcher) getManagementMapFromSecret(topologySecret *corev1.Secret) (map[string]v1alpha1.FlashSystemCluster, map[string]interface{}, error) {
+func (r *StorageClassWatcher) getManagementMapFromSecret(topologySecret *corev1.Secret) (map[string]v1alpha1.FlashSystemCluster, error) {
 	clustersByMgmtId := make(map[string]v1alpha1.FlashSystemCluster)
 	secretMgmtDataByMgmtId := make(map[string]interface{})
 	topologySecretData := string(topologySecret.Data[util.TopologySecretDataKey])
 
 	if err := json.Unmarshal([]byte(topologySecretData), &secretMgmtDataByMgmtId); err != nil {
 		r.Log.Error(nil, "failed to unmarshal the decoded configData from topology secret")
-		return clustersByMgmtId, secretMgmtDataByMgmtId, err
+		return clustersByMgmtId, err
 	}
 	clustersMapByMgmtAddr, err := r.mapClustersByMgmtAddress()
 	if err != nil {
 		r.Log.Error(nil, "failed to get clusters mapped by mgmt address")
-		return clustersByMgmtId, secretMgmtDataByMgmtId, err
+		return clustersByMgmtId, err
 	}
 	for mgmtId, mgmtData := range secretMgmtDataByMgmtId {
 		mgmtAddress := mgmtData.(map[string]interface{})[util.SecretManagementAddressKey].(string)
@@ -303,7 +301,7 @@ func (r *StorageClassWatcher) getManagementMapFromSecret(topologySecret *corev1.
 			clustersByMgmtId[mgmtId] = cluster
 		}
 	}
-	return clustersByMgmtId, secretMgmtDataByMgmtId, nil
+	return clustersByMgmtId, nil
 }
 
 func (r *StorageClassWatcher) mapClustersByMgmtAddress() (map[string]v1alpha1.FlashSystemCluster, error) {
