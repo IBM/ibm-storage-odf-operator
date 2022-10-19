@@ -18,4 +18,4 @@ jobs:
       with:
         check_filenames: true
         check_hidden: true
-        skip: "../go.sum"
+        skip: "./go.sum"
