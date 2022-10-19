@@ -161,13 +161,6 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 		return fscToPoolsMap, err
 	}
 
-	clusters := &v1alpha1.FlashSystemClusterList{}
-	err = r.Client.List(context.Background(), clusters)
-	if err != nil {
-		r.Log.Error(nil, "failed to list FlashSystemClusterList")
-		return fscToPoolsMap, err
-	}
-
 	if isTopology {
 		clustersMapByMgmtId, err := r.getManagementMapFromSecret(&storageClassSecret)
 		if err != nil {
@@ -179,6 +172,12 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 			fscToPoolsMap[fsc.Name] = poolName
 		}
 		return fscToPoolsMap, nil
+	}
+
+	clusters := &v1alpha1.FlashSystemClusterList{}
+	if err = r.Client.List(context.Background(), clusters); err != nil {
+		r.Log.Error(nil, "failed to list FlashSystemClusterList")
+		return fscToPoolsMap, err
 	}
 
 	secretManagementAddress := storageClassSecret.Data[util.SecretManagementAddressKey]
@@ -212,8 +211,7 @@ func (r *StorageClassWatcher) extractPoolName(sc storagev1.StorageClass, mgmtId 
 	poolName := ""
 	byMgmtIdDataOfSc := sc.Parameters[util.TopologyStorageClassByMgmtId]
 	var mgmtDataByMgmtId map[string]interface{}
-	err := json.Unmarshal([]byte(byMgmtIdDataOfSc), &mgmtDataByMgmtId)
-	if err != nil {
+	if err := json.Unmarshal([]byte(byMgmtIdDataOfSc), &mgmtDataByMgmtId); err != nil {
 		r.Log.Error(nil, "failed to unmarshal the topology storage class \"by_management_id\" parameter data")
 		return poolName, err
 	}
