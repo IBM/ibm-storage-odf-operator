@@ -20,7 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/go-logr/logr"
-	"io/ioutil"
+	"io"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -58,7 +58,7 @@ func ReadPoolConfigMapFile() (map[string]FlashSystemClusterMapContent, error) {
 	var flashSystemClusterContent FlashSystemClusterMapContent
 	fscPath := FSCConfigmapMountPath + "/"
 
-	files, err := ioutil.ReadDir(fscPath)
+	files, err := os.ReadDir(fscPath)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func getFileContent(filePath string) (FlashSystemClusterMapContent, error) {
 		return fscContent, err
 	}
 
-	fileContent, _ := ioutil.ReadAll(fileReader)
+	fileContent, _ := io.ReadAll(fileReader)
 	err = json.Unmarshal(fileContent, &fscContent)
 	return fscContent, err
 }
