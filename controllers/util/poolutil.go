@@ -39,9 +39,13 @@ const (
 	CsiIBMBlockDriver = "block.csi.ibm.com"
 	CsiIBMBlockScPool = "pool"
 
-	SecretNameKey              = "csi.storage.k8s.io/provisioner-secret-name"      // #nosec G101 - false positive
-	SecretNamespaceKey         = "csi.storage.k8s.io/provisioner-secret-namespace" // #nosec G101 - false positive
-	SecretManagementAddressKey = "management_address"                              // #nosec G101 - false positive
+	DefaultSecretNameKey      = "csi.storage.k8s.io/secret-name"      // #nosec G101 - false positive
+	DefaultSecretNamespaceKey = "csi.storage.k8s.io/secret-namespace" // #nosec G101 - false positive
+
+	ProvisionerSecretNameKey      = "csi.storage.k8s.io/provisioner-secret-name"      // #nosec G101 - false positive
+	ProvisionerSecretNamespaceKey = "csi.storage.k8s.io/provisioner-secret-namespace" // #nosec G101 - false positive
+
+	SecretManagementAddressKey = "management_address" // #nosec G101 - false positive
 )
 
 type FlashSystemClusterMapContent struct {

@@ -149,13 +149,8 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 
 func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.StorageClass) (v1alpha1.FlashSystemCluster, error) {
 	r.Log.Info("looking for FlashSystemCluster by StorageClass")
-	storageClassSecret := &corev1.Secret{}
 	foundCluster := v1alpha1.FlashSystemCluster{}
-	err := r.Client.Get(context.Background(),
-		types.NamespacedName{
-			Namespace: sc.Parameters[util.SecretNamespaceKey],
-			Name:      sc.Parameters[util.SecretNameKey]},
-		storageClassSecret)
+	storageClassSecret, err := r.getSecret(sc)
 	if err != nil {
 		r.Log.Error(nil, "failed to find StorageClass secret")
 		return foundCluster, err
@@ -190,6 +185,29 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 	msg := "failed to match StorageClass to FlashSystemCluster item"
 	r.Log.Error(nil, msg)
 	return foundCluster, fmt.Errorf(msg)
+}
+
+func (r *StorageClassWatcher) getSecret(sc *storagev1.StorageClass) (corev1.Secret, error) {
+	secret := &corev1.Secret{}
+	secretName, secretNamespace := sc.Parameters[util.DefaultSecretNameKey], sc.Parameters[util.DefaultSecretNamespaceKey]
+	if secretName == "" || secretNamespace == "" {
+		secretName, secretNamespace = sc.Parameters[util.ProvisionerSecretNameKey], sc.Parameters[util.ProvisionerSecretNamespaceKey]
+		if secretName == "" || secretNamespace == "" {
+			errMsg := "failed to find secret name or namespace in StorageClass"
+			r.Log.Error(nil, errMsg)
+			return *secret, fmt.Errorf(errMsg)
+		}
+	}
+	err := r.Client.Get(context.Background(),
+		types.NamespacedName{
+			Namespace: secretNamespace,
+			Name:      secretName},
+		secret)
+	if err != nil {
+		r.Log.Error(nil, "failed to find StorageClass secret")
+		return *secret, err
+	}
+	return *secret, nil
 }
 
 //lint:ignore U1000 Ignore unused function - planned for future use
