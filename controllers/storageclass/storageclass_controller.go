@@ -160,7 +160,6 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 		r.Log.Error(nil, "failed to find StorageClass secret")
 		return fscToPoolsMap, err
 	}
-	secretManagementAddress := storageClassSecret.Data[util.SecretManagementAddressKey]
 
 	clusters := &v1alpha1.FlashSystemClusterList{}
 	err = r.Client.List(context.Background(), clusters)
@@ -168,6 +167,7 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 		r.Log.Error(nil, "failed to list FlashSystemClusterList")
 		return fscToPoolsMap, err
 	}
+
 	if isTopology {
 		clustersMapByMgmtId, err := r.getManagementMapFromSecret(&storageClassSecret)
 		if err != nil {
@@ -180,6 +180,8 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 		}
 		return fscToPoolsMap, nil
 	}
+
+	secretManagementAddress := storageClassSecret.Data[util.SecretManagementAddressKey]
 	for _, c := range clusters.Items {
 		clusterSecret := &corev1.Secret{}
 		err = r.Client.Get(context.Background(),
