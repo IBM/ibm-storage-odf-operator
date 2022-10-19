@@ -282,7 +282,7 @@ func (r *StorageClassWatcher) mapClustersByMgmtAddress() (map[string]v1alpha1.Fl
 		r.Log.Error(nil, "failed to list FlashSystemClusterList for topology secret")
 		return nil, err
 	}
-	clusterMap := make(map[string]v1alpha1.FlashSystemCluster)
+	clustersMapByMgmtAddr := make(map[string]v1alpha1.FlashSystemCluster)
 	for _, cluster := range clusters.Items {
 		clusterSecret := &corev1.Secret{}
 		if err := r.Client.Get(context.Background(),
@@ -294,9 +294,9 @@ func (r *StorageClassWatcher) mapClustersByMgmtAddress() (map[string]v1alpha1.Fl
 			return nil, err
 		}
 		clusterSecretManagementAddress := clusterSecret.Data[util.SecretManagementAddressKey]
-		clusterMap[string(clusterSecretManagementAddress)] = cluster
+		clustersMapByMgmtAddr[string(clusterSecretManagementAddress)] = cluster
 	}
-	return clusterMap, nil
+	return clustersMapByMgmtAddr, nil
 }
 
 func (r *StorageClassWatcher) removeStorageClassFromConfigMap(configMap corev1.ConfigMap, fscName string, scName string) error {
