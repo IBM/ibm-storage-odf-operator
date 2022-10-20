@@ -165,7 +165,7 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 	}
 
 	if err != nil {
-		r.Log.Error(nil, "failed to find FlashSystemCluster by StorageClass", "StorageClass", sc.Name)
+		r.Log.Error(nil, "failed to find FlashSystemCluster by StorageClass")
 		return fscToPoolsMap, err
 	}
 	return fscToPoolsMap, nil
@@ -173,7 +173,7 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 
 func (r *StorageClassWatcher) getFscByTopologyStorageClass(sc *storagev1.StorageClass, storageClassSecret corev1.Secret) (map[string]string, error) {
 	fscToPoolsMap := make(map[string]string)
-	r.Log.Info("StorageClass is a topology aware StorageClass", "StorageClass", sc.Name)
+	r.Log.Info("StorageClass is a topology aware StorageClass")
 	clustersMapByMgmtId, err := r.mapClustersByMgmtId(&storageClassSecret)
 	if err != nil {
 		r.Log.Error(nil, "failed to get management map from topology secret from StorageClass")
@@ -224,17 +224,17 @@ func (r *StorageClassWatcher) getFscByRegularStorageClass(sc *storagev1.StorageC
 		}
 	}
 	msg := "failed to match StorageClass to FlashSystemCluster item"
-	r.Log.Error(nil, msg, "StorageClass", sc.Name)
+	r.Log.Error(nil, msg)
 	return fscToPoolsMap, fmt.Errorf(msg)
 }
 
 func (r *StorageClassWatcher) extractPoolName(sc storagev1.StorageClass, mgmtDataByMgmtId map[string]interface{}, mgmtId string) (string, error) {
-	r.Log.Info("extracting the pool name from StorageClass")
+	r.Log.Info("extracting the pool name from StorageClass with management id: ", "management id", mgmtId)
 	poolName := ""
 	mgmtData, ok := mgmtDataByMgmtId[mgmtId]
 	if !ok {
-		msg := "failed to find the \"by_management_id\" parameter data for the given management id in the topology storage class"
-		r.Log.Error(nil, msg, "StorageClass", sc.Name, "management id", mgmtId)
+		msg := "failed to find the management id in the \"by_management_id\" parameter in the StorageClass"
+		r.Log.Error(nil, msg, "management id", mgmtId)
 		return poolName, fmt.Errorf(msg)
 	}
 	byMgmtIdData := mgmtData.(map[string]interface{})
