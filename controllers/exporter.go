@@ -19,7 +19,6 @@ package controllers
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -361,7 +360,7 @@ func getFlashSystemPrometheusRuleFilepath() string {
 }
 
 func getPrometheusRules(instance *odfv1alpha1.FlashSystemCluster, newOwnerDetails metav1.OwnerReference) (*monitoringv1.PrometheusRule, error) {
-	ruleFile, err := ioutil.ReadFile(filepath.Clean(getFlashSystemPrometheusRuleFilepath()))
+	ruleFile, err := os.ReadFile(filepath.Clean(getFlashSystemPrometheusRuleFilepath()))
 	if err != nil {
 		return nil, fmt.Errorf("PrometheusRules file could not be fetched. %v", err)
 	}
