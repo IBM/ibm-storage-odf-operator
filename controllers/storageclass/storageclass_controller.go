@@ -143,7 +143,7 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 			return result, nil
 		}
 	} else {
-		r.Log.Info("cannot find FlashSystemClusters for StorageClass")
+		r.Log.Info("cannot find FlashSystemCluster for StorageClass")
 		return result, fscErr
 	}
 	return result, nil
