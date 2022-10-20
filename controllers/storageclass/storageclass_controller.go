@@ -160,43 +160,15 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 
 	if isTopology {
 		fscToPoolsMap, err = r.getFscByTopologyStorageClass(sc, storageClassSecret)
-		if err != nil {
-			r.Log.Error(nil, "failed to find FlashSystemCluster by topology secret from StorageClass")
-			return fscToPoolsMap, err
-		}
-		return fscToPoolsMap, nil
+	} else {
+		fscToPoolsMap, err = r.getFscByRegularStorageClass(sc, storageClassSecret)
 	}
 
-	clusters := &v1alpha1.FlashSystemClusterList{}
-	if err = r.Client.List(context.Background(), clusters); err != nil {
-		r.Log.Error(nil, "failed to list FlashSystemClusterList")
+	if err != nil {
+		r.Log.Error(nil, "failed to find FlashSystemCluster by StorageClass")
 		return fscToPoolsMap, err
 	}
-
-	secretManagementAddress := storageClassSecret.Data[util.SecretManagementAddressKey]
-	for _, c := range clusters.Items {
-		clusterSecret := &corev1.Secret{}
-		err = r.Client.Get(context.Background(),
-			types.NamespacedName{
-				Namespace: c.Spec.Secret.Namespace,
-				Name:      c.Spec.Secret.Name},
-			clusterSecret)
-		if err != nil {
-			r.Log.Error(nil, "failed to get FlashSystemCluster secret")
-			return fscToPoolsMap, err
-		}
-		clusterSecretManagementAddress := clusterSecret.Data[util.SecretManagementAddressKey]
-		secretsEqual := bytes.Compare(clusterSecretManagementAddress, secretManagementAddress)
-		if secretsEqual == 0 {
-			r.Log.Info("found StorageClass with a matching secret address")
-			poolName := sc.Parameters[util.CsiIBMBlockScPool]
-			fscToPoolsMap[c.Name] = poolName
-			return fscToPoolsMap, nil
-		}
-	}
-	msg := "failed to match StorageClass to FlashSystemCluster item"
-	r.Log.Error(nil, msg)
-	return fscToPoolsMap, fmt.Errorf(msg)
+	return fscToPoolsMap, nil
 }
 
 func (r *StorageClassWatcher) getFscByTopologyStorageClass(sc *storagev1.StorageClass, storageClassSecret corev1.Secret) (map[string]string, error) {
@@ -220,6 +192,40 @@ func (r *StorageClassWatcher) getFscByTopologyStorageClass(sc *storagev1.Storage
 		fscToPoolsMap[fsc.Name] = poolName
 	}
 	return fscToPoolsMap, nil
+}
+
+func (r *StorageClassWatcher) getFscByRegularStorageClass(sc *storagev1.StorageClass, storageClassSecret corev1.Secret) (map[string]string, error) {
+	fscToPoolsMap := make(map[string]string)
+	clusters := &v1alpha1.FlashSystemClusterList{}
+	if err := r.Client.List(context.Background(), clusters); err != nil {
+		r.Log.Error(nil, "failed to list FlashSystemClusterList")
+		return fscToPoolsMap, err
+	}
+
+	secretManagementAddress := storageClassSecret.Data[util.SecretManagementAddressKey]
+	for _, c := range clusters.Items {
+		clusterSecret := &corev1.Secret{}
+		err := r.Client.Get(context.Background(),
+			types.NamespacedName{
+				Namespace: c.Spec.Secret.Namespace,
+				Name:      c.Spec.Secret.Name},
+			clusterSecret)
+		if err != nil {
+			r.Log.Error(nil, "failed to get FlashSystemCluster secret")
+			return fscToPoolsMap, err
+		}
+		clusterSecretManagementAddress := clusterSecret.Data[util.SecretManagementAddressKey]
+		secretsEqual := bytes.Compare(clusterSecretManagementAddress, secretManagementAddress)
+		if secretsEqual == 0 {
+			r.Log.Info("found StorageClass with a matching secret address")
+			poolName := sc.Parameters[util.CsiIBMBlockScPool]
+			fscToPoolsMap[c.Name] = poolName
+			return fscToPoolsMap, nil
+		}
+	}
+	msg := "failed to match StorageClass to FlashSystemCluster item"
+	r.Log.Error(nil, msg)
+	return fscToPoolsMap, fmt.Errorf(msg)
 }
 
 func (r *StorageClassWatcher) extractPoolName(sc storagev1.StorageClass, mgmtDataByMgmtId map[string]interface{}, mgmtId string) (string, error) {
