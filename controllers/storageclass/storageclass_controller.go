@@ -165,7 +165,7 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 	}
 
 	if err != nil {
-		r.Log.Error(nil, "failed to find FlashSystemCluster by StorageClass")
+		r.Log.Error(nil, "failed to find FlashSystemCluster by StorageClass", "StorageClass", sc.Name)
 		return fscToPoolsMap, err
 	}
 	return fscToPoolsMap, nil
@@ -224,17 +224,17 @@ func (r *StorageClassWatcher) getFscByRegularStorageClass(sc *storagev1.StorageC
 		}
 	}
 	msg := "failed to match StorageClass to FlashSystemCluster item"
-	r.Log.Error(nil, msg)
+	r.Log.Error(nil, msg, "StorageClass", sc.Name)
 	return fscToPoolsMap, fmt.Errorf(msg)
 }
 
 func (r *StorageClassWatcher) extractPoolName(sc storagev1.StorageClass, mgmtDataByMgmtId map[string]interface{}, mgmtId string) (string, error) {
-	r.Log.Info("extracting the pool name from topology aware StorageClass")
+	r.Log.Info("extracting the pool name from StorageClass")
 	poolName := ""
 	mgmtData, ok := mgmtDataByMgmtId[mgmtId]
 	if !ok {
-		msg := "failed to find the topology storage class \"by_management_id\" parameter data for the given management id"
-		r.Log.Error(nil, msg)
+		msg := "failed to find the \"by_management_id\" parameter data for the given management id in the topology storage class"
+		r.Log.Error(nil, msg, "StorageClass", sc.Name, "management id", mgmtId)
 		return poolName, fmt.Errorf(msg)
 	}
 	byMgmtIdData := mgmtData.(map[string]interface{})
