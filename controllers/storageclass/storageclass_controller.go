@@ -119,12 +119,9 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 	}
 
 	_, isTopology := sc.Parameters[util.TopologyStorageClassByMgmtId]
-	if isTopology {
-		r.Log.Info("StorageClass is a topology aware StorageClass", "isTopology", isTopology)
-	}
 	fscToPoolsMap, fscErr := r.getFlashSystemClusterByStorageClass(sc, isTopology)
-	for fsc, poolName := range fscToPoolsMap {
-		if fscErr == nil {
+	if fscErr == nil {
+		for fsc, poolName := range fscToPoolsMap {
 			r.Log.Info("FlashSystemCluster found", "FlashSystemCluster", fsc)
 
 			// Check GetDeletionTimestamp to determine if the object is under deletion
@@ -144,10 +141,10 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 				}
 			}
 			return result, nil
-		} else {
-			r.Log.Info("cannot find FlashSystemCluster for StorageClass")
-			return result, fscErr
 		}
+	} else {
+		r.Log.Info("cannot find FlashSystemClusters for StorageClass")
+		return result, fscErr
 	}
 	return result, nil
 }
@@ -162,14 +159,10 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 	}
 
 	if isTopology {
-		clustersMapByMgmtId, err := r.getManagementMapFromSecret(&storageClassSecret)
+		fscToPoolsMap, err = r.getFscByTopologyStorageClass(sc, storageClassSecret)
 		if err != nil {
-			r.Log.Error(nil, "failed to get management map from topology secret from StorageClass")
+			r.Log.Error(nil, "failed to find FlashSystemCluster by topology secret from StorageClass")
 			return fscToPoolsMap, err
-		}
-		for mgmtId, fsc := range clustersMapByMgmtId {
-			poolName, _ := r.extractPoolName(*sc, mgmtId)
-			fscToPoolsMap[fsc.Name] = poolName
 		}
 		return fscToPoolsMap, nil
 	}
@@ -206,15 +199,32 @@ func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.
 	return fscToPoolsMap, fmt.Errorf(msg)
 }
 
-func (r *StorageClassWatcher) extractPoolName(sc storagev1.StorageClass, mgmtId string) (string, error) {
-	r.Log.Info("extracting the pool name from topology aware StorageClass")
-	poolName := ""
+func (r *StorageClassWatcher) getFscByTopologyStorageClass(sc *storagev1.StorageClass, storageClassSecret corev1.Secret) (map[string]string, error) {
+	fscToPoolsMap := make(map[string]string)
+	r.Log.Info("StorageClass is a topology aware StorageClass", "StorageClass", sc.Name)
+	clustersMapByMgmtId, err := r.mapClustersByMgmtId(&storageClassSecret)
+	if err != nil {
+		r.Log.Error(nil, "failed to get management map from topology secret from StorageClass")
+		return fscToPoolsMap, err
+	}
+
 	byMgmtIdDataOfSc := sc.Parameters[util.TopologyStorageClassByMgmtId]
 	var mgmtDataByMgmtId map[string]interface{}
 	if err := json.Unmarshal([]byte(byMgmtIdDataOfSc), &mgmtDataByMgmtId); err != nil {
 		r.Log.Error(nil, "failed to unmarshal the topology storage class \"by_management_id\" parameter data")
-		return poolName, err
+		return fscToPoolsMap, err
 	}
+
+	for mgmtId, fsc := range clustersMapByMgmtId {
+		poolName, _ := r.extractPoolName(*sc, mgmtDataByMgmtId, mgmtId)
+		fscToPoolsMap[fsc.Name] = poolName
+	}
+	return fscToPoolsMap, nil
+}
+
+func (r *StorageClassWatcher) extractPoolName(sc storagev1.StorageClass, mgmtDataByMgmtId map[string]interface{}, mgmtId string) (string, error) {
+	r.Log.Info("extracting the pool name from topology aware StorageClass")
+	poolName := ""
 	mgmtData, ok := mgmtDataByMgmtId[mgmtId]
 	if !ok {
 		msg := "failed to find the topology storage class \"by_management_id\" parameter data for the given management id"
@@ -252,7 +262,7 @@ func (r *StorageClassWatcher) getSecret(sc *storagev1.StorageClass) (corev1.Secr
 	return *secret, nil
 }
 
-func (r *StorageClassWatcher) getManagementMapFromSecret(topologySecret *corev1.Secret) (map[string]v1alpha1.FlashSystemCluster, error) {
+func (r *StorageClassWatcher) mapClustersByMgmtId(topologySecret *corev1.Secret) (map[string]v1alpha1.FlashSystemCluster, error) {
 	clustersByMgmtId := make(map[string]v1alpha1.FlashSystemCluster)
 	secretMgmtDataByMgmtId := make(map[string]interface{})
 	topologySecretData := string(topologySecret.Data[util.TopologySecretDataKey])
