@@ -188,7 +188,11 @@ func (r *StorageClassWatcher) getFscByTopologyStorageClass(sc *storagev1.Storage
 	}
 
 	for mgmtId, fsc := range clustersMapByMgmtId {
-		poolName, _ := r.extractPoolName(*sc, mgmtDataByMgmtId, mgmtId)
+		poolName, err := r.extractPoolName(*sc, mgmtDataByMgmtId, mgmtId)
+		if err != nil {
+			r.Log.Error(nil, "failed to extract pool name from topology storage class")
+			return fscToPoolsMap, err
+		}
 		fscToPoolsMap[fsc.Name] = poolName
 	}
 	return fscToPoolsMap, nil
