@@ -274,8 +274,18 @@ var _ = Describe("StorageClassWatcher", func() {
 					Name:      topologySecretName,
 					Namespace: namespace,
 				},
-				StringData: map[string]string{
-					"config": "dHJ1ZQ==",
+				Data: map[string][]byte{
+					"config": []byte("IHsKICAgImRlbW8tbWFuYWdlbWVudC1pZC0xIjogewogICAgICJ1c2VybmFtZSI6ICJkZW1vLXVzZX" +
+						"JuYW1lLTEiLAogICAgICJwYXNzd29yZCI6ICJkZW1vLXBhc3N3b3JkLTEiLAogICAgICJtYW5hZ2VtZW50X2FkZHJlc" +
+						"3MiOiAiZGVtby1tYW5hZ2VtZW50LWFkZHJlc3MtMSIsCiAgICAgInN1cHBvcnRlZF90b3BvbG9naWVzIjogWwogICAg" +
+						"ICAgewogICAgICAgICAidG9wb2xvZ3kuYmxvY2suY3NpLmlibS5jb20vZGVtby1yZWdpb24iOiAiZGVtby1yZWdpb24" +
+						"tMSIsCiAgICAgICAgICJ0b3BvbG9neS5ibG9jay5jc2kuaWJtLmNvbS9kZW1vLXpvbmUiOiAiZGVtby16b25lLTEiCi" +
+						"AgICAgICB9CiAgICAgXQogICB9LAogICAiZGVtby1tYW5hZ2VtZW50LWlkLTIiOiB7CiAgICAgInVzZXJuYW1lIjogI" +
+						"mRlbW8tdXNlcm5hbWUtMiIsCiAgICAgInBhc3N3b3JkIjogImRlbW8tcGFzc3dvcmQtMiIsCiAgICAgIm1hbmFnZW1l" +
+						"bnRfYWRkcmVzcyI6ICJkZW1vLW1hbmFnZW1lbnQtYWRkcmVzcy0yIiwKICAgICAic3VwcG9ydGVkX3RvcG9sb2dpZXM" +
+						"iOiBbCiAgICAgICB7CiAgICAgICAgICJ0b3BvbG9neS5ibG9jay5jc2kuaWJtLmNvbS9kZW1vLXJlZ2lvbiI6ICJkZW" +
+						"1vLXJlZ2lvbi0yIiwKICAgICAgICAgInRvcG9sb2d5LmJsb2NrLmNzaS5pYm0uY29tL2RlbW8tem9uZSI6ICJkZW1vL" +
+						"XpvbmUtMiIKICAgICAgIH0KICAgICBdCiAgIH0KIH0="),
 				},
 			}
 			Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
@@ -288,9 +298,19 @@ var _ = Describe("StorageClassWatcher", func() {
 				},
 				Provisioner: util.CsiIBMBlockDriver,
 				Parameters: map[string]string{
-					"by_management_id": "management id objects here",
-					"SpaceEfficiency":  spaceEff,
-					"pool":             poolName,
+					"by_management_id": "IHsKICAgImRlbW8tbWFuYWdlbWVudC1pZC0xIjogewogICAgICJ1c2VybmFtZSI6ICJkZW1vLXVzZX" +
+						"JuYW1lLTEiLAogICAgICJwYXNzd29yZCI6ICJkZW1vLXBhc3N3b3JkLTEiLAogICAgICJtYW5hZ2VtZW50X2FkZHJlc" +
+						"3MiOiAiZGVtby1tYW5hZ2VtZW50LWFkZHJlc3MtMSIsCiAgICAgInN1cHBvcnRlZF90b3BvbG9naWVzIjogWwogICAg" +
+						"ICAgewogICAgICAgICAidG9wb2xvZ3kuYmxvY2suY3NpLmlibS5jb20vZGVtby1yZWdpb24iOiAiZGVtby1yZWdpb24" +
+						"tMSIsCiAgICAgICAgICJ0b3BvbG9neS5ibG9jay5jc2kuaWJtLmNvbS9kZW1vLXpvbmUiOiAiZGVtby16b25lLTEiCi" +
+						"AgICAgICB9CiAgICAgXQogICB9LAogICAiZGVtby1tYW5hZ2VtZW50LWlkLTIiOiB7CiAgICAgInVzZXJuYW1lIjogI" +
+						"mRlbW8tdXNlcm5hbWUtMiIsCiAgICAgInBhc3N3b3JkIjogImRlbW8tcGFzc3dvcmQtMiIsCiAgICAgIm1hbmFnZW1l" +
+						"bnRfYWRkcmVzcyI6ICJkZW1vLW1hbmFnZW1lbnQtYWRkcmVzcy0yIiwKICAgICAic3VwcG9ydGVkX3RvcG9sb2dpZXM" +
+						"iOiBbCiAgICAgICB7CiAgICAgICAgICJ0b3BvbG9neS5ibG9jay5jc2kuaWJtLmNvbS9kZW1vLXJlZ2lvbiI6ICJkZW" +
+						"1vLXJlZ2lvbi0yIiwKICAgICAgICAgInRvcG9sb2d5LmJsb2NrLmNzaS5pYm0uY29tL2RlbW8tem9uZSI6ICJkZW1vL" +
+						"XpvbmUtMiIKICAgICAgIH0KICAgICBdCiAgIH0KIH0=",
+					"SpaceEfficiency": spaceEff,
+					"pool":            poolName,
 					"csi.storage.k8s.io/provisioner-secret-name":             topologySecretName,
 					"csi.storage.k8s.io/provisioner-secret-namespace":        namespace,
 					"csi.storage.k8s.io/controller-publish-secret-name":      topologySecretName,
@@ -321,7 +341,11 @@ var _ = Describe("StorageClassWatcher", func() {
 					var sp util.FlashSystemClusterMapContent
 					err = json.Unmarshal([]byte(createdCm.Data[FlashSystemName]), &sp)
 					if err == nil {
-						return sp.ScPoolMap[topologyStorageClassName] == poolName
+						for key := range sp.ScPoolMap {
+							if key == topologyStorageClassName {
+								return true
+							}
+						}
 					}
 				}
 				return false
