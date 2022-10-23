@@ -36,16 +36,14 @@ import (
 
 var _ = Describe("StorageClassWatcher", func() {
 	const (
-		FlashSystemName          = "flashsystemcluster-sample"
-		namespace                = "openshift-storage"
-		secretName               = "fs-secret-sample"
-		storageClassName         = "odf-flashsystemcluster"
-		topologySecretName       = "fs-topology-secret-sample"
-		topologyStorageClassName = "odf-flashsystemcluster-topology"
-		poolName                 = "Pool0"
-		fsType                   = "ext4"
-		volPrefix                = "product"
-		spaceEff                 = "thin"
+		FlashSystemName  = "flashsystemcluster-sample"
+		namespace        = "openshift-storage"
+		secretName       = "fs-secret-sample"
+		storageClassName = "odf-flashsystemcluster"
+		poolName         = "Pool0"
+		fsType           = "ext4"
+		volPrefix        = "product"
+		spaceEff         = "thin"
 
 		timeout = time.Second * 20
 		//duration = time.Second * 10
@@ -267,6 +265,20 @@ var _ = Describe("StorageClassWatcher", func() {
 			Expect(createdFsc.Name).To(Equal(FlashSystemName))
 			Expect(createdFsc.Namespace).To(Equal(namespace))
 			Expect(createdFsc.Spec.Secret.Name).To(Equal(secretName))
+
+			By("creating a new secret with topology awareness")
+			topologyStorageClassName := "topology-storageclass"
+			topologySecretName := "topology-secret"
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      topologySecretName,
+					Namespace: namespace,
+				},
+				StringData: map[string]string{
+					"config": "dHJ1ZQ==",
+				},
+			}
+			Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
 
 			By("By creating a new topology StorageClass")
 			topologySc := &storagev1.StorageClass{
