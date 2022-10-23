@@ -216,6 +216,57 @@ var _ = Describe("StorageClassWatcher", func() {
 			}, timeout, interval).Should(BeTrue())
 		})
 
+		It("should get flashsystemcluster by storage class successfully", func() {
+			ctx := context.TODO()
+
+			By("By querying the created StorageClass")
+			scLookupKey := types.NamespacedName{
+				Name:      storageClassName,
+				Namespace: "",
+			}
+			createdSc := &storagev1.StorageClass{}
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, scLookupKey, createdSc)
+				return err == nil
+			}, timeout, interval).Should(BeTrue())
+
+			By("By querying the ConfigMap")
+			cmLookupKey := types.NamespacedName{
+				Name:      util.PoolConfigmapName,
+				Namespace: namespace,
+			}
+			createdCm := &corev1.ConfigMap{}
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, cmLookupKey, createdCm)
+				if err == nil {
+					var sp util.FlashSystemClusterMapContent
+					err = json.Unmarshal([]byte(createdCm.Data[FlashSystemName]), &sp)
+					if err == nil {
+						return sp.ScPoolMap[storageClassName] == poolName
+					}
+				}
+				return false
+			}, timeout, interval).Should(BeTrue())
+
+			By("By querying the FlashSystemCluster")
+			fscLookupKey := types.NamespacedName{
+				Name:      FlashSystemName,
+				Namespace: namespace,
+			}
+			createdFsc := &odfv1alpha1.FlashSystemCluster{}
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, fscLookupKey, createdFsc)
+				return err == nil
+			}, timeout, interval).Should(BeTrue())
+
+			Expect(createdFsc.Name).To(Equal(FlashSystemName))
+			Expect(createdFsc.Namespace).To(Equal(namespace))
+			Expect(createdFsc.Spec.Secret).To(Equal(secretName))
+		})
+
 		It("should delete StorageClass successfully", func() {
 			ctx := context.TODO()
 
