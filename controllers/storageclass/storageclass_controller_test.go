@@ -18,6 +18,7 @@ package storageclass
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -334,23 +335,6 @@ var _ = Describe("StorageClassWatcher", func() {
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
-			By("By querying the ConfigMap")
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, cmLookupKey, createdCm)
-				if err == nil {
-					var sp util.FlashSystemClusterMapContent
-					err = json.Unmarshal([]byte(createdCm.Data[FlashSystemName]), &sp)
-					if err == nil {
-						for key := range sp.ScPoolMap {
-							if key == topologyStorageClassName {
-								return true
-							}
-						}
-					}
-				}
-				return false
-			}, timeout, interval).Should(BeTrue())
-
 			By("By querying the FlashSystemCluster")
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, fscLookupKey, createdFsc)
@@ -360,7 +344,10 @@ var _ = Describe("StorageClassWatcher", func() {
 			Expect(createdFsc.Name).To(Equal(FlashSystemName))
 			Expect(createdFsc.Namespace).To(Equal(namespace))
 			Expect(createdFsc.Spec.Secret.Name).To(Equal(secretName))
-			Expect(createdTopologySc.Parameters["by_management_id"]).ToNot(BeNil())
+			Expect(createdTopologySc.Parameters["by_management_id"]).ToNot(BeEmpty())
+			_, err := base64.StdEncoding.DecodeString(createdTopologySc.Parameters["by_management_id"])
+			Expect(err).ToNot(HaveOccurred())
+			Expect(k8sClient.Delete(ctx, createdTopologySc)).Should(Succeed())
 
 		})
 
