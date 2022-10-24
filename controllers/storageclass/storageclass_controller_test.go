@@ -267,7 +267,6 @@ var _ = Describe("StorageClassWatcher", func() {
 			Expect(createdFsc.Spec.Secret.Name).To(Equal(secretName))
 
 			By("creating a new secret with topology awareness")
-			topologyStorageClassName := "topology-storageclass"
 			topologySecretName := "topology-secret"
 			secret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -291,6 +290,7 @@ var _ = Describe("StorageClassWatcher", func() {
 			Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
 
 			By("By creating a new topology StorageClass")
+			topologyStorageClassName := "topology-storageclass"
 			topologySc := &storagev1.StorageClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      topologyStorageClassName,
@@ -300,12 +300,12 @@ var _ = Describe("StorageClassWatcher", func() {
 				Parameters: map[string]string{
 					"by_management_id": "{\"demo-management-id-1\":{\"pool\":\"demo-pool-1\",\"SpaceEfficiency\":\"dedup_compressed\",\"volume_name_prefix\":\"demo-prefix-1\"}," +
 						"\"demo-management-id-2\":{\"pool\":\"demo-pool-2\",\"volume_name_prefix\":\"demo-prefix-2\", \"io_group\": \"demo-iogrp\"}}",
-					"SpaceEfficiency": spaceEff,
-					"pool":            poolName,
-					"csi.storage.k8s.io/provisioner-secret-name":      topologySecretName,
-					"csi.storage.k8s.io/provisioner-secret-namespace": namespace,
-					"csi.storage.k8s.io/fstype":                       fsType,
-					"volume_name_prefix":                              volPrefix,
+					"SpaceEfficiency":                     spaceEff,
+					"pool":                                poolName,
+					"csi.storage.k8s.io/secret-name":      topologySecretName,
+					"csi.storage.k8s.io/secret-namespace": namespace,
+					"csi.storage.k8s.io/fstype":           fsType,
+					"volume_name_prefix":                  volPrefix,
 				},
 			}
 			Expect(k8sClient.Create(ctx, topologySc)).Should(Succeed())
@@ -313,7 +313,7 @@ var _ = Describe("StorageClassWatcher", func() {
 			By("By querying the created topology StorageClass")
 			topologyScLookupKey := types.NamespacedName{
 				Name:      topologyStorageClassName,
-				Namespace: "",
+				Namespace: namespace,
 			}
 			createdTopologySc := &storagev1.StorageClass{}
 			Eventually(func() bool {
@@ -321,14 +321,9 @@ var _ = Describe("StorageClassWatcher", func() {
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
-			By("By querying the FlashSystemCluster")
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, fscLookupKey, createdFsc)
-				return err == nil
-			}, timeout, interval).Should(BeTrue())
-
+			Expect(createdFsc).ShouldNot(BeNil())
 			Expect(createdTopologySc.Name).To(Equal(topologyStorageClassName))
-			Expect(createdTopologySc.Parameters["by_management_id"]).ToNot(BeEmpty())
+			Expect(createdTopologySc.Parameters["by_management_id"]).To(Equal(topologySc.Parameters["by_management_id"]))
 			Expect(k8sClient.Delete(ctx, createdTopologySc)).Should(Succeed())
 
 		})
