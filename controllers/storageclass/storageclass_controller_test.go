@@ -327,9 +327,7 @@ var _ = Describe("StorageClassWatcher", func() {
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(createdFsc.Name).To(Equal(FlashSystemName))
-			Expect(createdFsc.Namespace).To(Equal(namespace))
-			Expect(createdFsc.Spec.Secret.Name).To(Equal(secretName))
+			Expect(createdTopologySc.Name).To(Equal(topologyStorageClassName))
 			Expect(createdTopologySc.Parameters["by_management_id"]).ToNot(BeEmpty())
 			Expect(k8sClient.Delete(ctx, createdTopologySc)).Should(Succeed())
 
