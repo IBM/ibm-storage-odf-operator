@@ -18,7 +18,6 @@ package storageclass
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -299,27 +298,14 @@ var _ = Describe("StorageClassWatcher", func() {
 				},
 				Provisioner: util.CsiIBMBlockDriver,
 				Parameters: map[string]string{
-					"by_management_id": "IHsKICAgImRlbW8tbWFuYWdlbWVudC1pZC0xIjogewogICAgICJ1c2VybmFtZSI6ICJkZW1vLXVzZX" +
-						"JuYW1lLTEiLAogICAgICJwYXNzd29yZCI6ICJkZW1vLXBhc3N3b3JkLTEiLAogICAgICJtYW5hZ2VtZW50X2FkZHJlc" +
-						"3MiOiAiZGVtby1tYW5hZ2VtZW50LWFkZHJlc3MtMSIsCiAgICAgInN1cHBvcnRlZF90b3BvbG9naWVzIjogWwogICAg" +
-						"ICAgewogICAgICAgICAidG9wb2xvZ3kuYmxvY2suY3NpLmlibS5jb20vZGVtby1yZWdpb24iOiAiZGVtby1yZWdpb24" +
-						"tMSIsCiAgICAgICAgICJ0b3BvbG9neS5ibG9jay5jc2kuaWJtLmNvbS9kZW1vLXpvbmUiOiAiZGVtby16b25lLTEiCi" +
-						"AgICAgICB9CiAgICAgXQogICB9LAogICAiZGVtby1tYW5hZ2VtZW50LWlkLTIiOiB7CiAgICAgInVzZXJuYW1lIjogI" +
-						"mRlbW8tdXNlcm5hbWUtMiIsCiAgICAgInBhc3N3b3JkIjogImRlbW8tcGFzc3dvcmQtMiIsCiAgICAgIm1hbmFnZW1l" +
-						"bnRfYWRkcmVzcyI6ICJkZW1vLW1hbmFnZW1lbnQtYWRkcmVzcy0yIiwKICAgICAic3VwcG9ydGVkX3RvcG9sb2dpZXM" +
-						"iOiBbCiAgICAgICB7CiAgICAgICAgICJ0b3BvbG9neS5ibG9jay5jc2kuaWJtLmNvbS9kZW1vLXJlZ2lvbiI6ICJkZW" +
-						"1vLXJlZ2lvbi0yIiwKICAgICAgICAgInRvcG9sb2d5LmJsb2NrLmNzaS5pYm0uY29tL2RlbW8tem9uZSI6ICJkZW1vL" +
-						"XpvbmUtMiIKICAgICAgIH0KICAgICBdCiAgIH0KIH0=",
+					"by_management_id": "{\"demo-management-id-1\":{\"pool\":\"demo-pool-1\",\"SpaceEfficiency\":\"dedup_compressed\",\"volume_name_prefix\":\"demo-prefix-1\"}," +
+						"\"demo-management-id-2\":{\"pool\":\"demo-pool-2\",\"volume_name_prefix\":\"demo-prefix-2\", \"io_group\": \"demo-iogrp\"}}",
 					"SpaceEfficiency": spaceEff,
 					"pool":            poolName,
-					"csi.storage.k8s.io/provisioner-secret-name":             topologySecretName,
-					"csi.storage.k8s.io/provisioner-secret-namespace":        namespace,
-					"csi.storage.k8s.io/controller-publish-secret-name":      topologySecretName,
-					"csi.storage.k8s.io/controller-publish-secret-namespace": namespace,
-					"csi.storage.k8s.io/controller-expand-secret-name":       topologySecretName,
-					"csi.storage.k8s.io/controller-expand-secret-namespace":  namespace,
-					"csi.storage.k8s.io/fstype":                              fsType,
-					"volume_name_prefix":                                     volPrefix,
+					"csi.storage.k8s.io/provisioner-secret-name":      topologySecretName,
+					"csi.storage.k8s.io/provisioner-secret-namespace": namespace,
+					"csi.storage.k8s.io/fstype":                       fsType,
+					"volume_name_prefix":                              volPrefix,
 				},
 			}
 			Expect(k8sClient.Create(ctx, topologySc)).Should(Succeed())
@@ -345,8 +331,6 @@ var _ = Describe("StorageClassWatcher", func() {
 			Expect(createdFsc.Namespace).To(Equal(namespace))
 			Expect(createdFsc.Spec.Secret.Name).To(Equal(secretName))
 			Expect(createdTopologySc.Parameters["by_management_id"]).ToNot(BeEmpty())
-			_, err := base64.StdEncoding.DecodeString(createdTopologySc.Parameters["by_management_id"])
-			Expect(err).ToNot(HaveOccurred())
 			Expect(k8sClient.Delete(ctx, createdTopologySc)).Should(Succeed())
 
 		})
