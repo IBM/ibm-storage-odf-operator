@@ -321,7 +321,7 @@ var _ = Describe("StorageClassWatcher", func() {
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(createdFsc).ShouldNot(BeNil())
+			Expect(createdFsc).Should(Not(BeEmpty()))
 			Expect(createdTopologySc.Name).To(Equal(topologyStorageClassName))
 			Expect(createdTopologySc.Parameters["by_management_id"]).To(Equal(topologySc.Parameters["by_management_id"]))
 			Expect(k8sClient.Delete(ctx, createdTopologySc)).Should(Succeed())
