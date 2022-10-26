@@ -48,7 +48,7 @@ var _ = Describe("StorageClassWatcher", func() {
 		volPrefix                = "product"
 		spaceEff                 = "thin"
 		byManagementIdData       = "{\"demo-management-id-1\":{\"pool\":\"demo-pool-1\",\"SpaceEfficiency\":\"dedup_compressed\",\"volume_name_prefix\":\"demo-prefix-1\"}}"
-		topologyConfigData       = "{\"demo-management-id-1\": {\"username\": \"testUsername\",\"testPassword\": \"password\",\"management_address\": \"9.110.70.96\"}}"
+		topologySecretConfigData = "{\"demo-management-id-1\": {\"username\": \"testUsername\",\"testPassword\": \"password\",\"management_address\": \"9.110.70.96\"}}"
 
 		timeout = time.Second * 20
 		//duration = time.Second * 10
@@ -231,7 +231,7 @@ var _ = Describe("StorageClassWatcher", func() {
 					Namespace: namespace,
 				},
 				Data: map[string][]byte{
-					"config": []byte(topologyConfigData),
+					"config": []byte(topologySecretConfigData),
 				},
 			}
 			Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
