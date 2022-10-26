@@ -36,14 +36,19 @@ import (
 
 var _ = Describe("StorageClassWatcher", func() {
 	const (
-		FlashSystemName  = "flashsystemcluster-sample"
-		namespace        = "openshift-storage"
-		secretName       = "fs-secret-sample"
-		storageClassName = "odf-flashsystemcluster"
-		poolName         = "Pool0"
-		fsType           = "ext4"
-		volPrefix        = "product"
-		spaceEff         = "thin"
+		FlashSystemName          = "flashsystemcluster-sample"
+		namespace                = "openshift-storage"
+		secretName               = "fs-secret-sample"
+		topologySecretName       = "topology-secret"
+		storageClassName         = "odf-flashsystemcluster"
+		topologyStorageClassName = "topology-storageclass"
+		poolName                 = "Pool0"
+		topologyPoolName         = "demo-pool-1"
+		fsType                   = "ext4"
+		volPrefix                = "product"
+		spaceEff                 = "thin"
+		byManagementIdData       = "{\"demo-management-id-1\":{\"pool\":\"demo-pool-1\",\"SpaceEfficiency\":\"dedup_compressed\",\"volume_name_prefix\":\"demo-prefix-1\"}}"
+		topologyConfigData       = "{\"demo-management-id-1\": {\"username\": \"testUsername\",\"testPassword\": \"password\",\"management_address\": \"9.110.70.96\"}}"
 
 		timeout = time.Second * 20
 		//duration = time.Second * 10
@@ -80,9 +85,9 @@ var _ = Describe("StorageClassWatcher", func() {
 					Namespace: namespace,
 				},
 				Data: map[string][]byte{
-					"management_address": []byte("OS4xMTAuNzAuOTY="),
-					"password":           []byte("ZnNkcml2ZXI="),
-					"username":           []byte("ZnNkcml2ZXI="),
+					"management_address": []byte("9.110.70.96"),
+					"password":           []byte("testUsername"),
+					"username":           []byte("testPassword"),
 				},
 			}
 
@@ -219,78 +224,19 @@ var _ = Describe("StorageClassWatcher", func() {
 		It("should get FlashSystemCluster by StorageClass successfully", func() {
 			ctx := context.TODO()
 
-			By("By querying the created StorageClass")
-			scLookupKey := types.NamespacedName{
-				Name:      storageClassName,
-				Namespace: "",
-			}
-			createdSc := &storagev1.StorageClass{}
-
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, scLookupKey, createdSc)
-				return err == nil
-			}, timeout, interval).Should(BeTrue())
-
-			By("By querying the ConfigMap")
-			cmLookupKey := types.NamespacedName{
-				Name:      util.PoolConfigmapName,
-				Namespace: namespace,
-			}
-			createdCm := &corev1.ConfigMap{}
-
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, cmLookupKey, createdCm)
-				if err == nil {
-					var sp util.FlashSystemClusterMapContent
-					err = json.Unmarshal([]byte(createdCm.Data[FlashSystemName]), &sp)
-					if err == nil {
-						return sp.ScPoolMap[storageClassName] == poolName
-					}
-				}
-				return false
-			}, timeout, interval).Should(BeTrue())
-
-			By("By querying the FlashSystemCluster")
-			fscLookupKey := types.NamespacedName{
-				Name:      FlashSystemName,
-				Namespace: namespace,
-			}
-			createdFsc := &odfv1alpha1.FlashSystemCluster{}
-
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, fscLookupKey, createdFsc)
-				return err == nil
-			}, timeout, interval).Should(BeTrue())
-
-			Expect(createdFsc.Name).To(Equal(FlashSystemName))
-			Expect(createdFsc.Namespace).To(Equal(namespace))
-			Expect(createdFsc.Spec.Secret.Name).To(Equal(secretName))
-
 			By("creating a new secret with topology awareness")
-			topologySecretName := "topology-secret"
 			secret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      topologySecretName,
 					Namespace: namespace,
 				},
 				Data: map[string][]byte{
-					"config": []byte("IHsKICAgImRlbW8tbWFuYWdlbWVudC1pZC0xIjogewogICAgICJ1c2VybmFtZSI6ICJkZW1vLXVzZX" +
-						"JuYW1lLTEiLAogICAgICJwYXNzd29yZCI6ICJkZW1vLXBhc3N3b3JkLTEiLAogICAgICJtYW5hZ2VtZW50X2FkZHJlc" +
-						"3MiOiAiZGVtby1tYW5hZ2VtZW50LWFkZHJlc3MtMSIsCiAgICAgInN1cHBvcnRlZF90b3BvbG9naWVzIjogWwogICAg" +
-						"ICAgewogICAgICAgICAidG9wb2xvZ3kuYmxvY2suY3NpLmlibS5jb20vZGVtby1yZWdpb24iOiAiZGVtby1yZWdpb24" +
-						"tMSIsCiAgICAgICAgICJ0b3BvbG9neS5ibG9jay5jc2kuaWJtLmNvbS9kZW1vLXpvbmUiOiAiZGVtby16b25lLTEiCi" +
-						"AgICAgICB9CiAgICAgXQogICB9LAogICAiZGVtby1tYW5hZ2VtZW50LWlkLTIiOiB7CiAgICAgInVzZXJuYW1lIjogI" +
-						"mRlbW8tdXNlcm5hbWUtMiIsCiAgICAgInBhc3N3b3JkIjogImRlbW8tcGFzc3dvcmQtMiIsCiAgICAgIm1hbmFnZW1l" +
-						"bnRfYWRkcmVzcyI6ICJkZW1vLW1hbmFnZW1lbnQtYWRkcmVzcy0yIiwKICAgICAic3VwcG9ydGVkX3RvcG9sb2dpZXM" +
-						"iOiBbCiAgICAgICB7CiAgICAgICAgICJ0b3BvbG9neS5ibG9jay5jc2kuaWJtLmNvbS9kZW1vLXJlZ2lvbiI6ICJkZW" +
-						"1vLXJlZ2lvbi0yIiwKICAgICAgICAgInRvcG9sb2d5LmJsb2NrLmNzaS5pYm0uY29tL2RlbW8tem9uZSI6ICJkZW1vL" +
-						"XpvbmUtMiIKICAgICAgIH0KICAgICBdCiAgIH0KIH0="),
+					"config": []byte(topologyConfigData),
 				},
 			}
 			Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
 
 			By("By creating a new topology StorageClass")
-			topologyStorageClassName := "topology-storageclass"
 			topologySc := &storagev1.StorageClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      topologyStorageClassName,
@@ -298,8 +244,7 @@ var _ = Describe("StorageClassWatcher", func() {
 				},
 				Provisioner: util.CsiIBMBlockDriver,
 				Parameters: map[string]string{
-					"by_management_id": "{\"demo-management-id-1\":{\"pool\":\"demo-pool-1\",\"SpaceEfficiency\":\"dedup_compressed\",\"volume_name_prefix\":\"demo-prefix-1\"}," +
-						"\"demo-management-id-2\":{\"pool\":\"demo-pool-2\",\"volume_name_prefix\":\"demo-prefix-2\", \"io_group\": \"demo-iogrp\"}}",
+					"by_management_id":                    byManagementIdData,
 					"SpaceEfficiency":                     spaceEff,
 					"pool":                                poolName,
 					"csi.storage.k8s.io/secret-name":      topologySecretName,
@@ -321,10 +266,40 @@ var _ = Describe("StorageClassWatcher", func() {
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(createdFsc).Should(Not(BeNil()))
+			By("By querying the ConfigMap to verify the topology StorageClass is added")
+			cmLookupKey := types.NamespacedName{
+				Name:      util.PoolConfigmapName,
+				Namespace: namespace,
+			}
+			createdCm := &corev1.ConfigMap{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, cmLookupKey, createdCm)
+				if err == nil {
+					var sp util.FlashSystemClusterMapContent
+					err = json.Unmarshal([]byte(createdCm.Data[FlashSystemName]), &sp)
+					if err == nil {
+						return sp.ScPoolMap[topologyStorageClassName] == topologyPoolName
+					}
+				}
+				return false
+			}, timeout, interval).Should(BeTrue())
+
 			Expect(createdTopologySc.Name).To(Equal(topologyStorageClassName))
 			Expect(createdTopologySc.Parameters["by_management_id"]).To(Equal(topologySc.Parameters["by_management_id"]))
 			Expect(k8sClient.Delete(ctx, createdTopologySc)).Should(Succeed())
+
+			By("By querying the ConfigMap to verify the topology StorageClass is deleted")
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, cmLookupKey, createdCm)
+				if err == nil {
+					var sp util.FlashSystemClusterMapContent
+					err = json.Unmarshal([]byte(createdCm.Data[FlashSystemName]), &sp)
+					if err == nil {
+						return sp.ScPoolMap[topologyStorageClassName] == ""
+					}
+				}
+				return false
+			}, timeout, interval).Should(BeTrue())
 
 		})
 
