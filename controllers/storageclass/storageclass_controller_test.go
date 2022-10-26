@@ -48,7 +48,7 @@ var _ = Describe("StorageClassWatcher", func() {
 		volPrefix                = "product"
 		spaceEff                 = "thin"
 		byManagementIdData       = "{\"demo-management-id-1\":{\"pool\":\"demo-pool-1\",\"SpaceEfficiency\":\"dedup_compressed\",\"volume_name_prefix\":\"demo-prefix-1\"}}"
-		topologySecretConfigData = "{\"demo-management-id-1\": {\"username\": \"testUsername\",\"testPassword\": \"password\",\"management_address\": \"9.110.70.96\"}}"
+		topologySecretConfigData = "{\"demo-management-id-1\": {\"username\": \"ZnNkcml2ZXI=\",\"password\": \"ZnNkcml2ZXI=\",\"management_address\": \"OS4xMTAuNzAuOTY=\"}}"
 
 		timeout = time.Second * 20
 		//duration = time.Second * 10
@@ -85,9 +85,9 @@ var _ = Describe("StorageClassWatcher", func() {
 					Namespace: namespace,
 				},
 				Data: map[string][]byte{
-					"management_address": []byte("9.110.70.96"),
-					"password":           []byte("testUsername"),
-					"username":           []byte("testPassword"),
+					"management_address": []byte("OS4xMTAuNzAuOTY="),
+					"password":           []byte("ZnNkcml2ZXI="),
+					"username":           []byte("ZnNkcml2ZXI="),
 				},
 			}
 
