@@ -48,7 +48,7 @@ var _ = Describe("StorageClassWatcher", func() {
 		volPrefix                = "product"
 		spaceEff                 = "thin"
 		byManagementIdData       = "{\"demo-management-id-1\":{\"pool\":\"demo-pool-1\",\"SpaceEfficiency\":\"dedup_compressed\",\"volume_name_prefix\":\"demo-prefix-1\"}}"
-		topologySecretConfigData = "{\"demo-management-id-1\": {\"username\": \"ZnNkcml2ZXI=\",\"password\": \"ZnNkcml2ZXI=\",\"management_address\": \"OS4xMTAuNzAuOTY=\"}}" // #nosec G101 - false positive
+		topologySecretConfigData = "{\"demo-management-id-1\": {\"username\": \"demo-username-1\",\"password\": \"demo-password-1\",\"management_address\": \"9.110.70.96\"}}" // #nosec G101 - false positive
 
 		timeout = time.Second * 20
 		//duration = time.Second * 10
@@ -284,8 +284,6 @@ var _ = Describe("StorageClassWatcher", func() {
 				return false
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(createdTopologySc.Name).To(Equal(topologyStorageClassName))
-			Expect(createdTopologySc.Parameters["by_management_id"]).To(Equal(topologySc.Parameters["by_management_id"]))
 			Expect(k8sClient.Delete(ctx, createdTopologySc)).Should(Succeed())
 
 			By("By querying the ConfigMap to verify the topology StorageClass is deleted")
