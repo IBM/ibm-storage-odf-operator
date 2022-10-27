@@ -19,6 +19,7 @@ package util
 import (
 	"context"
 	"encoding/json"
+	"github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	"github.com/go-logr/logr"
 	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
@@ -32,13 +33,18 @@ import (
 )
 
 const (
-	PoolConfigmapName            = "ibm-flashsystem-pools"
-	FSCConfigmapMountPath        = "/config"
+	PoolConfigmapName     = "ibm-flashsystem-pools"
+	FSCConfigmapMountPath = "/config"
+
 	TopologySecretDataKey        = "config"
 	TopologyStorageClassByMgmtId = "by_management_id"
 
+	PVMgmtAddrKey = "array_address"
+
 	CsiIBMBlockDriver = "block.csi.ibm.com"
 	CsiIBMBlockScPool = "pool"
+
+	PersistentVolumeClaimKind = "PersistentVolumeClaim"
 
 	DefaultSecretNameKey      = "csi.storage.k8s.io/secret-name"      // #nosec G101 - false positive
 	DefaultSecretNamespaceKey = "csi.storage.k8s.io/secret-namespace" // #nosec G101 - false positive
@@ -129,4 +135,28 @@ func initScPoolConfigMap(ns string) *corev1.ConfigMap {
 		},
 	}
 	return scPoolConfigMap
+}
+
+func MapClustersByMgmtAddress(client client.Client, logger logr.Logger) (map[string]v1alpha1.FlashSystemCluster, error) {
+	clusters := &v1alpha1.FlashSystemClusterList{}
+	if err := client.List(context.Background(), clusters); err != nil {
+		logger.Error(nil, "failed to list FlashSystemClusters")
+		return nil, err
+	}
+	clustersMapByMgmtAddr := make(map[string]v1alpha1.FlashSystemCluster)
+	for _, cluster := range clusters.Items {
+		clusterSecret := &corev1.Secret{}
+		err := client.Get(context.Background(),
+			types.NamespacedName{
+				Namespace: cluster.Spec.Secret.Namespace,
+				Name:      cluster.Spec.Secret.Name},
+			clusterSecret)
+		if err != nil {
+			logger.Error(nil, "failed to get FlashSystemCluster secret")
+			return nil, err
+		}
+		clusterSecretManagementAddress := clusterSecret.Data[SecretManagementAddressKey]
+		clustersMapByMgmtAddr[string(clusterSecretManagementAddress)] = cluster
+	}
+	return clustersMapByMgmtAddr, nil
 }
