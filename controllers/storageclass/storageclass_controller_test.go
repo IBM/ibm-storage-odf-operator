@@ -317,7 +317,7 @@ var _ = Describe("StorageClassWatcher", func() {
 				val, _ := json.Marshal(value)
 				createdCm.Data[SecondFlashSystemName] = string(val)
 				err := k8sClient.Update(ctx, createdCm)
-				Expect(err).ShouldNot(HaveOccurred())
+				Expect(err).Should(BeNil())
 			}
 
 			By("Creating another topology StorageClass")
