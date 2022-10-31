@@ -140,7 +140,6 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 					r.Log.Error(nil, "cannot reconcile StorageClass without a pool")
 				}
 			}
-			return result, nil
 		}
 	} else {
 		r.Log.Info("cannot find FlashSystemCluster for StorageClass")
@@ -310,7 +309,7 @@ func (r *StorageClassWatcher) mapClustersByMgmtAddress() (map[string]v1alpha1.Fl
 				Namespace: cluster.Spec.Secret.Namespace,
 				Name:      cluster.Spec.Secret.Name},
 			clusterSecret); err != nil {
-			r.Log.Error(nil, "failed to get FlashSystemCluster secret for topology secret")
+			r.Log.Error(nil, "failed to get FlashSystemCluster secret")
 			return nil, err
 		}
 		clusterSecretManagementAddress := clusterSecret.Data[util.SecretManagementAddressKey]
