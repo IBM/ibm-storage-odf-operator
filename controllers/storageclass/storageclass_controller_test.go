@@ -52,7 +52,7 @@ var _ = Describe("StorageClassWatcher", func() {
 		volPrefix                = "product"
 		spaceEff                 = "thin"
 		byManagementIdData       = "{\"flashsystemcluster-sample\":{\"pool\":\"demo-pool-1\",\"SpaceEfficiency\":\"dedup_compressed\",\"volume_name_prefix\":\"demo-prefix-1\"},\"second-flashsystemcluster-sample\":{\"volume_name_prefix\":\"demo-prefix-2\", \"io_group\": \"demo-iogrp\"}}"
-		topologySecretConfigData = "{\"flashsystemcluster-sample\": {\"username\": \"dGVzdFVzZXJuYW1l\",\"password\": \"dGVzdFBhc3N3b3Jk\",\"management_address\": \"OS4xMTAuNzAuOTY=\"},\"second-flashsystemcluster-sample\": {\"username\": \"dGVzdFVzZXJuYW1l\",\"password\": \"dGVzdFBhc3N3b3Jk\",\"management_address\": \"OS4xMTAuMTEuMjM=\"}}"
+		topologySecretConfigData = "{\"flashsystemcluster-sample\": {\"username\": \"ZnNkcml2ZXI=\",\"password\": \"ZnNkcml2ZXI=\",\"management_address\": \"OS4xMTAuNzAuOTY=\"},\"second-flashsystemcluster-sample\": {\"username\": \"ZnNkcml2ZXI=\",\"password\": \"ZnNkcml2ZXI=\",\"management_address\": \"OS4xMTAuMTEuMjM=\"}}"
 
 		timeout = time.Second * 20
 		//duration = time.Second * 10
@@ -90,8 +90,8 @@ var _ = Describe("StorageClassWatcher", func() {
 				},
 				Data: map[string][]byte{
 					"management_address": []byte("OS4xMTAuNzAuOTY="),
-					"password":           []byte("dGVzdFBhc3N3b3Jk"),
-					"username":           []byte("dGVzdFVzZXJuYW1l"),
+					"password":           []byte("ZnNkcml2ZXI="),
+					"username":           []byte("ZnNkcml2ZXI="),
 				},
 			}
 
@@ -236,8 +236,8 @@ var _ = Describe("StorageClassWatcher", func() {
 				},
 				Data: map[string][]byte{
 					"management_address": []byte("OS4xMTAuMTEuMjM="),
-					"password":           []byte("dGVzdFBhc3N3b3Jk"),
-					"username":           []byte("dGVzdFVzZXJuYW1l"),
+					"password":           []byte("ZnNkcml2ZXI="),
+					"username":           []byte("ZnNkcml2ZXI="),
 				},
 			}
 			Expect(k8sClient.Create(ctx, sec)).Should(Succeed())
@@ -426,8 +426,8 @@ var _ = Describe("StorageClassWatcher", func() {
 				},
 				Data: map[string][]byte{
 					"management_address": []byte("OS4xMTAuNzcuMTE="),
-					"password":           []byte("dGVzdFBhc3N3b3Jk"),
-					"username":           []byte("dGVzdFVzZXJuYW1l"),
+					"password":           []byte("ZnNkcml2ZXI="),
+					"username":           []byte("ZnNkcml2ZXI="),
 				},
 			}
 			Expect(k8sClient.Create(ctx, sec)).Should(Succeed())
