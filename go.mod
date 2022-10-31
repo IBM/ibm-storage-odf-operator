@@ -79,3 +79,5 @@ replace (
 	k8s.io/apimachinery => k8s.io/apimachinery v0.20.2
 	k8s.io/client-go => k8s.io/client-go v0.20.2
 )
+
+replace github.com/operator-framework/operator-sdk => github.com/operator-framework/operator-sdk v1.9.0
