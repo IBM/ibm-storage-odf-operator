@@ -1081,6 +1081,7 @@ spec:
                                       and the values array contains only "value".
                                       The requirements are ANDed.
                                     type: object
+
                                 type: object
                               namespaces:
                                 description: namespaces specifies which namespaces
