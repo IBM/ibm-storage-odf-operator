@@ -22,6 +22,8 @@ RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on go build -a -o manager main.go
 FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 MAINTAINER IBM Storage
 
+RUN microdnf update -y && microdnf clean all
+
 ARG VCS_REF
 ARG VCS_URL
 
@@ -31,7 +33,7 @@ LABEL vendor="IBM" \
   org.label-schema.name="ibm storage odf operator" \
   org.label-schema.vcs-ref=$VCS_REF \
   org.label-schema.vcs-url=$VCS_URL \
-  org.label-schema.schema-version="1.0.1" \
+  org.label-schema.schema-version="1.1.0" \
   summary="IBM Storage ODF Operator" \
   description="operator and driver of ibm storage systems for openshift data foundation (ODF)"
 
