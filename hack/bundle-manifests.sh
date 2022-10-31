@@ -23,19 +23,19 @@ source hack/ensure-blockcsi-cryaml.sh
 
 BUNDLE_METADATA_OPTS="${BUNDLE_CHANNELS} ${BUNDLE_DEFAULT_CHANNEL}"
 
-# always start fresh and remove any previous artifacts that may exist
+# Always start fresh and remove any previous artifacts that may exist
 echo "Cleaning the previous artifacts that may exist..."
 rm -rf "$(dirname ${BUNDLE_METADATA_DIR})"
 mkdir -p "${BUNDLE_METADATA_DIR}"
 
-# generate the file dependencies.yaml, which requires the minimum version of IBM Block CSI Operator.
+# Generate the file dependencies.yaml, which requires the minimum version of IBM Block CSI Operator.
 echo "Generating the file dependencies.yaml..."
 cat << EOF > ${BUNDLE_METADATA_DIR}/dependencies.yaml
 dependencies:
   - type: olm.package
     value:
       packageName: ibm-block-csi-operator
-      version: ">=1.9.0"
+      version: ">=${BLOCK_CSI_RELEASE:1}"
 EOF
 
 echo "Generating bundle manifests and metadata..."
@@ -60,5 +60,5 @@ echo "Updating the olm.skipRange for new release version ${RELEASE_VERSION}..."
 ${YQ_BIN} eval -i ".metadata.annotations.\"olm.skipRange\" = \">=0.0.1 <${RELEASE_VERSION}\"" "${CSV_PATH}"
 
 echo "add certification required labels to bundle.Dockerfile"
-echo "LABEL com.redhat.openshift.versions=\"v4.10\"" >> ./bundle.Dockerfile
+echo "LABEL com.redhat.openshift.versions=\"v4.11\"" >> ./bundle.Dockerfile
 echo "LABEL com.redhat.delivery.operator.bundle=true" >> ./bundle.Dockerfile
