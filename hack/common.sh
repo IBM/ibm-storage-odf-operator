@@ -20,7 +20,7 @@ set -e
 
 DEFAULT_YQ_VERSION="4.8.0"
 DEFAULT_OPM_VERSION="v1.17.0"
-DEFAULT_OPERATOR_SDK_VERSION="v1.9.0"
+DEFAULT_OPERATOR_SDK_VERSION="v1.25.0"
 DEFAULT_KUSTOMIZE_VERSION="v3.8.7"
 
 # Check IBM block storage CSI driver versions on https://www.ibm.com/docs/en/blockstg-csi-driver

@@ -80,4 +80,4 @@ replace (
 	k8s.io/client-go => k8s.io/client-go v0.20.2
 )
 
-replace github.com/operator-framework/operator-sdk => github.com/operator-framework/operator-sdk v1.9.0
+replace github.com/operator-framework/operator-sdk => github.com/operator-framework/operator-sdk v1.25.0
