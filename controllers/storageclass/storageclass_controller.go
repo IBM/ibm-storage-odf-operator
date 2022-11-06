@@ -152,7 +152,7 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.StorageClass, isTopology bool) (map[string]string, error) {
 	fscToPoolsMap := make(map[string]string)
 	r.Log.Info("looking for FlashSystemCluster by StorageClass")
-	storageClassSecret, err := r.getSecret(sc)
+	storageClassSecret, err := util.GetStorageClassSecret(r.Client, r.Log, sc)
 	if err != nil {
 		r.Log.Error(nil, "failed to find StorageClass secret")
 		return fscToPoolsMap, err
@@ -247,29 +247,6 @@ func (r *StorageClassWatcher) extractPoolName(sc storagev1.StorageClass, mgmtDat
 		poolName = sc.Parameters[util.CsiIBMBlockScPool]
 	}
 	return poolName, nil
-}
-
-func (r *StorageClassWatcher) getSecret(sc *storagev1.StorageClass) (corev1.Secret, error) {
-	secret := &corev1.Secret{}
-	secretName, secretNamespace := sc.Parameters[util.DefaultSecretNameKey], sc.Parameters[util.DefaultSecretNamespaceKey]
-	if secretName == "" || secretNamespace == "" {
-		secretName, secretNamespace = sc.Parameters[util.ProvisionerSecretNameKey], sc.Parameters[util.ProvisionerSecretNamespaceKey]
-		if secretName == "" || secretNamespace == "" {
-			errMsg := "failed to find secret name or namespace in StorageClass"
-			r.Log.Error(nil, errMsg)
-			return *secret, fmt.Errorf(errMsg)
-		}
-	}
-	err := r.Client.Get(context.Background(),
-		types.NamespacedName{
-			Namespace: secretNamespace,
-			Name:      secretName},
-		secret)
-	if err != nil {
-		r.Log.Error(nil, "failed to find StorageClass secret")
-		return *secret, err
-	}
-	return *secret, nil
 }
 
 func (r *StorageClassWatcher) mapClustersByMgmtId(topologySecret *corev1.Secret) (map[string]v1alpha1.FlashSystemCluster, error) {

@@ -19,10 +19,12 @@ package util
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	"github.com/go-logr/logr"
 	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -159,4 +161,27 @@ func MapClustersByMgmtAddress(client client.Client, logger logr.Logger) (map[str
 		clustersMapByMgmtAddr[string(clusterSecretManagementAddress)] = cluster
 	}
 	return clustersMapByMgmtAddr, nil
+}
+
+func GetStorageClassSecret(client client.Client, logger logr.Logger, sc *storagev1.StorageClass) (corev1.Secret, error) {
+	secret := &corev1.Secret{}
+	secretName, secretNamespace := sc.Parameters[DefaultSecretNameKey], sc.Parameters[DefaultSecretNamespaceKey]
+	if secretName == "" || secretNamespace == "" {
+		secretName, secretNamespace = sc.Parameters[ProvisionerSecretNameKey], sc.Parameters[ProvisionerSecretNamespaceKey]
+		if secretName == "" || secretNamespace == "" {
+			errMsg := "failed to find secret name or namespace in StorageClass"
+			logger.Error(nil, errMsg)
+			return *secret, fmt.Errorf(errMsg)
+		}
+	}
+	err := client.Get(context.Background(),
+		types.NamespacedName{
+			Namespace: secretNamespace,
+			Name:      secretName},
+		secret)
+	if err != nil {
+		logger.Error(nil, "failed to find StorageClass secret")
+		return *secret, err
+	}
+	return *secret, nil
 }
