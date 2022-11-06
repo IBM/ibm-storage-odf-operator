@@ -115,7 +115,7 @@ var _ = BeforeSuite(func() {
 	err = os.Setenv(util.ExporterImageEnvVar, "docker.io/ibmcom/ibm-storage-odf-block-driver:v0.0.22")
 	Expect(err).NotTo(HaveOccurred())
 
-	// create manager and register controller for tset
+	// create manager and register controller for test
 	ns, err := util.GetWatchNamespace()
 	Expect(err).ToNot(HaveOccurred())
 
