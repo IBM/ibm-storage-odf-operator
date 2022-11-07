@@ -72,7 +72,11 @@ func (r *PersistentVolumeWatcher) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// +kubebuilder:rbac:groups="",resources=persistentvolumes,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups="",resources=persistentvolumes,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;update
+//+kubebuilder:rbac:groups=odf.ibm.com,resources=flashsystemclusters,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile PersistentVolume
 func (r *PersistentVolumeWatcher) Reconcile(_ context.Context, request reconcile.Request) (result reconcile.Result, err error) {
@@ -110,7 +114,7 @@ func (r *PersistentVolumeWatcher) Reconcile(_ context.Context, request reconcile
 func (r *PersistentVolumeWatcher) addStorageSystemLabelToPV(pv *corev1.PersistentVolume) error {
 	pvMgmtAddr, err := r.getPVManagementAddress(pv)
 
-	if err != nil {
+	if err == nil {
 		clustersByMgmtAddr, err := util.MapClustersByMgmtAddress(r.Client, r.Log)
 		if err != nil {
 			return err
@@ -131,7 +135,7 @@ func (r *PersistentVolumeWatcher) addStorageSystemLabelToPV(pv *corev1.Persisten
 		pvLabels[util.OdfFsStorageSystemLabelKey] = fsc.Name
 		pv.SetLabels(pvLabels)
 
-		r.Log.Info("adding StorageSystem label for PersistentVolume")
+		r.Log.Info("adding StorageSystem label to PersistentVolume")
 		if err = r.Client.Update(context.Background(), pv); err != nil {
 			r.Log.Error(err, "failed to update PersistentVolume")
 			return err
@@ -142,35 +146,46 @@ func (r *PersistentVolumeWatcher) addStorageSystemLabelToPV(pv *corev1.Persisten
 }
 
 func (r *PersistentVolumeWatcher) getPVManagementAddress(pv *corev1.PersistentVolume) (string, error) {
+	r.Log.Info("looking for PersistentVolume management address")
+
 	pvVolumeAttributes := pv.Spec.CSI.VolumeAttributes
 	pvMgmtAddr, ok := pvVolumeAttributes[util.PVMgmtAddrKey]
 
 	if !ok {
+		r.Log.Info("looking for PersistentVolumeClaim")
+		pvcRef := pv.Spec.ClaimRef
 		pvc := &corev1.PersistentVolumeClaim{}
 		err := r.Client.Get(context.TODO(), types.NamespacedName{
-			Name:      pv.Spec.ClaimRef.Name,
-			Namespace: pv.Spec.ClaimRef.Namespace},
+			Name:      pvcRef.Name,
+			Namespace: pvcRef.Namespace},
 			pvc)
 		if err != nil {
+			r.Log.Error(err, "failed to get PersistentVolumeClaim")
 			return "", err
 		}
 
+		r.Log.Info("looking for StorageClass")
 		sc := &storagev1.StorageClass{}
 		err = r.Client.Get(context.TODO(), types.NamespacedName{Name: *(pvc.Spec.StorageClassName)}, sc)
 		if err != nil {
+			r.Log.Error(err, "failed to get StorageClass")
 			return "", err
 		}
 
 		_, isTopology := sc.Parameters[util.TopologyStorageClassByMgmtId]
 		if isTopology {
-			errMsg := "find multiple FlashSystemClusters for PersistentVolume"
+			errMsg := "found multiple FlashSystemClusters for PersistentVolume"
 			r.Log.Error(nil, errMsg)
 			return "", fmt.Errorf(errMsg)
 		}
+
+		r.Log.Info("looking for StorageClass Secret")
 		secret, err := util.GetStorageClassSecret(r.Client, r.Log, sc)
 		if err != nil {
+			r.Log.Error(err, "failed to get StorageClass Secret")
 			return "", err
 		}
+
 		pvMgmtAddr = string(secret.Data[util.SecretManagementAddressKey])
 	}
 	return pvMgmtAddr, nil
