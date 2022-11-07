@@ -466,7 +466,7 @@ var _ = Describe("StorageClassWatcher", func() {
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
-			secret, err := watcher.getSecret(createdSc)
+			_, err := watcher.getSecret(createdSc)
 			Expect(err).To(HaveOccurred())
 			Expect(k8sClient.Delete(ctx, createdSc)).Should(Succeed())
 
@@ -481,7 +481,7 @@ var _ = Describe("StorageClassWatcher", func() {
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
-			secret, err = watcher.getSecret(validCreatedSc)
+			secret, err := watcher.getSecret(validCreatedSc)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(secret).ToNot(BeNil())
 
@@ -568,6 +568,7 @@ var _ = Describe("StorageClassWatcher", func() {
 
 			fscToPoolsMap, err = watcher.getFlashSystemClusterByStorageClass(createdTopologySc, false)
 			Expect(err).To(HaveOccurred())
+			Expect(len(fscToPoolsMap)).To(Equal(0))
 
 			scLookupKey := types.NamespacedName{
 				Name:      storageClassName,
@@ -587,6 +588,7 @@ var _ = Describe("StorageClassWatcher", func() {
 
 			fscToPoolsMap, err = watcher.getFlashSystemClusterByStorageClass(createdSc, true)
 			Expect(err).To(HaveOccurred())
+			Expect(len(fscToPoolsMap)).To(Equal(0))
 
 		})
 
