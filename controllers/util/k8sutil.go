@@ -24,16 +24,18 @@ import (
 	"os"
 )
 
+type Label struct {
+	Name  string
+	Value string
+}
+
 // WatchNamespaceEnvVar is the constant for env variable WATCH_NAMESPACE
 // which is the namespace where the watch activity happens.
 // this value is empty if the operator is running with clusterScope.
 const WatchNamespaceEnvVar = "WATCH_NAMESPACE"
 const ExporterImageEnvVar = "EXPORTER_IMAGE"
 
-type Label struct {
-	Name  string
-	Value string
-}
+const OdfFsStorageSystemLabelKey = "odf-fs-storage-system"
 
 var OdfLabel = Label{"odf", "storage.ibm.com"}
 var ComponentLabel = Label{"app.kubernetes.io/component", "ibm-storage-odf-operator"}

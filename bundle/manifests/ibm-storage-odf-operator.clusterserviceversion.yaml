@@ -40,7 +40,7 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-      - description: FlashSystemCluster is the Schema for the flashsystemclusters API
+      - description: FlashSystemCluster is the Schema for the FlashSystemClusters API
         displayName: Flash System Cluster
         kind: FlashSystemCluster
         name: flashsystemclusters.odf.ibm.com
@@ -54,6 +54,25 @@ spec:
     spec:
       clusterPermissions:
         - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - persistentvolumeclaims
+              verbs:
+                - get
+                - list
+                - update
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - persistentvolumes
+              verbs:
+                - get
+                - list
+                - patch
+                - update
+                - watch
             - apiGroups:
                 - ""
               resources:
