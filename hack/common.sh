@@ -24,7 +24,7 @@ DEFAULT_OPERATOR_SDK_VERSION="v1.25.0"
 DEFAULT_KUSTOMIZE_VERSION="v3.8.7"
 
 # Check IBM block storage CSI driver versions on https://www.ibm.com/docs/en/blockstg-csi-driver
-DEFAULT_BLOCK_CSI_RELEASE="v1.10.0"
+DEFAULT_BLOCK_CSI_RELEASE="v1.11.0"
 DEFAULT_BLOCK_CSI_CR_FILE="csi.ibm.com_v1_ibmblockcsi_cr.yaml"
 
 VCS_URL="https://github.com/IBM/ibm-storage-odf-operator"
