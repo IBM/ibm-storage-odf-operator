@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -121,7 +120,7 @@ func getFlashSystemCRFilePath() string {
 func LoadFlashSystemCRFromFile() (*unstructured.Unstructured, error) {
 	crFile := getFlashSystemCRFilePath()
 	fmt.Printf("cr file: %s", crFile)
-	fileBytes, err := ioutil.ReadFile(crFile)
+	fileBytes, err := os.ReadFile(crFile)
 	if err != nil {
 		return nil, err
 	}

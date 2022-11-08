@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	"github.com/go-logr/logr"
-	"io/ioutil"
+	"io"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -71,7 +71,7 @@ func ReadPoolConfigMapFile() (map[string]FlashSystemClusterMapContent, error) {
 	var flashSystemClusterContent FlashSystemClusterMapContent
 	fscPath := FSCConfigmapMountPath + "/"
 
-	files, err := ioutil.ReadDir(fscPath)
+	files, err := os.ReadDir(fscPath)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func getFileContent(filePath string) (FlashSystemClusterMapContent, error) {
 		return fscContent, err
 	}
 
-	fileContent, _ := ioutil.ReadAll(fileReader)
+	fileContent, _ := io.ReadAll(fileReader)
 	err = json.Unmarshal(fileContent, &fscContent)
 	return fscContent, err
 }

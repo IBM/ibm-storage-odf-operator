@@ -140,7 +140,6 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 					r.Log.Error(nil, "cannot reconcile StorageClass without a pool")
 				}
 			}
-			return result, nil
 		}
 	} else {
 		r.Log.Info("cannot find FlashSystemCluster for StorageClass")
