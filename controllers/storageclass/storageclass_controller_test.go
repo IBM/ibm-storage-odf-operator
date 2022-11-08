@@ -429,11 +429,6 @@ var _ = Describe("StorageClassWatcher", func() {
 
 		It("should test the getSecret function successfully", func() {
 			ctx := context.TODO()
-			watcher := &StorageClassWatcher{
-				Log:    ctrl.Log.WithName("controllers").WithName("StorageClass"),
-				Client: k8sClient,
-				Scheme: scheme.Scheme,
-			}
 
 			By("By creating a new StorageClass with a non-existent secret")
 			sc := &storagev1.StorageClass{
@@ -466,7 +461,7 @@ var _ = Describe("StorageClassWatcher", func() {
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
-			_, err := watcher.getSecret(createdSc)
+			_, err := util.GetStorageClassSecret(k8sClient, ctrl.Log, createdSc)
 			Expect(err).To(HaveOccurred())
 			Expect(k8sClient.Delete(ctx, createdSc)).Should(Succeed())
 
@@ -481,7 +476,7 @@ var _ = Describe("StorageClassWatcher", func() {
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
-			secret, err := watcher.getSecret(validCreatedSc)
+			secret, err := util.GetStorageClassSecret(k8sClient, ctrl.Log, validCreatedSc)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(secret).ToNot(BeNil())
 
