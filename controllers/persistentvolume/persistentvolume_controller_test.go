@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,10 +33,10 @@ import (
 var k8sClient client.Client
 
 var _ = Describe("PersistentVolume Controller", func() {
-	// Define utility constants for object names and testing timeouts/durations and intervals.
 	const (
-		PersistentVolumeName = "test-persistentvolume-name"
+		PersistentVolumeName = "test-persistent-volume"
 		namespace            = "openshift-storage"
+		PersistenVolumeClaim = "test-persistent-volume-claim"
 
 		timeout = time.Second * 20
 		//duration = time.Second * 10
@@ -43,6 +44,29 @@ var _ = Describe("PersistentVolume Controller", func() {
 	)
 
 	Context("When creating a new PersistentVolume", func() {
+		It("should create namespace successfully", func() {
+			By("By creating a new namespace")
+			ctx := context.TODO()
+			ns := &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: namespace,
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, ns)).Should(Succeed())
+
+			By("By querying the created namespace")
+			nsLookupKey := types.NamespacedName{
+				Name: namespace,
+			}
+			createdNs := &corev1.Namespace{}
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, nsLookupKey, createdNs)
+				return err == nil
+			}, timeout, interval).Should(BeTrue())
+		})
+
 		It("Should create the PersistentVolume successfully", func() {
 			By("By creating a new PersistentVolume")
 			ctx := context.Background()
@@ -52,95 +76,61 @@ var _ = Describe("PersistentVolume Controller", func() {
 					Namespace: namespace,
 				},
 				Spec: corev1.PersistentVolumeSpec{
+					Capacity: map[corev1.ResourceName]resource.Quantity{
+						corev1.ResourceStorage: resource.MustParse("512Gi"),
+					},
+					AccessModes: []corev1.PersistentVolumeAccessMode{
+						corev1.ReadWriteOnce,
+					},
 					ClaimRef: &corev1.ObjectReference{
-						Kind: util.PersistentVolumeClaimKind,
+						Kind:      util.PersistentVolumeClaimKind,
+						Name:      PersistenVolumeClaim,
+						Namespace: namespace,
 					},
 				},
 			}
 			Expect(k8sClient.Create(ctx, persistentvolume)).Should(Succeed())
 
 			By("By checking the PersistentVolume is created successfully")
-			persistentvolumeLookupKey := types.NamespacedName{Name: PersistentVolumeName, Namespace: namespace}
-			createdPersistentVolume := &corev1.PersistentVolume{}
+			pvLookupKey := types.NamespacedName{Name: PersistentVolumeName, Namespace: namespace}
+			createdPV := &corev1.PersistentVolume{}
 
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, persistentvolumeLookupKey, createdPersistentVolume)
+				err := k8sClient.Get(ctx, pvLookupKey, createdPV)
 				if err != nil {
 					return false
 				}
 				return true
 			}, timeout, interval).Should(BeTrue())
-			Expect(createdPersistentVolume.Spec.ClaimRef.Kind).Should(Equal(util.PersistentVolumeClaimKind))
+			Expect(createdPV.Spec.ClaimRef.Kind).Should(Equal(util.PersistentVolumeClaimKind))
+			Expect(createdPV.Spec.ClaimRef.Name).Should(Equal(PersistenVolumeClaim))
+			Expect(createdPV.Spec.ClaimRef.Namespace).Should(Equal(namespace))
 
-			By("By deleting the PersistentVolume")
-			Expect(k8sClient.Delete(ctx, persistentvolume)).Should(Succeed())
-
-			By("By checking the PersistentVolume is deleted successfully")
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, persistentvolumeLookupKey, createdPersistentVolume)
-				if err != nil {
-					return false
-				}
-				return true
-			}, timeout, interval).Should(BeFalse())
 		})
 
-		// it should test the update of the PersistentVolume
-		It("Should update the PersistentVolume successfully", func() {
-			By("By creating a new PersistentVolume")
-			ctx := context.Background()
-			persistentvolume := &corev1.PersistentVolume{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      PersistentVolumeName,
-					Namespace: namespace,
-				},
-				Spec: corev1.PersistentVolumeSpec{
-					ClaimRef: &corev1.ObjectReference{
-						Kind: util.PersistentVolumeClaimKind,
-					},
-				},
-			}
-			Expect(k8sClient.Create(ctx, persistentvolume)).Should(Succeed())
-
-			By("By checking the PersistentVolume is created successfully")
-			persistentvolumeLookupKey := types.NamespacedName{Name: PersistentVolumeName, Namespace: namespace}
-			createdPersistentVolume := &corev1.PersistentVolume{}
-
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, persistentvolumeLookupKey, createdPersistentVolume)
-				if err != nil {
-					return false
-				}
-				return true
-			}, timeout, interval).Should(BeTrue())
-			Expect(createdPersistentVolume.Spec.ClaimRef.Kind).Should(Equal(util.PersistentVolumeClaimKind))
-
-			By("By updating the PersistentVolume")
-			createdPersistentVolume.Spec.ClaimRef.Kind = "new-kind-test"
-			Expect(k8sClient.Update(ctx, createdPersistentVolume)).Should(Succeed())
-
-			By("By checking the PersistentVolume is updated successfully")
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, persistentvolumeLookupKey, createdPersistentVolume)
-				if err != nil {
-					return false
-				}
-				return true
-			}, timeout, interval).Should(BeTrue())
-			Expect(createdPersistentVolume.Spec.ClaimRef.Kind).Should(Equal("new-kind-test"))
-
+		It("Should delete the PersistentVolume successfully", func() {
 			By("By deleting the PersistentVolume")
-			Expect(k8sClient.Delete(ctx, persistentvolume)).Should(Succeed())
+			ctx := context.Background()
+			pvLookupKey := types.NamespacedName{Name: PersistentVolumeName, Namespace: namespace}
+			createdPV := &corev1.PersistentVolume{}
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, pvLookupKey, createdPV)
+				if err != nil {
+					return false
+				}
+				return true
+			}, timeout, interval).Should(BeTrue())
+			Expect(k8sClient.Delete(ctx, createdPV)).Should(Succeed())
 
 			By("By checking the PersistentVolume is deleted successfully")
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, persistentvolumeLookupKey, createdPersistentVolume)
+				err := k8sClient.Get(ctx, pvLookupKey, createdPV)
 				if err != nil {
 					return false
 				}
 				return true
 			}, timeout, interval).Should(BeFalse())
-
 		})
 	})
 })
