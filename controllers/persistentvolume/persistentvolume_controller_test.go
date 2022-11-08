@@ -160,6 +160,7 @@ var _ = Describe("PersistentVolume Controller", func() {
 
 			pvcToCreateList := map[string]string{PersistentVolumeClaim: storageClassName, PersistentVolumeClaimForTopology: topologyStorageClassName}
 			for pvcName, sc := range pvcToCreateList {
+				scName := sc
 				pvc := &corev1.PersistentVolumeClaim{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      pvcName,
@@ -173,7 +174,7 @@ var _ = Describe("PersistentVolume Controller", func() {
 							},
 						},
 						VolumeMode:       &volumeMode,
-						StorageClassName: &sc,
+						StorageClassName: &scName,
 					},
 				}
 				Expect(k8sClient.Create(ctx, pvc)).Should(Succeed())
@@ -261,7 +262,7 @@ var _ = Describe("PersistentVolume Controller", func() {
 			Expect(k8sClient.Get(ctx, pvLookupKey, pv)).Should(Succeed())
 			expectedMgmtAddress := "OS4xMTAuMTEuMjM="
 			extractedMgmtAddr, err := watcher.getPVManagementAddress(pv)
-			Expect(err).ShouldNot(HaveOccurred())
+			Expect(err).Should(Not(HaveOccurred()))
 			Expect(extractedMgmtAddr).Should(Equal(expectedMgmtAddress))
 
 			By("Testing the getPVManagementAddress function with a topology StorageClass")
@@ -422,7 +423,7 @@ var _ = Describe("PersistentVolume Controller", func() {
 			}
 			Expect(k8sClient.Get(ctx, pvLookupKey, pv)).Should(Succeed())
 			err := watcher.addStorageSystemLabelToPV(pv)
-			Expect(err).ShouldNot(HaveOccurred())
+			Expect(err).Should(Not(HaveOccurred()))
 			Expect(pv.Labels[util.OdfFsStorageSystemLabelKey]).Should(Equal(FlashSystemName))
 
 			By("Testing the addStorageSystemLabelToPV function with a topology StorageClass")
