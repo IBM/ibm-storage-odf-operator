@@ -19,21 +19,39 @@ package persistentvolume
 import (
 	"context"
 	_ "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
+	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"time"
 )
 
 var _ = Describe("PersistentVolume Controller", func() {
 	const (
-		PersistentVolumeName = "test-persistent-volume"
-		namespace            = "openshift-storage"
-		PersistenVolumeClaim = "test-persistent-volume-claim"
+		FlashSystemName                  = "flashsystemcluster-sample"
+		PersistentVolume                 = "test-persistent-volume"
+		PersistentVolumeForTopology      = "topology-test-persistent-volume"
+		namespace                        = "openshift-storage"
+		PersistentVolumeClaim            = "test-persistent-volume-claim"
+		PersistentVolumeClaimForTopology = "topology-test-persistent-volume-claim"
+		storageClassName                 = "odf-flashsystemcluster"
+		topologyStorageClassName         = "topology-storageclass"
+		poolName                         = "Pool0"
+		secretName                       = "fs-secret-sample"
+		topologySecretName               = "topology-secret"
+		fsType                           = "ext4"
+		volPrefix                        = "product"
+		spaceEff                         = "thin"
+		volumeHandle                     = "00000000000000000000000000000001"
+		byManagementIdData               = "{\"demo-management-id-1\":{\"pool\":\"demo-pool-1\",\"SpaceEfficiency\":\"dedup_compressed\",\"volume_name_prefix\":\"demo-prefix-1\"},\"demo-management-id-2\":{\"volume_name_prefix\":\"demo-prefix-2\", \"io_group\": \"demo-iogrp\"}}"
+		topologySecretConfigData         = "{\"demo-management-id-1\": {\"username\": \"ZnNkcml2ZXI=\",\"password\": \"ZnNkcml2ZXI=\",\"management_address\": \"OS4xMTAuNzAuOTY=\"},\"demo-management-id-2\": {\"username\": \"ZnNkcml2ZXI=\",\"password\": \"ZnNkcml2ZXI=\",\"management_address\": \"OS4xMTAuMTEuMjM=\"}}" // #nosec G101 - false positive
 
 		timeout = time.Second * 20
 		//duration = time.Second * 10
@@ -41,7 +59,7 @@ var _ = Describe("PersistentVolume Controller", func() {
 	)
 
 	Context("When creating a new PersistentVolume", func() {
-		It("should create namespace successfully", func() {
+		It("Should create: Namespace, Secret and StorageClass successfully", func() {
 			By("By creating a new namespace")
 			ctx := context.TODO()
 			ns := &corev1.Namespace{
@@ -49,7 +67,6 @@ var _ = Describe("PersistentVolume Controller", func() {
 					Name: namespace,
 				},
 			}
-
 			Expect(k8sClient.Create(ctx, ns)).Should(Succeed())
 
 			By("By querying the created namespace")
@@ -62,72 +79,362 @@ var _ = Describe("PersistentVolume Controller", func() {
 				err := k8sClient.Get(ctx, nsLookupKey, createdNs)
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
+
+			By("By creating new secrets")
+			secretsToCreateMap := map[string]string{secretName: "OS4xMTAuMTEuMjM=", topologySecretName: ""}
+			for secretName, mgmtAddr := range secretsToCreateMap {
+				sec := &corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      secretName,
+						Namespace: namespace,
+					},
+					Data: map[string][]byte{
+						"management_address": []byte(mgmtAddr),
+						"password":           []byte("ZnNkcml2ZXI="),
+						"username":           []byte("ZnNkcml2ZXI="),
+					},
+				}
+				By("creating a new secret with topology awareness for the topology StorageClass")
+				if secretName == topologySecretName {
+					sec.Data = map[string][]byte{
+						"config": []byte(topologySecretConfigData),
+					}
+				}
+
+				Expect(k8sClient.Create(ctx, sec)).Should(Succeed())
+				By("By querying the created Secret")
+				secLookupKey := types.NamespacedName{
+					Name:      secretName,
+					Namespace: namespace,
+				}
+				createdSec := &corev1.Secret{}
+
+				Eventually(func() bool {
+					err := k8sClient.Get(ctx, secLookupKey, createdSec)
+					return err == nil
+				}, timeout, interval).Should(BeTrue())
+			}
+
+			By("By creating new StorageClasses")
+			scToCreate := map[string]string{storageClassName: secretName, topologyStorageClassName: topologySecretName}
+			for scName, secret := range scToCreate {
+				sc := &storagev1.StorageClass{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      scName,
+						Namespace: namespace,
+					},
+					Provisioner: util.CsiIBMBlockDriver,
+					Parameters: map[string]string{
+						"SpaceEfficiency":                     spaceEff,
+						"pool":                                poolName,
+						"csi.storage.k8s.io/secret-name":      secret,
+						"csi.storage.k8s.io/secret-namespace": namespace,
+						"csi.storage.k8s.io/fstype":           fsType,
+						"volume_name_prefix":                  volPrefix,
+					},
+				}
+				if scName == topologyStorageClassName {
+					sc.Parameters["by_management_id"] = byManagementIdData
+				}
+
+				Expect(k8sClient.Create(ctx, sc)).Should(Succeed())
+
+				By("By querying the created StorageClass")
+				scLookupKey := types.NamespacedName{
+					Name:      scName,
+					Namespace: namespace,
+				}
+				createdSc := &storagev1.StorageClass{}
+
+				Eventually(func() bool {
+					err := k8sClient.Get(ctx, scLookupKey, createdSc)
+					return err == nil
+				}, timeout, interval).Should(BeTrue())
+			}
 		})
 
-		It("Should create the PersistentVolume successfully", func() {
+		It("should create a PersistentVolumeClaim successfully", func() {
+			var volumeMode = corev1.PersistentVolumeBlock
+			By("By creating new PersistentVolumeClaims")
+			ctx := context.TODO()
+
+			pvcToCreateList := map[string]string{PersistentVolumeClaim: storageClassName, PersistentVolumeClaimForTopology: topologyStorageClassName}
+			for pvcName, sc := range pvcToCreateList {
+				pvc := &corev1.PersistentVolumeClaim{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      pvcName,
+						Namespace: namespace,
+					},
+					Spec: corev1.PersistentVolumeClaimSpec{
+						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								corev1.ResourceStorage: resource.MustParse("1Gi"),
+							},
+						},
+						VolumeMode:       &volumeMode,
+						StorageClassName: &sc,
+					},
+				}
+				Expect(k8sClient.Create(ctx, pvc)).Should(Succeed())
+
+				By("By querying the created PersistentVolumeClaim")
+				pvcLookupKey := types.NamespacedName{
+					Name:      pvcName,
+					Namespace: namespace,
+				}
+				createdPvc := &corev1.PersistentVolumeClaim{}
+
+				Eventually(func() bool {
+					err := k8sClient.Get(ctx, pvcLookupKey, createdPvc)
+					return err == nil
+				}, timeout, interval).Should(BeTrue())
+			}
+		})
+
+		It("should create a PersistentVolume successfully", func() {
 			By("By creating a new PersistentVolume")
-			ctx := context.Background()
-			persistentvolume := &corev1.PersistentVolume{
+			ctx := context.TODO()
+			volumeMode := corev1.PersistentVolumeBlock
+
+			pvToCreateList := map[string]string{PersistentVolume: storageClassName, PersistentVolumeForTopology: topologyStorageClassName}
+			for pvName, sc := range pvToCreateList {
+				pv := &corev1.PersistentVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      pvName,
+						Namespace: namespace,
+					},
+					Spec: corev1.PersistentVolumeSpec{
+						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+						Capacity: corev1.ResourceList{
+							corev1.ResourceStorage: resource.MustParse("512Gi"),
+						},
+						PersistentVolumeSource: corev1.PersistentVolumeSource{
+							CSI: &corev1.CSIPersistentVolumeSource{
+								Driver:       util.CsiIBMBlockDriver,
+								VolumeHandle: volumeHandle,
+							},
+						},
+						ClaimRef: &corev1.ObjectReference{
+							Kind:      util.PersistentVolumeClaimKind,
+							Name:      PersistentVolumeClaim,
+							Namespace: namespace,
+						},
+						StorageClassName: sc,
+						VolumeMode:       &volumeMode,
+					},
+				}
+				if pvName == PersistentVolumeForTopology {
+					pv.Spec.ClaimRef.Name = PersistentVolumeClaimForTopology
+				}
+				Expect(k8sClient.Create(ctx, pv)).Should(Succeed())
+
+				By("By querying the created PersistentVolume")
+				pvLookupKey := types.NamespacedName{
+					Name:      pvName,
+					Namespace: namespace,
+				}
+				createdPv := &corev1.PersistentVolume{}
+
+				Eventually(func() bool {
+					err := k8sClient.Get(ctx, pvLookupKey, createdPv)
+					return err == nil
+				}, timeout, interval).Should(BeTrue())
+			}
+		})
+
+		It("should test the getPVManagementAddress function successfully", func() {
+			ctx := context.TODO()
+
+			watcher := &PersistentVolumeWatcher{
+				Log:    ctrl.Log.WithName("controllers").WithName("PersistentVolume"),
+				Client: k8sClient,
+				Scheme: scheme.Scheme,
+			}
+
+			By("Getting the PV Management Address")
+			pv := &corev1.PersistentVolume{}
+			pvLookupKey := types.NamespacedName{
+				Name:      PersistentVolume,
+				Namespace: namespace,
+			}
+			Expect(k8sClient.Get(ctx, pvLookupKey, pv)).Should(Succeed())
+			expectedMgmtAddress := "OS4xMTAuMTEuMjM="
+			extractedMgmtAddr, err := watcher.getPVManagementAddress(pv)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(extractedMgmtAddr).Should(Equal(expectedMgmtAddress))
+
+			By("Testing the getPVManagementAddress function with a topology StorageClass")
+			pvForTopology := &corev1.PersistentVolume{}
+			pvLookupKey = types.NamespacedName{
+				Name:      PersistentVolumeForTopology,
+				Namespace: namespace,
+			}
+			Expect(k8sClient.Get(ctx, pvLookupKey, pvForTopology)).Should(Succeed())
+			_, err = watcher.getPVManagementAddress(pvForTopology)
+			Expect(err).Should(HaveOccurred())
+
+			secretLookupKey := types.NamespacedName{
+				Name:      secretName,
+				Namespace: namespace,
+			}
+			secret := &corev1.Secret{}
+			Expect(k8sClient.Get(ctx, secretLookupKey, secret)).Should(Succeed())
+			Expect(k8sClient.Delete(ctx, secret)).Should(Succeed())
+
+			By("Testing the getPVManagementAddress function with a StorageClass and no secret")
+			_, err = watcher.getPVManagementAddress(pv)
+			Expect(err).Should(HaveOccurred())
+
+			By("Testing the getPVManagementAddress function without a StorageClass")
+			sc := &storagev1.StorageClass{}
+			scLookupKey := types.NamespacedName{
+				Name:      storageClassName,
+				Namespace: namespace,
+			}
+			Expect(k8sClient.Get(ctx, scLookupKey, sc)).Should(Succeed())
+			Expect(k8sClient.Delete(ctx, sc)).Should(Succeed())
+
+			_, err = watcher.getPVManagementAddress(pv)
+			Expect(err).Should(HaveOccurred())
+
+			By("Testing the getPVManagementAddress function without a PersistentVolumeClaim")
+			pvc := &corev1.PersistentVolumeClaim{}
+			pvcLookupKey := types.NamespacedName{
+				Name:      PersistentVolumeClaim,
+				Namespace: namespace,
+			}
+			Expect(k8sClient.Get(ctx, pvcLookupKey, pvc)).Should(Succeed())
+			Expect(k8sClient.Delete(ctx, pvc)).Should(Succeed())
+
+			_, err = watcher.getPVManagementAddress(pv)
+			Expect(err).Should(HaveOccurred())
+
+		})
+
+		It("should test the addStorageSystemLabelToPV function successfully", func() {
+			ctx := context.TODO()
+
+			watcher := &PersistentVolumeWatcher{
+				Log:    ctrl.Log.WithName("controllers").WithName("PersistentVolume"),
+				Client: k8sClient,
+				Scheme: scheme.Scheme,
+			}
+
+			By("By recreating the Secret that was deleted in the previous test")
+			sec := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      PersistentVolumeName,
+					Name:      secretName,
 					Namespace: namespace,
 				},
-				Spec: corev1.PersistentVolumeSpec{
-					Capacity: map[corev1.ResourceName]resource.Quantity{
-						corev1.ResourceStorage: resource.MustParse("512Gi"),
-					},
-					AccessModes: []corev1.PersistentVolumeAccessMode{
-						corev1.ReadWriteOnce,
-					},
-					ClaimRef: &corev1.ObjectReference{
-						Kind:      util.PersistentVolumeClaimKind,
-						Name:      PersistenVolumeClaim,
+				Data: map[string][]byte{
+					"management_address": []byte("OS4xMTAuMTEuMjM="),
+					"password":           []byte("ZnNkcml2ZXI="),
+					"username":           []byte("ZnNkcml2ZXI="),
+				},
+			}
+			Expect(k8sClient.Create(ctx, sec)).Should(Succeed())
+
+			By("By querying the recreated Secret")
+			secLookupKey := types.NamespacedName{
+				Name:      secretName,
+				Namespace: namespace,
+			}
+			createdSec := &corev1.Secret{}
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, secLookupKey, createdSec)
+				return err == nil
+			}, timeout, interval).Should(BeTrue())
+
+			By("By recreating the StorageClass that was deleted in the previous test")
+			sc := &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      storageClassName,
+					Namespace: namespace,
+				},
+				Provisioner: util.CsiIBMBlockDriver,
+				Parameters: map[string]string{
+					"SpaceEfficiency":                     spaceEff,
+					"pool":                                poolName,
+					"csi.storage.k8s.io/secret-name":      secretName,
+					"csi.storage.k8s.io/secret-namespace": namespace,
+					"csi.storage.k8s.io/fstype":           fsType,
+					"volume_name_prefix":                  volPrefix,
+				},
+			}
+			Expect(k8sClient.Create(ctx, sc)).Should(Succeed())
+
+			By("By querying the recreated StorageClass")
+			scLookupKey := types.NamespacedName{
+				Name:      storageClassName,
+				Namespace: namespace,
+			}
+			createdSc := &storagev1.StorageClass{}
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, scLookupKey, createdSc)
+				return err == nil
+			}, timeout, interval).Should(BeTrue())
+
+			By("By creating a new FlashSystemCluster")
+			instance := &odfv1alpha1.FlashSystemCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      FlashSystemName,
+					Namespace: namespace,
+				},
+				Spec: odfv1alpha1.FlashSystemClusterSpec{
+					Name: FlashSystemName,
+					Secret: corev1.SecretReference{
+						Name:      secretName,
 						Namespace: namespace,
+					},
+					InsecureSkipVerify: true,
+					DefaultPool: &odfv1alpha1.StorageClassConfig{
+						StorageClassName: storageClassName,
+						PoolName:         poolName,
+						FsType:           fsType,
+						VolumeNamePrefix: volPrefix,
+						SpaceEfficiency:  spaceEff,
 					},
 				},
 			}
-			Expect(k8sClient.Create(ctx, persistentvolume)).Should(Succeed())
 
-			By("By checking the PersistentVolume is created successfully")
-			pvLookupKey := types.NamespacedName{Name: PersistentVolumeName, Namespace: namespace}
-			createdPV := &corev1.PersistentVolume{}
+			Expect(k8sClient.Create(ctx, instance)).Should(Succeed())
+
+			By("By querying the created FlashSystemCluster")
+			fscLoopUpKey := types.NamespacedName{
+				Name:      FlashSystemName,
+				Namespace: namespace,
+			}
+			createdFsc := &odfv1alpha1.FlashSystemCluster{}
 
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, pvLookupKey, createdPV)
-				if err != nil {
-					return false
-				}
-				return true
+				err := k8sClient.Get(ctx, fscLoopUpKey, createdFsc)
+				return err == nil
 			}, timeout, interval).Should(BeTrue())
-			Expect(createdPV.Spec.ClaimRef.Kind).Should(Equal(util.PersistentVolumeClaimKind))
-			Expect(createdPV.Spec.ClaimRef.Name).Should(Equal(PersistenVolumeClaim))
-			Expect(createdPV.Spec.ClaimRef.Namespace).Should(Equal(namespace))
 
-		})
+			By("Adding the StorageSystem label to the PV")
+			pv := &corev1.PersistentVolume{}
+			pvLookupKey := types.NamespacedName{
+				Name:      PersistentVolume,
+				Namespace: namespace,
+			}
+			Expect(k8sClient.Get(ctx, pvLookupKey, pv)).Should(Succeed())
+			err := watcher.addStorageSystemLabelToPV(pv)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(pv.Labels[util.OdfFsStorageSystemLabelKey]).Should(Equal(FlashSystemName))
 
-		It("Should delete the PersistentVolume successfully", func() {
-			By("By deleting the PersistentVolume")
-			ctx := context.Background()
-			pvLookupKey := types.NamespacedName{Name: PersistentVolumeName, Namespace: namespace}
-			createdPV := &corev1.PersistentVolume{}
+			By("Testing the addStorageSystemLabelToPV function with a topology StorageClass")
+			pvForTopology := &corev1.PersistentVolume{}
+			pvLookupKey = types.NamespacedName{
+				Name:      PersistentVolumeForTopology,
+				Namespace: namespace,
+			}
 
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, pvLookupKey, createdPV)
-				if err != nil {
-					return false
-				}
-				return true
-			}, timeout, interval).Should(BeTrue())
-			Expect(k8sClient.Delete(ctx, createdPV)).Should(Succeed())
-
-			By("By checking the PersistentVolume is deleted successfully")
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, pvLookupKey, createdPV)
-				if err != nil {
-					return false
-				}
-				return true
-			}, timeout, interval).Should(BeFalse())
+			Expect(k8sClient.Get(ctx, pvLookupKey, pvForTopology)).Should(Succeed())
+			err = watcher.addStorageSystemLabelToPV(pvForTopology)
+			Expect(err).Should(HaveOccurred())
 		})
 	})
 })
