@@ -26,6 +26,9 @@ DEFAULT_KUSTOMIZE_VERSION="v3.8.7"
 # Check IBM block storage CSI driver versions on https://www.ibm.com/docs/en/blockstg-csi-driver
 DEFAULT_BLOCK_CSI_RELEASE="v1.11.0"
 DEFAULT_BLOCK_CSI_CR_FILE="csi.ibm.com_v1_ibmblockcsi_cr.yaml"
+DEFAULT_CSI_OPERATOR_DEVELOP_REGISTRY="stg-artifactory.xiv.ibm.com:5030"
+DEFAULT_CSI_OPERATOR_DEVELOP_IMAGE="ibm-block-csi-operator-amd64"
+DEFAULT_CSI_OPERATOR_TAG="latest"
 
 VCS_URL="https://github.com/IBM/ibm-storage-odf-operator"
 VCS_REF="1.3.0-$(git rev-parse --short HEAD)"

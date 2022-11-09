@@ -27,7 +27,13 @@ CSI_CR_URL="https://raw.githubusercontent.com/IBM/ibm-block-csi-operator/${BLOCK
 if curl --head --silent --fail ${CSI_CR_URL} 2> /dev/null; then
         echo "Downloading the IBM Block CSI CR file..."
         curl -JL "${CSI_CR_URL}" -o "${CSI_CR_PATH}"
-        curl -JL "${CSI_CR_URL}" -o "${CSI_SAMPLES_CR_PATH}"
 else
-        echo "Using the cached CR file ${BLOCK_CSI_CR_FILE}"
+        echo "CSI tag doesn't exist yet, downloading develop version"
+        CSI_CR_URL="https://raw.githubusercontent.com/IBM/ibm-block-csi-operator/develop/config/samples/${BLOCK_CSI_CR_FILE}"
+        curl -JL "${CSI_CR_URL}" -o "${CSI_CR_PATH}"
+        sed -i 's/ibmcom\/ibm-block-csi-driver-controller/stg-artifactory.xiv.ibm.com:5030\/ibm-block-csi-driver-controller-amd64/g' "${CSI_CR_PATH}"
+        sed -i 's/ibmcom\/ibm-block-csi-driver-node/stg-artifactory.xiv.ibm.com:5030\/ibm-block-csi-driver-node-amd64/g' "${CSI_CR_PATH}"
+        sed -i 's/tag: "1.11.0"/tag: "latest"/g' "${CSI_CR_PATH}"
 fi
+
+cp "${CSI_CR_PATH}" "${CSI_SAMPLES_CR_PATH}"
