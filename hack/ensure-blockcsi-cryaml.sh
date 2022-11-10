@@ -24,8 +24,8 @@ CSI_CR_PATH="config/manager/${BLOCK_CSI_CR_FILE}"
 CSI_SAMPLES_CR_PATH="config/samples/${BLOCK_CSI_CR_FILE}"
 CSI_CR_URL="https://raw.githubusercontent.com/IBM/ibm-block-csi-operator/${BLOCK_CSI_RELEASE}/config/samples/${BLOCK_CSI_CR_FILE}"
 
-if curl --head --silent --fail ${CSI_CR_URL} 2> /dev/null; then
-        echo "Downloading the IBM Block CSI CR file..."
+if curl --head --silent --fail "${CSI_CR_URL}" 2> /dev/null; then
+        echo "Downloading the IBM Block CSI CR file on version ${BLOCK_CSI_RELEASE} ..."
         curl -JL "${CSI_CR_URL}" -o "${CSI_CR_PATH}"
 else
         echo "CSI tag doesn't exist yet, downloading develop version"
@@ -36,4 +36,5 @@ else
         sed -i 's/tag: "1.11.0"/tag: "latest"/g' "${CSI_CR_PATH}"
 fi
 
+echo "Coping CR file to all directories"
 cp "${CSI_CR_PATH}" "${CSI_SAMPLES_CR_PATH}"
