@@ -26,6 +26,7 @@ docker build -f bundle.Dockerfile -t "${BUNDLE_FULL_IMAGE_NAME}" .
 echo
 echo "Pushing Operator bundle image to image registry..."
 docker push "${BUNDLE_FULL_IMAGE_NAME}"
+echo
 
 if curl --head --silent --fail "${CSI_GA_CR_URL}" 2> /dev/null; then
   echo "CSI release is GAed. Using official images"
@@ -53,6 +54,7 @@ else
   echo "Building and pushing CSI bundle image using ${CSI_DOCKERFILE_PATH}/${CSI_DOCKERFILE_NAME}"
   docker build -f "${CSI_DOCKERFILE_NAME}" -t "${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}" .
   docker tag "${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}" "${REGISTRY_NAMESPACE}/${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}"
+  echo
   docker push "${REGISTRY_NAMESPACE}/${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}"
 
   echo "Deleting CSI repository clone"
