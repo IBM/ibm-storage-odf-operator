@@ -111,7 +111,6 @@ func (r *PersistentVolumeWatcher) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&source.Kind{
 			Type: &v1alpha1.FlashSystemCluster{},
 		}, handler.EnqueueRequestsFromMapFunc(pvMapper.pvMap), builder.WithPredicates(util.IgnoreUpdateAndGenericPredicate)).
-		//WithEventFilter(ignoreUpdateAndGenericPredicate()).
 		Watches(&source.Kind{
 			Type: &corev1.Secret{},
 		}, handler.EnqueueRequestsFromMapFunc(pvMapper.pvMap)).
