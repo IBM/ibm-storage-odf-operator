@@ -21,6 +21,8 @@ import (
 	"encoding/json"
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"time"
 
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
@@ -43,16 +45,18 @@ var _ = Describe("StorageClassWatcher", func() {
 		secretName               = "fs-secret-sample"
 		secondSecretName         = "second-fs-secret-sample"
 		thirdSecretName          = "third-fs-secret-sample"
+		fakeSecretName           = "fake-secret-sample"
 		topologySecretName       = "topology-secret"
 		storageClassName         = "odf-flashsystemcluster"
+		secondStorageClassName   = "second-odf-flashsystemcluster"
 		topologyStorageClassName = "topology-storageclass"
 		poolName                 = "Pool0"
 		topologyPoolName         = "demo-pool-1"
 		fsType                   = "ext4"
 		volPrefix                = "product"
 		spaceEff                 = "thin"
-		byManagementIdData       = "{\"flashsystemcluster-sample\":{\"pool\":\"demo-pool-1\",\"SpaceEfficiency\":\"dedup_compressed\",\"volume_name_prefix\":\"demo-prefix-1\"},\"second-flashsystemcluster-sample\":{\"volume_name_prefix\":\"demo-prefix-2\", \"io_group\": \"demo-iogrp\"}}"
-		topologySecretConfigData = "{\"flashsystemcluster-sample\": {\"username\": \"ZnNkcml2ZXI=\",\"password\": \"ZnNkcml2ZXI=\",\"management_address\": \"OS4xMTAuNzAuOTY=\"},\"second-flashsystemcluster-sample\": {\"username\": \"ZnNkcml2ZXI=\",\"password\": \"ZnNkcml2ZXI=\",\"management_address\": \"OS4xMTAuMTEuMjM=\"}}"
+		byManagementIdData       = "{\"demo-management-id-1\":{\"pool\":\"demo-pool-1\",\"SpaceEfficiency\":\"dedup_compressed\",\"volume_name_prefix\":\"demo-prefix-1\"},\"demo-management-id-2\":{\"volume_name_prefix\":\"demo-prefix-2\", \"io_group\": \"demo-iogrp\"}}"
+		topologySecretConfigData = "{\"demo-management-id-1\": {\"username\": \"ZnNkcml2ZXI=\",\"password\": \"ZnNkcml2ZXI=\",\"management_address\": \"OS4xMTAuNzAuOTY=\"},\"demo-management-id-2\": {\"username\": \"ZnNkcml2ZXI=\",\"password\": \"ZnNkcml2ZXI=\",\"management_address\": \"OS4xMTAuMTEuMjM=\"}}" // #nosec G101 - false positive
 
 		timeout = time.Second * 20
 		//duration = time.Second * 10
@@ -421,6 +425,205 @@ var _ = Describe("StorageClassWatcher", func() {
 				}
 				return false
 			}, timeout, interval).Should(BeTrue())
+		})
+
+		It("should test the getSecret function successfully", func() {
+			ctx := context.TODO()
+
+			By("By creating a new StorageClass with a non-existent secret")
+			sc := &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      secondStorageClassName,
+					Namespace: namespace,
+				},
+				Provisioner: util.CsiIBMBlockDriver,
+				Parameters: map[string]string{
+					"SpaceEfficiency":                     spaceEff,
+					"pool":                                poolName,
+					"csi.storage.k8s.io/secret-name":      fakeSecretName,
+					"csi.storage.k8s.io/secret-namespace": namespace,
+					"csi.storage.k8s.io/fstype":           fsType,
+					"volume_name_prefix":                  volPrefix,
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, sc)).Should(Succeed())
+
+			By("By querying the created StorageClass")
+			scLookupKey := types.NamespacedName{
+				Name:      secondStorageClassName,
+				Namespace: namespace,
+			}
+			createdSc := &storagev1.StorageClass{}
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, scLookupKey, createdSc)
+				return err == nil
+			}, timeout, interval).Should(BeTrue())
+
+			_, err := util.GetStorageClassSecret(k8sClient, ctrl.Log, createdSc)
+			Expect(err).To(HaveOccurred())
+			Expect(k8sClient.Delete(ctx, createdSc)).Should(Succeed())
+
+			By("By getting a StorageClass with a valid secret")
+			scLookupKey = types.NamespacedName{
+				Name:      storageClassName,
+				Namespace: namespace,
+			}
+			validCreatedSc := &storagev1.StorageClass{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, scLookupKey, validCreatedSc)
+				return err == nil
+			}, timeout, interval).Should(BeTrue())
+
+			secret, err := util.GetStorageClassSecret(k8sClient, ctrl.Log, validCreatedSc)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(secret).ToNot(BeNil())
+
+		})
+
+		It("should test the extractPoolName function successfully", func() {
+			ctx := context.TODO()
+			watcher := &StorageClassWatcher{
+				Log:    ctrl.Log.WithName("controllers").WithName("StorageClass"),
+				Client: k8sClient,
+				Scheme: scheme.Scheme,
+			}
+
+			By("By creating a new topology aware StorageClass")
+			topologySc := &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      topologyStorageClassName,
+					Namespace: namespace,
+				},
+				Provisioner: util.CsiIBMBlockDriver,
+				Parameters: map[string]string{
+					"by_management_id":                    byManagementIdData,
+					"SpaceEfficiency":                     spaceEff,
+					"pool":                                poolName,
+					"csi.storage.k8s.io/secret-name":      topologySecretName,
+					"csi.storage.k8s.io/secret-namespace": namespace,
+					"csi.storage.k8s.io/fstype":           fsType,
+					"volume_name_prefix":                  volPrefix,
+				},
+			}
+			Expect(k8sClient.Create(ctx, topologySc)).Should(Succeed())
+
+			By("By querying the created topology StorageClass")
+			topologyScLookupKey := types.NamespacedName{
+				Name:      topologyStorageClassName,
+				Namespace: namespace,
+			}
+			createdTopologySc := &storagev1.StorageClass{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, topologyScLookupKey, createdTopologySc)
+				return err == nil
+			}, timeout, interval).Should(BeTrue())
+
+			byMgmtId := make(map[string]interface{})
+			err := json.Unmarshal([]byte(byManagementIdData), &byMgmtId)
+			Expect(err).ToNot(HaveOccurred())
+
+			extractedPoolName, err := watcher.extractPoolName(*createdTopologySc, byMgmtId, "demo-management-id-1")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(extractedPoolName).To(Equal(topologyPoolName))
+
+			extractedPoolName, err = watcher.extractPoolName(*createdTopologySc, byMgmtId, "demo-management-id-2")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(extractedPoolName).To(Equal(poolName))
+
+			extractedPoolName, err = watcher.extractPoolName(*createdTopologySc, byMgmtId, "demo-management-id-3")
+			Expect(err).To(HaveOccurred())
+			Expect(extractedPoolName).To(Equal(""))
+
+		})
+
+		It("Should test the getFlashSystemClusterByStorageClass function successfully", func() {
+			ctx := context.TODO()
+			watcher := &StorageClassWatcher{
+				Log:    ctrl.Log.WithName("controllers").WithName("StorageClass"),
+				Client: k8sClient,
+				Scheme: scheme.Scheme,
+			}
+
+			topologyScLookupKey := types.NamespacedName{
+				Name:      topologyStorageClassName,
+				Namespace: namespace,
+			}
+			createdTopologySc := &storagev1.StorageClass{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, topologyScLookupKey, createdTopologySc)
+				return err == nil
+			}, timeout, interval).Should(BeTrue())
+
+			By("By testing with a topology aware StorageClass")
+			fscToPoolsMap, err := watcher.getFlashSystemClusterByStorageClass(createdTopologySc, true)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(fscToPoolsMap)).To(Equal(2))
+
+			fscToPoolsMap, err = watcher.getFlashSystemClusterByStorageClass(createdTopologySc, false)
+			Expect(err).To(HaveOccurred())
+			Expect(len(fscToPoolsMap)).To(Equal(0))
+
+			scLookupKey := types.NamespacedName{
+				Name:      storageClassName,
+				Namespace: namespace,
+			}
+			createdSc := &storagev1.StorageClass{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, scLookupKey, createdSc)
+				return err == nil
+			}, timeout, interval).Should(BeTrue())
+
+			By("By testing with a regular StorageClass")
+			fscToPoolsMap, err = watcher.getFlashSystemClusterByStorageClass(createdSc, false)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(fscToPoolsMap)).To(Equal(1))
+			Expect(fscToPoolsMap[FlashSystemName]).To(Equal(poolName))
+
+			fscToPoolsMap, err = watcher.getFlashSystemClusterByStorageClass(createdSc, true)
+			Expect(err).To(HaveOccurred())
+			Expect(len(fscToPoolsMap)).To(Equal(0))
+
+		})
+
+		It("Should test the addStorageClassFromConfigMap and removeStorageClassFromConfigMap functions successfully", func() {
+			ctx := context.TODO()
+			watcher := &StorageClassWatcher{
+				Log:    ctrl.Log.WithName("controllers").WithName("StorageClass"),
+				Client: k8sClient,
+				Scheme: scheme.Scheme,
+			}
+
+			cmLookupKey := types.NamespacedName{
+				Name:      util.PoolConfigmapName,
+				Namespace: namespace,
+			}
+			createdCm := &corev1.ConfigMap{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, cmLookupKey, createdCm)
+				return err == nil
+			}, timeout, interval).Should(BeTrue())
+
+			// should fail with a non-existing FlashSystemCluster
+			err := watcher.addStorageClassToConfigMap(*createdCm, "fake-fsc", storageClassName, poolName)
+			Expect(err).To(HaveOccurred())
+
+			// should succeed with a valid FlashSystemCluster
+			err = watcher.addStorageClassToConfigMap(*createdCm, FlashSystemName, storageClassName, poolName)
+			Expect(err).ToNot(HaveOccurred())
+
+			// should not fail with a non-existing FlashSystemCluster - it returns nil and skips
+			err = watcher.removeStorageClassFromConfigMap(*createdCm, "fake-fsc", storageClassName)
+			Expect(err).ToNot(HaveOccurred())
+
+			// should succeed with a valid FlashSystemCluster
+			err = watcher.removeStorageClassFromConfigMap(*createdCm, FlashSystemName, storageClassName)
+			Expect(err).ToNot(HaveOccurred())
+
+			// should fail with a non-existing StorageClass
+			err = watcher.removeStorageClassFromConfigMap(*createdCm, FlashSystemName, "fake-sc")
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should delete all StorageClasses successfully", func() {
