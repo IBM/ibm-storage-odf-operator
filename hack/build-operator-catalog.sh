@@ -19,14 +19,13 @@
 set -e
 
 source hack/common.sh
-#source hack/ensure-opm.sh
+source hack/ensure-opm.sh
 
-CSI_CR_URL="https://raw.githubusercontent.com/IBM/ibm-block-csi-operator/${BLOCK_CSI_RELEASE}/config/samples/${BLOCK_CSI_CR_FILE}"
-if curl --head --silent --fail "${CSI_CR_URL}" 2> /dev/null; then
+if curl --head --silent --fail "${CSI_GA_CR_URL}" 2> /dev/null; then
   echo "CSI release is GAed. Using official images"
 else
   echo "CSI tag doesn't exist yet, adding CSI bundle into ODF internal catalog."
-  ${OPM_BIN} -u docker -p docker index add --bundles "${REGISTRY_NAMESPACE}/${DEFAULT_CSI_DEVELOP_IMAGE}:${IMAGE_TAG}" --tag "${CATALOG_FULL_IMAGE_NAME}"
+  ${OPM_BIN} -u docker -p docker index add --bundles "${REGISTRY_NAMESPACE}/${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}" --tag "${CATALOG_FULL_IMAGE_NAME}"
 fi
 
 echo "Creating an index image with the Operator bundle image injected..."

@@ -27,29 +27,34 @@ echo
 echo "Pushing Operator bundle image to image registry..."
 docker push "${BUNDLE_FULL_IMAGE_NAME}"
 
-CSI_CR_URL="https://raw.githubusercontent.com/IBM/ibm-block-csi-operator/${BLOCK_CSI_RELEASE}/config/samples/${BLOCK_CSI_CR_FILE}"
-if curl --head --silent --fail "${CSI_CR_URL}" 2> /dev/null; then
+if curl --head --silent --fail "${CSI_GA_CR_URL}" 2> /dev/null; then
   echo "CSI release is GAed. Using official images"
 else
   echo "CSI tag doesn't exist yet, cloning CSI GitHub repository"
   oldPWD=$(pwd)
-  if [ ! -d "${DEFAULT_CSI_LOCAL_PATH}" ]
+  if [ ! -d "${CSI_LOCAL_PATH}" ]
   then
-      git clone "${DEFAULT_CSI_GIT_PATH}"
-      cd "${DEFAULT_CSI_LOCAL_PATH}"
+      git clone "${CSI_GIT_PATH}"
+      cd "${CSI_LOCAL_PATH}"
   else
-      cd "${DEFAULT_CSI_LOCAL_PATH}"
+      cd "${CSI_LOCAL_PATH}"
       git pull
   fi
 
-  cd "${DEFAULT_CSI_DOCKERFILE_PATH}"
-  echo "Building and pushing CSI bundle image using ${DEFAULT_CSI_DOCKERFILE_PATH}/${DEFAULT_CSI_DOCKERFILE_NAME}"
-  docker build -f "${DEFAULT_CSI_DOCKERFILE_NAME}" -t "${DEFAULT_CSI_DEVELOP_IMAGE}:${IMAGE_TAG}" .
-  docker tag "${DEFAULT_CSI_DEVELOP_IMAGE}:${IMAGE_TAG}" "${REGISTRY_NAMESPACE}/${DEFAULT_CSI_DEVELOP_IMAGE}:${IMAGE_TAG}"
-  docker push "${REGISTRY_NAMESPACE}/${DEFAULT_CSI_DEVELOP_IMAGE}:${IMAGE_TAG}"
+  cd config/samples
+  sed -i "s/ibmcom\/ibm-block-csi-driver-controller/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-driver-controller-amd64/g" "${CSI_CR_FILE}"
+  sed -i "s/ibmcom\/ibm-block-csi-driver-node/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-driver-node-amd64/g" "${CSI_CR_FILE}"
+  sed -i "s/tag: \"${CSI_RELEASE_NUMBER}\"/tag: \"latest\"/g" "${CSI_CR_FILE}"
+
+  cd "${oldPWD}/${CSI_LOCAL_PATH}/${CSI_DOCKERFILE_PATH}"
+
+  echo "Building and pushing CSI bundle image using ${CSI_DOCKERFILE_PATH}/${CSI_DOCKERFILE_NAME}"
+  docker build -f "${CSI_DOCKERFILE_NAME}" -t "${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}" .
+  docker tag "${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}" "${REGISTRY_NAMESPACE}/${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}"
+  docker push "${REGISTRY_NAMESPACE}/${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}"
 
   echo "Deleting CSI repository clone"
   cd "${oldPWD}"
-  rm -rf "${DEFAULT_CSI_LOCAL_PATH}"
+  rm -rf "${CSI_LOCAL_PATH}"
 fi
 

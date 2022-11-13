@@ -25,17 +25,17 @@ BUNDLE_METADATA_OPTS="${BUNDLE_CHANNELS} ${BUNDLE_DEFAULT_CHANNEL}"
 
 # Always start fresh and remove any previous artifacts that may exist
 echo "Cleaning the previous artifacts that may exist..."
-rm -rf "$(dirname ${BUNDLE_METADATA_DIR})"
+rm -rf "$(dirname "${BUNDLE_METADATA_DIR}")"
 mkdir -p "${BUNDLE_METADATA_DIR}"
 
 # Generate the file dependencies.yaml, which requires the minimum version of IBM Block CSI Operator.
 echo "Generating the file dependencies.yaml..."
-cat << EOF > ${BUNDLE_METADATA_DIR}/dependencies.yaml
+cat << EOF > "${BUNDLE_METADATA_DIR}"/dependencies.yaml
 dependencies:
   - type: olm.package
     value:
       packageName: ibm-block-csi-operator
-      version: ">=${BLOCK_CSI_RELEASE:1}"
+      version: ">=${CSI_RELEASE:1}"
 EOF
 
 echo "Generating bundle manifests and metadata..."
@@ -48,10 +48,10 @@ else
         sed -i "s#value: .*#value: ${FLASHSYSTEM_DRIVER_FULL_IMAGE_NAME}#" ../default/manager_config_patch.yaml
 fi
 
-../../${KUSTOMIZE_BIN} edit set image controller="${OPERATOR_FULL_IMAGE_NAME}"
+../../"${KUSTOMIZE_BIN}" edit set image controller="${OPERATOR_FULL_IMAGE_NAME}"
 popd
 
-${KUSTOMIZE_BIN} build config/manifests | ${OPERATOR_SDK_BIN} generate bundle -q --overwrite --version "${RELEASE_VERSION}" ${BUNDLE_METADATA_OPTS}
+${KUSTOMIZE_BIN} build config/manifests | ${OPERATOR_SDK_BIN} generate bundle -q --overwrite --version "${RELEASE_VERSION}" "${BUNDLE_METADATA_OPTS}"
 
 echo "Validating the generated files..."
 ${OPERATOR_SDK_BIN} bundle validate ./bundle
