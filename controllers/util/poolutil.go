@@ -31,6 +31,8 @@ import (
 	"os"
 	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"strings"
 )
 
@@ -57,6 +59,18 @@ const (
 	SecretManagementAddressKey = "management_address" // #nosec G101 - false positive
 )
 
+type FSCMatchNotFoundError struct{}
+
+func (m *FSCMatchNotFoundError) Error() string {
+	return "no matching FlashSystemCluster found"
+}
+
+type UniqueFSCMatchError struct{}
+
+func (m *UniqueFSCMatchError) Error() string {
+	return "cannot find unique FlashSystemCluster"
+}
+
 type FlashSystemClusterMapContent struct {
 	ScPoolMap map[string]string `json:"storageclass"`
 	Secret    string            `json:"secret"`
@@ -64,6 +78,21 @@ type FlashSystemClusterMapContent struct {
 
 type FSCConfigMapData struct {
 	FlashSystemClusterMap map[string]FlashSystemClusterMapContent
+}
+
+var IgnoreUpdateAndGenericPredicate = predicate.Funcs{
+	CreateFunc: func(e event.CreateEvent) bool {
+		return true
+	},
+	DeleteFunc: func(e event.DeleteEvent) bool {
+		return true
+	},
+	UpdateFunc: func(e event.UpdateEvent) bool {
+		return false
+	},
+	GenericFunc: func(e event.GenericEvent) bool {
+		return false
+	},
 }
 
 func ReadPoolConfigMapFile() (map[string]FlashSystemClusterMapContent, error) {
