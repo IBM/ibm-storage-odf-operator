@@ -562,7 +562,7 @@ var _ = Describe("StorageClassWatcher", func() {
 			Expect(len(fscToPoolsMap)).To(Equal(2))
 
 			fscToPoolsMap, err = watcher.getFlashSystemClusterByStorageClass(createdTopologySc, false)
-			Expect(err).To(HaveOccurred())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(len(fscToPoolsMap)).To(Equal(0))
 
 			scLookupKey := types.NamespacedName{
