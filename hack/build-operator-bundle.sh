@@ -41,6 +41,7 @@ else
       git pull
   fi
 
+  echo "Overriding CSI CR file to develop registry"
   cd config/samples
   sed -i "s/ibmcom\/ibm-block-csi-driver-controller/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-driver-controller-amd64/g" "${CSI_CR_FILE}"
   sed -i "s/ibmcom\/ibm-block-csi-driver-node/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-driver-node-amd64/g" "${CSI_CR_FILE}"
@@ -48,6 +49,7 @@ else
 
   cd "${oldPWD}/${CSI_LOCAL_PATH}/${CSI_DOCKERFILE_PATH}"
 
+  echo
   echo "Building and pushing CSI bundle image using ${CSI_DOCKERFILE_PATH}/${CSI_DOCKERFILE_NAME}"
   docker build -f "${CSI_DOCKERFILE_NAME}" -t "${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}" .
   docker tag "${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}" "${REGISTRY_NAMESPACE}/${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}"

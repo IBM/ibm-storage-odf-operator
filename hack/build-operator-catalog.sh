@@ -21,15 +21,20 @@ set -e
 source hack/common.sh
 source hack/ensure-opm.sh
 
+CSI_BUNDLE_IMAGE=""
 if curl --head --silent --fail "${CSI_GA_CR_URL}" 2> /dev/null; then
   echo "CSI release is GAed. Using official images"
 else
   echo "CSI tag doesn't exist yet, adding CSI bundle into ODF internal catalog."
-  ${OPM_BIN} -u docker -p docker index add --bundles "${REGISTRY_NAMESPACE}/${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}" --tag "${CATALOG_FULL_IMAGE_NAME}"
+  CSI_BUNDLE_IMAGE="${REGISTRY_NAMESPACE}/${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}"
 fi
 
 echo "Creating an index image with the Operator bundle image injected..."
-${OPM_BIN} -u docker -p docker index add --bundles "${BUNDLE_FULL_IMAGE_NAME}" --tag "${CATALOG_FULL_IMAGE_NAME}"
+if [ -z "${CSI_BUNDLE_IMAGE}" ]; then
+  ${OPM_BIN} -u docker -p docker index add --bundles "${BUNDLE_FULL_IMAGE_NAME}" --tag "${CATALOG_FULL_IMAGE_NAME}"
+else
+  ${OPM_BIN} -u docker -p docker index add --bundles "${BUNDLE_FULL_IMAGE_NAME},${CSI_BUNDLE_IMAGE}" --tag "${CATALOG_FULL_IMAGE_NAME}"
+fi
 
 echo
 echo "Pushing the index image to image registry..."
