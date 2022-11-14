@@ -42,14 +42,10 @@ else
       git pull
   fi
 
-  echo "Overriding CSI CR file to develop registry"
-  cd config/samples
-  sed -i "s/ibmcom\/ibm-block-csi-driver-controller/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-driver-controller-amd64/g" "${CSI_CR_FILE}"
-  sed -i "s/ibmcom\/ibm-block-csi-driver-node/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-driver-node-amd64/g" "${CSI_CR_FILE}"
-  sed -i "s/tag: \"${CSI_RELEASE_NUMBER}\"/tag: \"latest\"/g" "${CSI_CR_FILE}"
+  echo "Overriding CSV file to develop registry"
+  sed -i "s/registry.connect.redhat.com\/ibm\/ibm-block-csi-operator:${CSI_RELEASE_NUMBER}/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-operator:${CSI_LATEST_TAG}/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
 
-  cd "${oldPWD}/${CSI_LOCAL_PATH}/${CSI_DOCKERFILE_PATH}"
-
+  cd "${CSI_DOCKERFILE_PATH}"
   echo
   echo "Building and pushing CSI bundle image using ${CSI_DOCKERFILE_PATH}/${CSI_DOCKERFILE_NAME}"
   docker build -f "${CSI_DOCKERFILE_NAME}" -t "${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}" .

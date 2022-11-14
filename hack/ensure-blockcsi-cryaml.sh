@@ -33,7 +33,7 @@ else
         echo "Overriding CSI CR file to develop registry"
         sed -i "s/ibmcom\/ibm-block-csi-driver-controller/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-driver-controller-amd64/g" "${CSI_CR_PATH}"
         sed -i "s/ibmcom\/ibm-block-csi-driver-node/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-driver-node-amd64/g" "${CSI_CR_PATH}"
-        sed -i "s/tag: \"${CSI_RELEASE_NUMBER}\"/tag: \"latest\"/g" "${CSI_CR_PATH}"
+        sed -i "s/tag: \"${CSI_RELEASE_NUMBER}\"/tag: \"${CSI_LATEST_TAG}\"/g" "${CSI_CR_PATH}"
 fi
 
 echo "Coping CR file to all directories"
