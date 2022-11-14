@@ -247,12 +247,15 @@ var _ = Describe("PersistentVolume Controller", func() {
 
 				Eventually(func() bool {
 					err := k8sClient.Get(ctx, pvLookupKey, createdPv)
+					if createdPv.Name == secondPersistentVolume || createdPv.Name == secondPersistentVolumeForTopology {
+						Expect(createdPv.Spec.CSI.VolumeAttributes[util.PVMgmtAddrKey]).To(Equal("OS4xMTAuMTEuMjM="))
+					}
 					return err == nil
 				}, timeout, interval).Should(BeTrue())
 			}
 		})
 
-		It("should test the addStorageSystemLabelToPV function successfully", func() {
+		It("should test the ensureStorageSystemLabel function successfully", func() {
 			ctx := context.TODO()
 
 			watcher := &PersistentVolumeWatcher{
