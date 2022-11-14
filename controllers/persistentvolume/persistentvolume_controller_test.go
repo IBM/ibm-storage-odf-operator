@@ -440,7 +440,7 @@ var _ = Describe("PersistentVolume Controller", func() {
 				Namespace: namespace,
 			}
 			Expect(k8sClient.Get(ctx, pvLookupKey, pv)).Should(Succeed())
-			err := watcher.addStorageSystemLabelToPV(pv)
+			err := watcher.ensureStorageSystemLabel(pv)
 			Expect(err).Should(Not(HaveOccurred()))
 			Expect(pv.Labels[util.OdfFsStorageSystemLabelKey]).Should(Equal(FlashSystemName))
 
@@ -452,7 +452,7 @@ var _ = Describe("PersistentVolume Controller", func() {
 			}
 
 			Expect(k8sClient.Get(ctx, pvLookupKey, pvForTopology)).Should(Succeed())
-			err = watcher.addStorageSystemLabelToPV(pvForTopology)
+			err = watcher.ensureStorageSystemLabel(pvForTopology)
 			Expect(err).Should(HaveOccurred())
 		})
 	})
