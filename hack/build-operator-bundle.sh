@@ -44,6 +44,9 @@ else
 
   echo "Overriding CSV file to develop registry"
   sed -i "s/registry.connect.redhat.com\/ibm\/ibm-block-csi-operator:${CSI_RELEASE_NUMBER}/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-operator:${CSI_LATEST_TAG}/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
+  sed -i "s/ibmcom\/ibm-block-csi-driver-controller/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-driver-controller-amd64/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
+  sed -i "s/ibmcom\/ibm-block-csi-driver-node/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-driver-node-amd64/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
+  sed -i "s/tag: \"${CSI_RELEASE_NUMBER}\"/tag: \"${CSI_LATEST_TAG}\"/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
 
   cd "${CSI_DOCKERFILE_PATH}"
   echo
