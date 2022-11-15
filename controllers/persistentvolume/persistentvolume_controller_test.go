@@ -435,18 +435,6 @@ var _ = Describe("PersistentVolume Controller", func() {
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
-			By("Testing the getPVManagementAddress function without a PersistentVolumeClaim")
-			pvc := &corev1.PersistentVolumeClaim{}
-			pvcLookupKey := types.NamespacedName{
-				Name:      PersistentVolumeClaim,
-				Namespace: namespace,
-			}
-			Expect(k8sClient.Get(ctx, pvcLookupKey, pvc)).Should(Succeed())
-			Expect(k8sClient.Delete(ctx, pvc)).Should(Succeed())
-
-			_, err = watcher.getPVManagementAddress(pv)
-			Expect(err).Should(HaveOccurred())
-
 			By("Getting the PV Management Address from the PV with the PVMgmtAddrKey field")
 			pvWithMgmtAddrKey := &corev1.PersistentVolume{}
 			pvLookupKey = types.NamespacedName{
