@@ -153,6 +153,43 @@ var _ = Describe("PersistentVolume Controller", func() {
 					return err == nil
 				}, timeout, interval).Should(BeTrue())
 			}
+
+			By("By creating a new FlashSystemCluster")
+			instance := &odfv1alpha1.FlashSystemCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      FlashSystemName,
+					Namespace: namespace,
+				},
+				Spec: odfv1alpha1.FlashSystemClusterSpec{
+					Name: FlashSystemName,
+					Secret: corev1.SecretReference{
+						Name:      secretName,
+						Namespace: namespace,
+					},
+					InsecureSkipVerify: true,
+					DefaultPool: &odfv1alpha1.StorageClassConfig{
+						StorageClassName: storageClassName,
+						PoolName:         poolName,
+						FsType:           fsType,
+						VolumeNamePrefix: volPrefix,
+						SpaceEfficiency:  spaceEff,
+					},
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, instance)).Should(Succeed())
+
+			By("By querying the created FlashSystemCluster")
+			fscLoopUpKey := types.NamespacedName{
+				Name:      FlashSystemName,
+				Namespace: namespace,
+			}
+			createdFsc := &odfv1alpha1.FlashSystemCluster{}
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, fscLoopUpKey, createdFsc)
+				return err == nil
+			}, timeout, interval).Should(BeTrue())
 		})
 
 		It("should create a PersistentVolumeClaim successfully", func() {
@@ -247,10 +284,10 @@ var _ = Describe("PersistentVolume Controller", func() {
 
 				Eventually(func() bool {
 					err := k8sClient.Get(ctx, pvLookupKey, createdPv)
-					if createdPv.Name == secondPersistentVolume || createdPv.Name == topologyPvWithArrayAddress {
-						Expect(createdPv.Spec.CSI.VolumeAttributes[util.PVMgmtAddrKey]).To(Equal("OS4xMTAuMTEuMjM="))
+					if pvName == secondPersistentVolume || pvName == topologyPvWithArrayAddress {
+						return err == nil && createdPv.Labels[util.OdfFsStorageSystemLabelKey] == FlashSystemName
 					}
-					return err == nil
+					return err == nil && createdPv.Labels[util.OdfFsStorageSystemLabelKey] == ""
 				}, timeout, interval).Should(BeTrue())
 			}
 		})
@@ -263,43 +300,6 @@ var _ = Describe("PersistentVolume Controller", func() {
 				Client: k8sClient,
 				Scheme: scheme.Scheme,
 			}
-
-			By("By creating a new FlashSystemCluster")
-			instance := &odfv1alpha1.FlashSystemCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      FlashSystemName,
-					Namespace: namespace,
-				},
-				Spec: odfv1alpha1.FlashSystemClusterSpec{
-					Name: FlashSystemName,
-					Secret: corev1.SecretReference{
-						Name:      secretName,
-						Namespace: namespace,
-					},
-					InsecureSkipVerify: true,
-					DefaultPool: &odfv1alpha1.StorageClassConfig{
-						StorageClassName: storageClassName,
-						PoolName:         poolName,
-						FsType:           fsType,
-						VolumeNamePrefix: volPrefix,
-						SpaceEfficiency:  spaceEff,
-					},
-				},
-			}
-
-			Expect(k8sClient.Create(ctx, instance)).Should(Succeed())
-
-			By("By querying the created FlashSystemCluster")
-			fscLoopUpKey := types.NamespacedName{
-				Name:      FlashSystemName,
-				Namespace: namespace,
-			}
-			createdFsc := &odfv1alpha1.FlashSystemCluster{}
-
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, fscLoopUpKey, createdFsc)
-				return err == nil
-			}, timeout, interval).Should(BeTrue())
 
 			By("Adding the StorageSystem label to the PV")
 			pv := &corev1.PersistentVolume{}
