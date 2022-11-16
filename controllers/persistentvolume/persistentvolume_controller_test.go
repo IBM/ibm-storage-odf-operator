@@ -287,7 +287,8 @@ var _ = Describe("PersistentVolume Controller", func() {
 					if pvName == secondPersistentVolume || pvName == topologyPvWithArrayAddress {
 						return err == nil && createdPv.Labels[util.OdfFsStorageSystemLabelKey] == FlashSystemName
 					}
-					return err == nil && createdPv.Labels[util.OdfFsStorageSystemLabelKey] == ""
+					_, pvLabelExists := createdPv.Labels[util.OdfFsStorageSystemLabelKey]
+					return err == nil && !pvLabelExists
 				}, timeout, interval).Should(BeTrue())
 			}
 		})
