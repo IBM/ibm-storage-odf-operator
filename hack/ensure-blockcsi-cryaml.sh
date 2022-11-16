@@ -23,7 +23,7 @@ source hack/common.sh
 CSI_CR_PATH="config/manager/${CSI_CR_FILE}"
 CSI_SAMPLES_CR_PATH="config/samples/${CSI_CR_FILE}"
 
-if curl --head --silent --fail "${CSI_GA_CR_URL}" 2> /dev/null; then
+if curl --head --silent --fail "${CSI_GA_CR_URL}" &> /dev/null; then
         echo "Downloading the IBM Block CSI CR file on version ${CSI_RELEASE} ..."
         curl -JL "${CSI_GA_CR_URL}" -o "${CSI_CR_PATH}"
 else

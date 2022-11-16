@@ -22,7 +22,7 @@ source hack/common.sh
 source hack/ensure-opm.sh
 
 CSI_BUNDLE_IMAGE=""
-if curl --head --silent --fail "${CSI_GA_CR_URL}" 2> /dev/null; then
+if curl --head --silent --fail "${CSI_GA_CR_URL}" &> /dev/null; then
   echo "CSI release is GAed. Using official images"
 else
   echo "CSI tag doesn't exist yet, adding CSI bundle into ODF internal catalog."

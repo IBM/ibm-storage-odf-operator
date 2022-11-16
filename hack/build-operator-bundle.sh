@@ -28,7 +28,7 @@ echo "Pushing Operator bundle image to image registry..."
 docker push "${BUNDLE_FULL_IMAGE_NAME}"
 echo
 
-if curl --head --silent --fail "${CSI_GA_CR_URL}" 2> /dev/null; then
+if curl --head --silent --fail "${CSI_GA_CR_URL}" &> /dev/null; then
   echo "CSI release is GAed. Using official images"
 else
   echo "CSI tag doesn't exist yet, cloning CSI GitHub repository"

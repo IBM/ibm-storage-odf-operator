@@ -35,7 +35,7 @@ CSI_LOCAL_PATH="ibm-block-csi-operator"
 CSI_GIT_PATH="https://github.com/IBM/ibm-block-csi-operator.git"
 CSI_DOCKERFILE_PATH="deploy/olm-catalog/ibm-block-csi-operator/${CSI_RELEASE_NUMBER}"
 CSI_DOCKERFILE_NAME="bundle-${CSI_RELEASE_NUMBER}.Dockerfile"
-CSI_CSV_PATH="deploy/olm-catalog/ibm-block-csi-operator/1.11.0/manifests"
+CSI_CSV_PATH="deploy/olm-catalog/ibm-block-csi-operator/${CSI_RELEASE_NUMBER}/manifests"
 CSI_CSV_FILE="ibm-block-csi-operator.clusterserviceversion.yaml"
 CSI_GA_CR_URL="https://raw.githubusercontent.com/IBM/ibm-block-csi-operator/${CSI_RELEASE}/config/samples/${CSI_CR_FILE}"
 
