@@ -19,6 +19,8 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"strings"
 
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
@@ -374,6 +376,13 @@ func (r *FlashSystemClusterReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		reconciler: r,
 	}
 
+	csiBlock := &unstructured.Unstructured{}
+	csiBlock.SetGroupVersionKind(schema.GroupVersionKind{
+		Kind:    "IBMBlockCSI",
+		Group:   "",
+		Version: "csi.ibm.com/v1",
+	})
+
 	//TODO: it seems operator-sdk 1.5 + golang 1.5 fails to watch resources through Owns
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&odfv1alpha1.FlashSystemCluster{}).
@@ -389,6 +398,9 @@ func (r *FlashSystemClusterReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Watches(&source.Kind{
 			Type: &corev1.Secret{},
 		}, handler.EnqueueRequestsFromMapFunc(secretMapper.SecretToClusterMapFunc)).
+		Watches(&source.Kind{
+			Type: csiBlock},
+			&handler.EnqueueRequestForObject{}).
 		Complete(r)
 
 }
