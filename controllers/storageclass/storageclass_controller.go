@@ -32,6 +32,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -78,7 +79,7 @@ type storageClassMapper struct {
 	reconciler *StorageClassWatcher
 }
 
-func (f *storageClassMapper) storageClassMap(object client.Object) []reconcile.Request {
+func (f *storageClassMapper) storageClassMap(_ client.Object) []reconcile.Request {
 	storageClasses := &storagev1.StorageClassList{}
 	err := f.reconciler.Client.List(context.TODO(), storageClasses)
 	if err != nil {
@@ -98,11 +99,6 @@ func (f *storageClassMapper) storageClassMap(object client.Object) []reconcile.R
 			requests = append(requests, req)
 		}
 	}
-
-	if len(requests) > 0 {
-		f.reconciler.Log.Info("reflect cluster changes to StorageClasses")
-	}
-
 	return requests
 }
 
@@ -118,7 +114,8 @@ func (r *StorageClassWatcher) SetupWithManager(mgr ctrl.Manager) error {
 		}, handler.EnqueueRequestsFromMapFunc(scMapper.storageClassMap), builder.WithPredicates(util.IgnoreUpdateAndGenericPredicate)).
 		Watches(&source.Kind{
 			Type: &corev1.Secret{},
-		}, handler.EnqueueRequestsFromMapFunc(scMapper.storageClassMap)).
+		}, handler.EnqueueRequestsFromMapFunc(scMapper.storageClassMap), builder.WithPredicates(util.IgnoreGenericPredicate)).
+		WithOptions(controller.Options{MaxConcurrentReconciles: 1}).
 		Complete(r)
 }
 

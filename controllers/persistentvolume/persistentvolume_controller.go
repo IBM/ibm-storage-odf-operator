@@ -28,9 +28,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -41,7 +40,7 @@ type persistentVolumeMapper struct {
 	reconciler *PersistentVolumeWatcher
 }
 
-func (f *persistentVolumeMapper) pvMap(object client.Object) []reconcile.Request {
+func (f *persistentVolumeMapper) pvMap(_ client.Object) []reconcile.Request {
 	pvs := &corev1.PersistentVolumeList{}
 	err := f.reconciler.Client.List(context.TODO(), pvs)
 	if err != nil {
@@ -61,41 +60,12 @@ func (f *persistentVolumeMapper) pvMap(object client.Object) []reconcile.Request
 			requests = append(requests, req)
 		}
 	}
-
-	if len(requests) > 0 {
-		f.reconciler.Log.Info("reflect cluster changes to PersistentVolumes")
-	}
-
 	return requests
-}
-
-func reconcilePV(obj runtime.Object) bool {
-	pv, ok := obj.(*corev1.PersistentVolume)
-	if !ok {
-		return false
-	}
-
-	return isCSIBlockDriverPV(*pv)
 }
 
 func isCSIBlockDriverPV(pv corev1.PersistentVolume) bool {
 	return pv.Spec.CSI != nil && pv.Spec.CSI.Driver == util.CsiIBMBlockDriver && pv.Spec.ClaimRef != nil &&
 		pv.Spec.ClaimRef.Kind == util.PersistentVolumeClaimKind
-}
-
-var pvPredicate = predicate.Funcs{
-	CreateFunc: func(e event.CreateEvent) bool {
-		return reconcilePV(e.Object)
-	},
-	DeleteFunc: func(e event.DeleteEvent) bool {
-		return reconcilePV(e.Object)
-	},
-	UpdateFunc: func(e event.UpdateEvent) bool {
-		return reconcilePV(e.ObjectNew)
-	},
-	GenericFunc: func(e event.GenericEvent) bool {
-		return reconcilePV(e.Object)
-	},
 }
 
 type PersistentVolumeWatcher struct {
@@ -111,13 +81,14 @@ func (r *PersistentVolumeWatcher) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&corev1.PersistentVolume{}, builder.WithPredicates(pvPredicate)).
+		For(&corev1.PersistentVolume{}).
 		Watches(&source.Kind{
 			Type: &v1alpha1.FlashSystemCluster{},
 		}, handler.EnqueueRequestsFromMapFunc(pvMapper.pvMap), builder.WithPredicates(util.IgnoreUpdateAndGenericPredicate)).
 		Watches(&source.Kind{
 			Type: &corev1.Secret{},
-		}, handler.EnqueueRequestsFromMapFunc(pvMapper.pvMap)).
+		}, handler.EnqueueRequestsFromMapFunc(pvMapper.pvMap), builder.WithPredicates(util.IgnoreGenericPredicate)).
+		WithOptions(controller.Options{MaxConcurrentReconciles: 1}).
 		Complete(r)
 }
 
