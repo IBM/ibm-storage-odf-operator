@@ -146,7 +146,7 @@ type FlashSystemClusterReconciler struct {
 //+kubebuilder:rbac:groups=odf.ibm.com,resources=flashsystemclusters,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=odf.ibm.com,resources=flashsystemclusters/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=odf.ibm.com,resources=flashsystemclusters/finalizers,verbs=update
-//+kubebuilder:rbac:groups=csi.ibm.com,resources=ibmblockcsis,verbs=get;list;create;update;patch;delete
+//+kubebuilder:rbac:groups=csi.ibm.com,resources=ibmblockcsis,verbs=get;list;create;update;patch;delete;watch
 //+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
