@@ -19,6 +19,11 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"strings"
 
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
@@ -51,6 +56,49 @@ var (
 
 type SecretMapper struct {
 	reconciler *FlashSystemClusterReconciler
+}
+
+type CSIBlockMapper struct {
+	reconciler *FlashSystemClusterReconciler
+}
+
+var RunDeletePredicate = predicate.Funcs{
+	CreateFunc: func(e event.CreateEvent) bool {
+		return false
+	},
+	DeleteFunc: func(e event.DeleteEvent) bool {
+		return true
+	},
+	UpdateFunc: func(e event.UpdateEvent) bool {
+		return false
+	},
+	GenericFunc: func(e event.GenericEvent) bool {
+		return false
+	},
+}
+
+func (s *CSIBlockMapper) CSIToClusterMapFunc(_ client.Object) []reconcile.Request {
+	clusters := &odfv1alpha1.FlashSystemClusterList{}
+
+	err := s.reconciler.Client.List(context.TODO(), clusters)
+	if err != nil {
+		s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "CSIToClusterMapFunc", s)
+		return nil
+	}
+
+	requests := []reconcile.Request{}
+	for _, c := range clusters.Items {
+		req := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: c.GetNamespace(),
+				Name:      c.GetName(),
+			},
+		}
+		requests = append(requests, req)
+		s.reconciler.Log.Info("Discovered a change in CSI CR. Reconciling FlashSystemCluster", "CSIToClusterMapFunc", requests)
+		s.reconciler.IsCSICRCreated = false
+	}
+	return requests
 }
 
 func (s *SecretMapper) SecretToClusterMapFunc(object client.Object) []reconcile.Request {
@@ -98,7 +146,7 @@ type FlashSystemClusterReconciler struct {
 //+kubebuilder:rbac:groups=odf.ibm.com,resources=flashsystemclusters,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=odf.ibm.com,resources=flashsystemclusters/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=odf.ibm.com,resources=flashsystemclusters/finalizers,verbs=update
-//+kubebuilder:rbac:groups=csi.ibm.com,resources=ibmblockcsis,verbs=get;list;create;update;patch;delete
+//+kubebuilder:rbac:groups=csi.ibm.com,resources=ibmblockcsis,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
@@ -118,7 +166,7 @@ type FlashSystemClusterReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.2/pkg/reconcile
-func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *FlashSystemClusterReconciler) Reconcile(_ context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
 	result := reconcile.Result{}
 	prevLogger := r.Log
@@ -228,7 +276,13 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 
 	r.Log.Info("step: ensureFlashSystemCSICR - create or check FlashSystem CSI CR")
 	if err = r.ensureFlashSystemCSICR(instance); err != nil {
-		r.Log.Error(err, "failed to ensureFlashSystemCSICR")
+		reason := odfv1alpha1.ReasonReconcileFailed
+		message := fmt.Sprintf("failed to ensureFlashSystemCSICR: %v", err)
+		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
+
+		r.createEvent(instance, corev1.EventTypeWarning,
+			util.FailedLaunchBlockCSIReason, message)
+
 		return reconcile.Result{}, err
 	}
 
@@ -374,6 +428,17 @@ func (r *FlashSystemClusterReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		reconciler: r,
 	}
 
+	csiMapper := &CSIBlockMapper{
+		reconciler: r,
+	}
+
+	csiBlock := &unstructured.Unstructured{}
+	csiBlock.SetGroupVersionKind(schema.GroupVersionKind{
+		Kind:    "IBMBlockCSI",
+		Group:   "",
+		Version: "csi.ibm.com/v1",
+	})
+
 	//TODO: it seems operator-sdk 1.5 + golang 1.5 fails to watch resources through Owns
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&odfv1alpha1.FlashSystemCluster{}).
@@ -389,6 +454,9 @@ func (r *FlashSystemClusterReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Watches(&source.Kind{
 			Type: &corev1.Secret{},
 		}, handler.EnqueueRequestsFromMapFunc(secretMapper.SecretToClusterMapFunc)).
+		Watches(&source.Kind{
+			Type: csiBlock},
+			handler.EnqueueRequestsFromMapFunc(csiMapper.CSIToClusterMapFunc), builder.WithPredicates(RunDeletePredicate)).
 		Complete(r)
 
 }
@@ -396,8 +464,8 @@ func (r *FlashSystemClusterReconciler) SetupWithManager(mgr ctrl.Manager) error 
 func (r *FlashSystemClusterReconciler) createEvent(instance *odfv1alpha1.FlashSystemCluster, eventType, reason, message string) {
 	r.Log.Info(message)
 
-	event := util.InitK8sEvent(instance, eventType, reason, message)
-	err := r.Client.Create(context.TODO(), event)
+	newEvent := util.InitK8sEvent(instance, eventType, reason, message)
+	err := r.Client.Create(context.TODO(), newEvent)
 	if err != nil {
 		r.Log.Error(err, "failed to create event", "reason", reason, "message", message)
 	}
@@ -765,9 +833,6 @@ func (r *FlashSystemClusterReconciler) ensureFlashSystemCSICR(instance *odfv1alp
 		r.Log.Info("start to create CSI CR instance...")
 		obj, err := CreateIBMBlockCSICR(r.CSIDynamicClient, instance.Namespace)
 		if err != nil {
-			r.createEvent(instance, corev1.EventTypeWarning,
-				util.FailedLaunchBlockCSIReason,
-				fmt.Sprintf("CSI CR:  %s/%s", obj.GetNamespace(), obj.GetName()))
 			return err
 		}
 		r.createEvent(instance, corev1.EventTypeNormal,
