@@ -74,6 +74,17 @@ func SetReconcileErrorCondition(conditions *[]odfv1alpha1.Condition, reason stri
 		Reason:  reason,
 		Message: message,
 	})
+}
+
+// SetReconcileProvisionerErrorCondition sets the ProvisionerReady to False in
+// case CSI driver fails to start
+func SetReconcileProvisionerErrorCondition(conditions *[]odfv1alpha1.Condition, reason string, message string) {
+	SetStatusCondition(conditions, odfv1alpha1.Condition{
+		Type:    odfv1alpha1.ConditionReconcileComplete,
+		Status:  corev1.ConditionFalse,
+		Reason:  reason,
+		Message: message,
+	})
 
 	SetStatusCondition(conditions, odfv1alpha1.Condition{
 		Type:    odfv1alpha1.ProvisionerReady,

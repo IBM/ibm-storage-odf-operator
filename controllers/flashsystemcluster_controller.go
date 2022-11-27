@@ -281,11 +281,9 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 	if err = r.ensureFlashSystemCSICR(instance); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to ensureFlashSystemCSICR: %v", err)
-		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
+		util.SetReconcileProvisionerErrorCondition(&instance.Status.Conditions, reason, message)
 
-		r.createEvent(instance, corev1.EventTypeWarning,
-			util.FailedLaunchBlockCSIReason, message)
-
+		r.createEvent(instance, corev1.EventTypeWarning, util.FailedLaunchBlockCSIReason, message)
 		return reconcile.Result{}, err
 	}
 
