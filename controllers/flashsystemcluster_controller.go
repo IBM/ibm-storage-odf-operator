@@ -78,8 +78,9 @@ var RunDeletePredicate = predicate.Funcs{
 }
 
 func (s *CSIBlockMapper) CSIToClusterMapFunc(_ client.Object) []reconcile.Request {
-	clusters := &odfv1alpha1.FlashSystemClusterList{}
+	s.reconciler.IsCSICRCreated = false
 
+	clusters := &odfv1alpha1.FlashSystemClusterList{}
 	err := s.reconciler.Client.List(context.TODO(), clusters)
 	if err != nil {
 		s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "CSIToClusterMapFunc", s)
@@ -99,7 +100,6 @@ func (s *CSIBlockMapper) CSIToClusterMapFunc(_ client.Object) []reconcile.Reques
 
 	if len(requests) > 0 {
 		s.reconciler.Log.Info("Discovered a change in CSI CR. Reconciling FlashSystemCluster", "CSIToClusterMapFunc", requests)
-		s.reconciler.IsCSICRCreated = false
 	}
 	return requests
 }
