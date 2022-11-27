@@ -82,7 +82,7 @@ func (s *CSIBlockMapper) CSIToClusterMapFunc(_ client.Object) []reconcile.Reques
 
 	err := s.reconciler.Client.List(context.TODO(), clusters)
 	if err != nil {
-		s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "SecretMapper", s)
+		s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "CSIToClusterMapFunc", s)
 		return nil
 	}
 
@@ -276,7 +276,13 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 
 	r.Log.Info("step: ensureFlashSystemCSICR - create or check FlashSystem CSI CR")
 	if err = r.ensureFlashSystemCSICR(instance); err != nil {
-		r.Log.Error(err, "failed to ensureFlashSystemCSICR")
+		reason := odfv1alpha1.ReasonReconcileFailed
+		message := fmt.Sprintf("failed to ensureFlashSystemCSICR: %v", err)
+		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
+
+		r.createEvent(instance, corev1.EventTypeWarning,
+			util.FailedLaunchBlockCSIReason, message)
+
 		return reconcile.Result{}, err
 	}
 
@@ -827,9 +833,6 @@ func (r *FlashSystemClusterReconciler) ensureFlashSystemCSICR(instance *odfv1alp
 		r.Log.Info("start to create CSI CR instance...")
 		obj, err := CreateIBMBlockCSICR(r.CSIDynamicClient, instance.Namespace)
 		if err != nil {
-			r.createEvent(instance, corev1.EventTypeWarning,
-				util.FailedLaunchBlockCSIReason,
-				fmt.Sprintf("CSI CR:  %s/%s", obj.GetNamespace(), obj.GetName()))
 			return err
 		}
 		r.createEvent(instance, corev1.EventTypeNormal,

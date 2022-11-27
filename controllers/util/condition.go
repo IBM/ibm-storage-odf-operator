@@ -57,10 +57,9 @@ func SetReconcileProgressingCondition(conditions *[]odfv1alpha1.Condition, reaso
 		Message: message,
 	})
 
-	// TODO: watch & check CSI status
 	SetStatusCondition(conditions, odfv1alpha1.Condition{
 		Type:    odfv1alpha1.ProvisionerReady,
-		Status:  corev1.ConditionTrue,
+		Status:  corev1.ConditionUnknown,
 		Reason:  reason,
 		Message: message,
 	})
@@ -71,6 +70,13 @@ func SetReconcileProgressingCondition(conditions *[]odfv1alpha1.Condition, reaso
 func SetReconcileErrorCondition(conditions *[]odfv1alpha1.Condition, reason string, message string) {
 	SetStatusCondition(conditions, odfv1alpha1.Condition{
 		Type:    odfv1alpha1.ConditionReconcileComplete,
+		Status:  corev1.ConditionFalse,
+		Reason:  reason,
+		Message: message,
+	})
+
+	SetStatusCondition(conditions, odfv1alpha1.Condition{
+		Type:    odfv1alpha1.ProvisionerReady,
 		Status:  corev1.ConditionFalse,
 		Reason:  reason,
 		Message: message,
@@ -94,7 +100,6 @@ func SetReconcileCompleteCondition(conditions *[]odfv1alpha1.Condition, reason s
 		Message: message,
 	})
 
-	// TODO: watch & check CSI status
 	SetStatusCondition(conditions, odfv1alpha1.Condition{
 		Type:    odfv1alpha1.ProvisionerReady,
 		Status:  corev1.ConditionTrue,
