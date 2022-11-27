@@ -95,6 +95,9 @@ func (s *CSIBlockMapper) CSIToClusterMapFunc(_ client.Object) []reconcile.Reques
 			},
 		}
 		requests = append(requests, req)
+	}
+
+	if len(requests) > 0 {
 		s.reconciler.Log.Info("Discovered a change in CSI CR. Reconciling FlashSystemCluster", "CSIToClusterMapFunc", requests)
 		s.reconciler.IsCSICRCreated = false
 	}
