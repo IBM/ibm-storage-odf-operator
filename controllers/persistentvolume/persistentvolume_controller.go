@@ -51,8 +51,7 @@ func (f *persistentVolumeMapper) pvMap(object client.Object) []reconcile.Request
 
 	requests := []reconcile.Request{}
 	for _, pv := range pvs.Items {
-		if pv.Spec.CSI.Driver == util.CsiIBMBlockDriver && pv.Spec.ClaimRef != nil &&
-			pv.Spec.ClaimRef.Kind == util.PersistentVolumeClaimKind {
+		if isCSIBlockDriverPV(pv) {
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Namespace: pv.GetNamespace(),
@@ -75,7 +74,12 @@ func reconcilePV(obj runtime.Object) bool {
 	if !ok {
 		return false
 	}
-	return pv.Spec.CSI.Driver == util.CsiIBMBlockDriver && pv.Spec.ClaimRef != nil &&
+
+	return isCSIBlockDriverPV(*pv)
+}
+
+func isCSIBlockDriverPV(pv corev1.PersistentVolume) bool {
+	return pv.Spec.CSI != nil && pv.Spec.CSI.Driver == util.CsiIBMBlockDriver && pv.Spec.ClaimRef != nil &&
 		pv.Spec.ClaimRef.Kind == util.PersistentVolumeClaimKind
 }
 
