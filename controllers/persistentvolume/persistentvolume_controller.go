@@ -29,7 +29,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -63,9 +65,33 @@ func (f *persistentVolumeMapper) pvMap(_ client.Object) []reconcile.Request {
 	return requests
 }
 
+func reconcilePV(obj runtime.Object) bool {
+	pv, ok := obj.(*corev1.PersistentVolume)
+	if !ok {
+		return false
+	}
+
+	return isCSIBlockDriverPV(*pv)
+}
+
 func isCSIBlockDriverPV(pv corev1.PersistentVolume) bool {
 	return pv.Spec.CSI != nil && pv.Spec.CSI.Driver == util.CsiIBMBlockDriver && pv.Spec.ClaimRef != nil &&
 		pv.Spec.ClaimRef.Kind == util.PersistentVolumeClaimKind
+}
+
+var pvPredicate = predicate.Funcs{
+	CreateFunc: func(e event.CreateEvent) bool {
+		return reconcilePV(e.Object)
+	},
+	DeleteFunc: func(e event.DeleteEvent) bool {
+		return reconcilePV(e.Object)
+	},
+	UpdateFunc: func(e event.UpdateEvent) bool {
+		return reconcilePV(e.ObjectNew)
+	},
+	GenericFunc: func(e event.GenericEvent) bool {
+		return reconcilePV(e.Object)
+	},
 }
 
 type PersistentVolumeWatcher struct {
@@ -81,7 +107,7 @@ func (r *PersistentVolumeWatcher) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&corev1.PersistentVolume{}).
+		For(&corev1.PersistentVolume{}, builder.WithPredicates(pvPredicate)).
 		Watches(&source.Kind{
 			Type: &v1alpha1.FlashSystemCluster{},
 		}, handler.EnqueueRequestsFromMapFunc(pvMapper.pvMap), builder.WithPredicates(util.IgnoreUpdateAndGenericPredicate)).
