@@ -18,17 +18,22 @@ package util
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	"github.com/go-logr/logr"
+	"io"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"os"
+	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"strings"
 )
 
 const (
@@ -105,40 +110,40 @@ var IgnoreGenericPredicate = predicate.Funcs{
 	},
 }
 
-//func ReadPoolConfigMapFile() (map[string]FlashSystemClusterMapContent, error) {
-//	var flashSystemClustersMap = make(map[string]FlashSystemClusterMapContent)
-//	var flashSystemClusterContent FlashSystemClusterMapContent
-//	fscPath := FSCConfigmapMountPath + "/"
-//
-//	files, err := os.ReadDir(fscPath)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	for _, file := range files {
-//		if !file.IsDir() && !strings.HasPrefix(file.Name(), ".") {
-//			flashSystemClusterContent, err = getFileContent(filepath.Join(fscPath, file.Name()))
-//			if err != nil {
-//				return flashSystemClustersMap, err
-//			} else {
-//				flashSystemClustersMap[file.Name()] = flashSystemClusterContent
-//			}
-//		}
-//	}
-//	return flashSystemClustersMap, nil
-//}
+func ReadPoolConfigMapFile() (map[string]FlashSystemClusterMapContent, error) {
+	var flashSystemClustersMap = make(map[string]FlashSystemClusterMapContent)
+	var flashSystemClusterContent FlashSystemClusterMapContent
+	fscPath := FSCConfigmapMountPath + "/"
 
-//func getFileContent(filePath string) (FlashSystemClusterMapContent, error) {
-//	var fscContent FlashSystemClusterMapContent
-//	fileReader, err := os.Open(filePath)
-//	if err != nil {
-//		return fscContent, err
-//	}
-//
-//	fileContent, _ := io.ReadAll(fileReader)
-//	err = json.Unmarshal(fileContent, &fscContent)
-//	return fscContent, err
-//}
+	files, err := os.ReadDir(fscPath)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, file := range files {
+		if !file.IsDir() && !strings.HasPrefix(file.Name(), ".") {
+			flashSystemClusterContent, err = getFileContent(filepath.Join(fscPath, file.Name()))
+			if err != nil {
+				return flashSystemClustersMap, err
+			} else {
+				flashSystemClustersMap[file.Name()] = flashSystemClusterContent
+			}
+		}
+	}
+	return flashSystemClustersMap, nil
+}
+
+func getFileContent(filePath string) (FlashSystemClusterMapContent, error) {
+	var fscContent FlashSystemClusterMapContent
+	fileReader, err := os.Open(filePath)
+	if err != nil {
+		return fscContent, err
+	}
+
+	fileContent, _ := io.ReadAll(fileReader)
+	err = json.Unmarshal(fileContent, &fscContent)
+	return fscContent, err
+}
 
 func GetCreateConfigmap(client client.Client, log logr.Logger, ns string, createIfMissing bool) (*corev1.ConfigMap, error) {
 	configMap := &corev1.ConfigMap{}
