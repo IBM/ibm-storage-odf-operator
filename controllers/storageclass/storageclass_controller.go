@@ -117,7 +117,8 @@ func (f *storageClassMapper) secretStorageClassMap(object client.Object) []recon
 		return nil
 	}
 
-	for _, sc := range storageClasses.Items {
+	for i := range storageClasses.Items {
+		sc := storageClasses.Items[i]
 		if sc.Provisioner == util.CsiIBMBlockDriver {
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
