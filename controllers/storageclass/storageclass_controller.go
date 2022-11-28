@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
+	"github.com/IBM/ibm-storage-odf-operator/controllers"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -79,7 +80,7 @@ type storageClassMapper struct {
 	reconciler *StorageClassWatcher
 }
 
-func (f *storageClassMapper) storageClassMap(_ client.Object) []reconcile.Request {
+func (f *storageClassMapper) fscStorageClassMap(_ client.Object) []reconcile.Request {
 	storageClasses := &storagev1.StorageClassList{}
 	err := f.reconciler.Client.List(context.TODO(), storageClasses)
 	if err != nil {
@@ -102,6 +103,44 @@ func (f *storageClassMapper) storageClassMap(_ client.Object) []reconcile.Reques
 	return requests
 }
 
+func (f *storageClassMapper) secretStorageClassMap(object client.Object) []reconcile.Request {
+	requests := []reconcile.Request{}
+	secret, ok := object.(*corev1.Secret)
+	if !ok {
+		return requests
+	}
+
+	storageClasses := &storagev1.StorageClassList{}
+	err := f.reconciler.Client.List(context.TODO(), storageClasses)
+	if err != nil {
+		f.reconciler.Log.Error(err, "failed to list StorageClasses", "storageClassMapper", f)
+		return nil
+	}
+
+	for _, sc := range storageClasses.Items {
+		if sc.Provisioner == util.CsiIBMBlockDriver {
+			req := reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: sc.GetNamespace(),
+					Name:      sc.GetName(),
+				},
+			}
+
+			if controllers.IsFSCSecret(secret.Name) {
+				requests = append(requests, req)
+			} else {
+				storageClassSecret, err := util.GetStorageClassSecret(f.reconciler.Client, f.reconciler.Log, &sc)
+				if err == nil {
+					if storageClassSecret.Name == secret.Name && storageClassSecret.Namespace == secret.Namespace {
+						requests = append(requests, req)
+					}
+				}
+			}
+		}
+	}
+	return requests
+}
+
 func (r *StorageClassWatcher) SetupWithManager(mgr ctrl.Manager) error {
 	scMapper := &storageClassMapper{
 		reconciler: r,
@@ -111,10 +150,10 @@ func (r *StorageClassWatcher) SetupWithManager(mgr ctrl.Manager) error {
 		For(&storagev1.StorageClass{}, builder.WithPredicates(scPredicate)).
 		Watches(&source.Kind{
 			Type: &v1alpha1.FlashSystemCluster{},
-		}, handler.EnqueueRequestsFromMapFunc(scMapper.storageClassMap), builder.WithPredicates(util.IgnoreUpdateAndGenericPredicate)).
+		}, handler.EnqueueRequestsFromMapFunc(scMapper.fscStorageClassMap), builder.WithPredicates(util.IgnoreUpdateAndGenericPredicate)).
 		Watches(&source.Kind{
 			Type: &corev1.Secret{},
-		}, handler.EnqueueRequestsFromMapFunc(scMapper.storageClassMap), builder.WithPredicates(util.IgnoreGenericPredicate)).
+		}, handler.EnqueueRequestsFromMapFunc(scMapper.secretStorageClassMap), builder.WithPredicates(util.SecretMgmtAddrPredicate)).
 		WithOptions(controller.Options{MaxConcurrentReconciles: 1}).
 		Complete(r)
 }

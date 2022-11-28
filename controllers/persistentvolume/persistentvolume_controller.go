@@ -113,7 +113,7 @@ func (r *PersistentVolumeWatcher) SetupWithManager(mgr ctrl.Manager) error {
 		}, handler.EnqueueRequestsFromMapFunc(pvMapper.pvMap), builder.WithPredicates(util.IgnoreUpdateAndGenericPredicate)).
 		Watches(&source.Kind{
 			Type: &corev1.Secret{},
-		}, handler.EnqueueRequestsFromMapFunc(pvMapper.pvMap), builder.WithPredicates(util.IgnoreGenericPredicate)).
+		}, handler.EnqueueRequestsFromMapFunc(pvMapper.pvMap), builder.WithPredicates(util.SecretMgmtAddrPredicate)).
 		WithOptions(controller.Options{MaxConcurrentReconciles: 1}).
 		Complete(r)
 }

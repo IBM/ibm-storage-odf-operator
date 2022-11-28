@@ -95,15 +95,34 @@ var IgnoreUpdateAndGenericPredicate = predicate.Funcs{
 	},
 }
 
-var IgnoreGenericPredicate = predicate.Funcs{
+var SecretMgmtAddrPredicate = predicate.Funcs{
 	CreateFunc: func(e event.CreateEvent) bool {
-		return true
+		secret, ok := e.Object.(*corev1.Secret)
+		if !ok {
+			return false
+		}
+		_, exist := secret.Data[SecretManagementAddressKey]
+		return exist
 	},
 	DeleteFunc: func(e event.DeleteEvent) bool {
-		return true
+		secret, ok := e.Object.(*corev1.Secret)
+		if !ok {
+			return false
+		}
+		_, exist := secret.Data[SecretManagementAddressKey]
+		return exist
 	},
 	UpdateFunc: func(e event.UpdateEvent) bool {
-		return true
+		oldSecret, ok := e.ObjectOld.(*corev1.Secret)
+		newSecret := e.ObjectNew.(*corev1.Secret)
+		if !ok {
+			return false
+		}
+
+		oldMgmtAddr, exist1 := oldSecret.Data[SecretManagementAddressKey]
+		newMgmtAddr, exist2 := newSecret.Data[SecretManagementAddressKey]
+
+		return exist1 && exist2 && (string(oldMgmtAddr) != string(newMgmtAddr))
 	},
 	GenericFunc: func(e event.GenericEvent) bool {
 		return false
