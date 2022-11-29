@@ -117,6 +117,7 @@ func (f *storageClassMapper) secretStorageClassMap(object client.Object) []recon
 		return nil
 	}
 
+	isFscSecret := controllers.IsFSCSecret(secret.Name)
 	for i := range storageClasses.Items {
 		sc := storageClasses.Items[i]
 		if sc.Provisioner == util.CsiIBMBlockDriver {
@@ -127,12 +128,12 @@ func (f *storageClassMapper) secretStorageClassMap(object client.Object) []recon
 				},
 			}
 
-			if controllers.IsFSCSecret(secret.Name) {
+			if isFscSecret {
 				requests = append(requests, req)
 			} else {
-				storageClassSecret, err := util.GetStorageClassSecret(f.reconciler.Client, f.reconciler.Log, &sc)
+				scSecretName, scSecretNameSpace, err := util.GetStorageClassSecretNamespacedName(&sc)
 				if err == nil {
-					if storageClassSecret.Name == secret.Name && storageClassSecret.Namespace == secret.Namespace {
+					if scSecretName == secret.Name && scSecretNameSpace == secret.Namespace {
 						requests = append(requests, req)
 					}
 				}
@@ -244,7 +245,7 @@ func (r *StorageClassWatcher) ensureConfigMapUpdated(request reconcile.Request, 
 func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.StorageClass, isTopology bool) (map[string]string, error) {
 	fscToPoolsMap := make(map[string]string)
 	r.Log.Info("looking for FlashSystemCluster by StorageClass")
-	storageClassSecret, err := util.GetStorageClassSecret(r.Client, r.Log, sc)
+	storageClassSecret, err := util.GetStorageClassSecret(r.Client, sc)
 	if err != nil {
 		r.Log.Error(nil, "failed to find StorageClass secret")
 		return fscToPoolsMap, err

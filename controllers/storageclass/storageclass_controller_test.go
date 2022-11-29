@@ -461,7 +461,7 @@ var _ = Describe("StorageClassWatcher", func() {
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
-			_, err := util.GetStorageClassSecret(k8sClient, ctrl.Log, createdSc)
+			_, err := util.GetStorageClassSecret(k8sClient, createdSc)
 			Expect(err).To(HaveOccurred())
 			Expect(k8sClient.Delete(ctx, createdSc)).Should(Succeed())
 
@@ -476,7 +476,7 @@ var _ = Describe("StorageClassWatcher", func() {
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
-			secret, err := util.GetStorageClassSecret(k8sClient, ctrl.Log, validCreatedSc)
+			secret, err := util.GetStorageClassSecret(k8sClient, validCreatedSc)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(secret).ToNot(BeNil())
 

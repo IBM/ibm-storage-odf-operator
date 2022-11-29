@@ -238,7 +238,7 @@ func (r *PersistentVolumeWatcher) getPVManagementAddress(pv *corev1.PersistentVo
 		}
 
 		r.Log.Info("looking for StorageClass Secret")
-		secret, err := util.GetStorageClassSecret(r.Client, r.Log, sc)
+		secret, err := util.GetStorageClassSecret(r.Client, sc)
 		if err != nil {
 			r.Log.Error(err, "failed to get StorageClass Secret")
 			return "", err

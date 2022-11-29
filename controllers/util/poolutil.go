@@ -226,25 +226,27 @@ func MapClustersByMgmtAddress(client client.Client, logger logr.Logger) (map[str
 	return clustersMapByMgmtAddr, nil
 }
 
-func GetStorageClassSecret(client client.Client, logger logr.Logger, sc *storagev1.StorageClass) (corev1.Secret, error) {
-	secret := &corev1.Secret{}
+func GetStorageClassSecretNamespacedName(sc *storagev1.StorageClass) (string, string, error) {
 	secretName, secretNamespace := sc.Parameters[DefaultSecretNameKey], sc.Parameters[DefaultSecretNamespaceKey]
 	if secretName == "" || secretNamespace == "" {
 		secretName, secretNamespace = sc.Parameters[ProvisionerSecretNameKey], sc.Parameters[ProvisionerSecretNamespaceKey]
 		if secretName == "" || secretNamespace == "" {
-			errMsg := "failed to find secret name or namespace in StorageClass"
-			logger.Error(nil, errMsg)
-			return *secret, fmt.Errorf(errMsg)
+			return "", "", fmt.Errorf("failed to find secret name or namespace in StorageClass")
 		}
 	}
-	err := client.Get(context.Background(),
-		types.NamespacedName{
-			Namespace: secretNamespace,
-			Name:      secretName},
-		secret)
+	return secretName, secretNamespace, nil
+}
+
+func GetStorageClassSecret(client client.Client, sc *storagev1.StorageClass) (corev1.Secret, error) {
+	secret := &corev1.Secret{}
+	secretName, secretNamespace, err := GetStorageClassSecretNamespacedName(sc)
 	if err != nil {
-		logger.Error(nil, "failed to find StorageClass secret")
 		return *secret, err
 	}
-	return *secret, nil
+
+	err = client.Get(context.Background(),
+		types.NamespacedName{Namespace: secretNamespace, Name: secretName},
+		secret)
+
+	return *secret, err
 }
