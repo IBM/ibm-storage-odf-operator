@@ -242,14 +242,6 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 		r.Log.Info("object is terminated, skipping reconciliation")
 		return reconcile.Result{}, nil
 	}
-	r.Log.Info("Alon - before ensure steps", "instance.conditions", instance.Status.Conditions)
-
-	//r.Log.Info("step: reset progressing conditions of the FlashSystemCluster resource")
-	//if util.IsStatusConditionFalse(instance.Status.Conditions, odfv1alpha1.ConditionProgressing) {
-	//	reason := odfv1alpha1.ReasonReconcileInit
-	//	util.SetReconcileProgressingCondition(&instance.Status.Conditions, reason, "processing FlashSystem ODF resources")
-	//	instance.Status.Phase = util.PhaseProgressing
-	//}
 
 	r.Log.Info("step: ensureSecretOwnership")
 	if err = r.ensureSecretOwnership(instance, newOwnerDetails); err != nil {
@@ -368,7 +360,6 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 		instance.Status.Phase = util.PhaseNotReady
 		r.Log.Info("flashSystemCluster reconcile finished with 'not ready' state")
 	}
-	r.Log.Info("Alon - after ensure steps", "instance.conditions", instance.Status.Conditions)
 
 	return reconcile.Result{}, nil
 }
