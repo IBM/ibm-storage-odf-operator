@@ -74,6 +74,12 @@ func SetReconcileErrorCondition(conditions *[]odfv1alpha1.Condition, reason stri
 		Reason:  reason,
 		Message: message,
 	})
+	SetStatusCondition(conditions, odfv1alpha1.Condition{
+		Type:    odfv1alpha1.ConditionProgressing,
+		Status:  corev1.ConditionTrue,
+		Reason:  reason,
+		Message: "processing FlashSystem ODF resources",
+	})
 }
 
 // SetReconcileProvisionerErrorCondition sets the ProvisionerReady to False in
