@@ -22,8 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"strings"
 
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
@@ -60,21 +59,6 @@ type SecretMapper struct {
 
 type CSIBlockMapper struct {
 	reconciler *FlashSystemClusterReconciler
-}
-
-var RunDeletePredicate = predicate.Funcs{
-	CreateFunc: func(e event.CreateEvent) bool {
-		return false
-	},
-	DeleteFunc: func(e event.DeleteEvent) bool {
-		return true
-	},
-	UpdateFunc: func(e event.UpdateEvent) bool {
-		return false
-	},
-	GenericFunc: func(e event.GenericEvent) bool {
-		return false
-	},
 }
 
 func (s *CSIBlockMapper) CSIToClusterMapFunc(_ client.Object) []reconcile.Request {
@@ -457,7 +441,8 @@ func (r *FlashSystemClusterReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		}, handler.EnqueueRequestsFromMapFunc(secretMapper.SecretToClusterMapFunc)).
 		Watches(&source.Kind{
 			Type: csiBlock},
-			handler.EnqueueRequestsFromMapFunc(csiMapper.CSIToClusterMapFunc), builder.WithPredicates(RunDeletePredicate)).
+			handler.EnqueueRequestsFromMapFunc(csiMapper.CSIToClusterMapFunc), builder.WithPredicates(util.RunDeletePredicate)).
+		WithOptions(controller.Options{MaxConcurrentReconciles: 1}).
 		Complete(r)
 
 }

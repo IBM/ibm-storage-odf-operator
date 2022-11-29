@@ -129,6 +129,21 @@ var SecretMgmtAddrPredicate = predicate.Funcs{
 	},
 }
 
+var RunDeletePredicate = predicate.Funcs{
+	CreateFunc: func(e event.CreateEvent) bool {
+		return false
+	},
+	DeleteFunc: func(e event.DeleteEvent) bool {
+		return true
+	},
+	UpdateFunc: func(e event.UpdateEvent) bool {
+		return false
+	},
+	GenericFunc: func(e event.GenericEvent) bool {
+		return false
+	},
+}
+
 func ReadPoolConfigMapFile() (map[string]FlashSystemClusterMapContent, error) {
 	var flashSystemClustersMap = make(map[string]FlashSystemClusterMapContent)
 	var flashSystemClusterContent FlashSystemClusterMapContent
