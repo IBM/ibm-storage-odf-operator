@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
+	"github.com/IBM/ibm-storage-odf-operator/controllers"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -32,6 +33,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -78,7 +80,7 @@ type storageClassMapper struct {
 	reconciler *StorageClassWatcher
 }
 
-func (f *storageClassMapper) storageClassMap(object client.Object) []reconcile.Request {
+func (f *storageClassMapper) fscStorageClassMap(_ client.Object) []reconcile.Request {
 	storageClasses := &storagev1.StorageClassList{}
 	err := f.reconciler.Client.List(context.TODO(), storageClasses)
 	if err != nil {
@@ -98,11 +100,46 @@ func (f *storageClassMapper) storageClassMap(object client.Object) []reconcile.R
 			requests = append(requests, req)
 		}
 	}
+	return requests
+}
 
-	if len(requests) > 0 {
-		f.reconciler.Log.Info("reflect cluster changes to StorageClasses")
+func (f *storageClassMapper) secretStorageClassMap(object client.Object) []reconcile.Request {
+	requests := []reconcile.Request{}
+	secret, ok := object.(*corev1.Secret)
+	if !ok {
+		return requests
 	}
 
+	storageClasses := &storagev1.StorageClassList{}
+	err := f.reconciler.Client.List(context.TODO(), storageClasses)
+	if err != nil {
+		f.reconciler.Log.Error(err, "failed to list StorageClasses", "storageClassMapper", f)
+		return nil
+	}
+
+	isFscSecret := controllers.IsFSCSecret(secret.Name)
+	for i := range storageClasses.Items {
+		sc := storageClasses.Items[i]
+		if sc.Provisioner == util.CsiIBMBlockDriver {
+			req := reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: sc.GetNamespace(),
+					Name:      sc.GetName(),
+				},
+			}
+
+			if isFscSecret {
+				requests = append(requests, req)
+			} else {
+				scSecretName, scSecretNameSpace, err := util.GetStorageClassSecretNamespacedName(&sc)
+				if err == nil {
+					if scSecretName == secret.Name && scSecretNameSpace == secret.Namespace {
+						requests = append(requests, req)
+					}
+				}
+			}
+		}
+	}
 	return requests
 }
 
@@ -115,10 +152,11 @@ func (r *StorageClassWatcher) SetupWithManager(mgr ctrl.Manager) error {
 		For(&storagev1.StorageClass{}, builder.WithPredicates(scPredicate)).
 		Watches(&source.Kind{
 			Type: &v1alpha1.FlashSystemCluster{},
-		}, handler.EnqueueRequestsFromMapFunc(scMapper.storageClassMap), builder.WithPredicates(util.IgnoreUpdateAndGenericPredicate)).
+		}, handler.EnqueueRequestsFromMapFunc(scMapper.fscStorageClassMap), builder.WithPredicates(util.IgnoreUpdateAndGenericPredicate)).
 		Watches(&source.Kind{
 			Type: &corev1.Secret{},
-		}, handler.EnqueueRequestsFromMapFunc(scMapper.storageClassMap)).
+		}, handler.EnqueueRequestsFromMapFunc(scMapper.secretStorageClassMap), builder.WithPredicates(util.SecretMgmtAddrPredicate)).
+		WithOptions(controller.Options{MaxConcurrentReconciles: 1}).
 		Complete(r)
 }
 
@@ -207,7 +245,7 @@ func (r *StorageClassWatcher) ensureConfigMapUpdated(request reconcile.Request, 
 func (r *StorageClassWatcher) getFlashSystemClusterByStorageClass(sc *storagev1.StorageClass, isTopology bool) (map[string]string, error) {
 	fscToPoolsMap := make(map[string]string)
 	r.Log.Info("looking for FlashSystemCluster by StorageClass")
-	storageClassSecret, err := util.GetStorageClassSecret(r.Client, r.Log, sc)
+	storageClassSecret, err := util.GetStorageClassSecret(r.Client, sc)
 	if err != nil {
 		r.Log.Error(nil, "failed to find StorageClass secret")
 		return fscToPoolsMap, err

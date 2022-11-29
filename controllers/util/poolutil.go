@@ -95,6 +95,55 @@ var IgnoreUpdateAndGenericPredicate = predicate.Funcs{
 	},
 }
 
+var SecretMgmtAddrPredicate = predicate.Funcs{
+	CreateFunc: func(e event.CreateEvent) bool {
+		secret, ok := e.Object.(*corev1.Secret)
+		if !ok {
+			return false
+		}
+		_, exist := secret.Data[SecretManagementAddressKey]
+		return exist
+	},
+	DeleteFunc: func(e event.DeleteEvent) bool {
+		secret, ok := e.Object.(*corev1.Secret)
+		if !ok {
+			return false
+		}
+		_, exist := secret.Data[SecretManagementAddressKey]
+		return exist
+	},
+	UpdateFunc: func(e event.UpdateEvent) bool {
+		oldSecret, ok := e.ObjectOld.(*corev1.Secret)
+		newSecret := e.ObjectNew.(*corev1.Secret)
+		if !ok {
+			return false
+		}
+
+		oldMgmtAddr, exist1 := oldSecret.Data[SecretManagementAddressKey]
+		newMgmtAddr, exist2 := newSecret.Data[SecretManagementAddressKey]
+
+		return exist1 && exist2 && (string(oldMgmtAddr) != string(newMgmtAddr))
+	},
+	GenericFunc: func(e event.GenericEvent) bool {
+		return false
+	},
+}
+
+var RunDeletePredicate = predicate.Funcs{
+	CreateFunc: func(e event.CreateEvent) bool {
+		return false
+	},
+	DeleteFunc: func(e event.DeleteEvent) bool {
+		return true
+	},
+	UpdateFunc: func(e event.UpdateEvent) bool {
+		return false
+	},
+	GenericFunc: func(e event.GenericEvent) bool {
+		return false
+	},
+}
+
 func ReadPoolConfigMapFile() (map[string]FlashSystemClusterMapContent, error) {
 	var flashSystemClustersMap = make(map[string]FlashSystemClusterMapContent)
 	var flashSystemClusterContent FlashSystemClusterMapContent
@@ -192,25 +241,27 @@ func MapClustersByMgmtAddress(client client.Client, logger logr.Logger) (map[str
 	return clustersMapByMgmtAddr, nil
 }
 
-func GetStorageClassSecret(client client.Client, logger logr.Logger, sc *storagev1.StorageClass) (corev1.Secret, error) {
-	secret := &corev1.Secret{}
+func GetStorageClassSecretNamespacedName(sc *storagev1.StorageClass) (string, string, error) {
 	secretName, secretNamespace := sc.Parameters[DefaultSecretNameKey], sc.Parameters[DefaultSecretNamespaceKey]
 	if secretName == "" || secretNamespace == "" {
 		secretName, secretNamespace = sc.Parameters[ProvisionerSecretNameKey], sc.Parameters[ProvisionerSecretNamespaceKey]
 		if secretName == "" || secretNamespace == "" {
-			errMsg := "failed to find secret name or namespace in StorageClass"
-			logger.Error(nil, errMsg)
-			return *secret, fmt.Errorf(errMsg)
+			return "", "", fmt.Errorf("failed to find secret name or namespace in StorageClass")
 		}
 	}
-	err := client.Get(context.Background(),
-		types.NamespacedName{
-			Namespace: secretNamespace,
-			Name:      secretName},
-		secret)
+	return secretName, secretNamespace, nil
+}
+
+func GetStorageClassSecret(client client.Client, sc *storagev1.StorageClass) (corev1.Secret, error) {
+	secret := &corev1.Secret{}
+	secretName, secretNamespace, err := GetStorageClassSecretNamespacedName(sc)
 	if err != nil {
-		logger.Error(nil, "failed to find StorageClass secret")
 		return *secret, err
 	}
-	return *secret, nil
+
+	err = client.Get(context.Background(),
+		types.NamespacedName{Namespace: secretNamespace, Name: secretName},
+		secret)
+
+	return *secret, err
 }

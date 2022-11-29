@@ -59,6 +59,10 @@ const (
 	FlashSystemPrometheusRuleFileEnv = "TEST_FS_PROM_RULE_FILE"
 )
 
+func IsFSCSecret(secretName string) bool {
+	return strings.HasPrefix(secretName, fsObjectsPrefix)
+}
+
 // TODO: wrapper func for deployment name translation from cluster name
 func getExporterDeploymentName() string {
 	return fsDeploymentName

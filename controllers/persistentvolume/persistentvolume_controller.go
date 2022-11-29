@@ -28,6 +28,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -41,7 +42,7 @@ type persistentVolumeMapper struct {
 	reconciler *PersistentVolumeWatcher
 }
 
-func (f *persistentVolumeMapper) pvMap(object client.Object) []reconcile.Request {
+func (f *persistentVolumeMapper) pvMap(_ client.Object) []reconcile.Request {
 	pvs := &corev1.PersistentVolumeList{}
 	err := f.reconciler.Client.List(context.TODO(), pvs)
 	if err != nil {
@@ -61,11 +62,6 @@ func (f *persistentVolumeMapper) pvMap(object client.Object) []reconcile.Request
 			requests = append(requests, req)
 		}
 	}
-
-	if len(requests) > 0 {
-		f.reconciler.Log.Info("reflect cluster changes to PersistentVolumes")
-	}
-
 	return requests
 }
 
@@ -117,7 +113,8 @@ func (r *PersistentVolumeWatcher) SetupWithManager(mgr ctrl.Manager) error {
 		}, handler.EnqueueRequestsFromMapFunc(pvMapper.pvMap), builder.WithPredicates(util.IgnoreUpdateAndGenericPredicate)).
 		Watches(&source.Kind{
 			Type: &corev1.Secret{},
-		}, handler.EnqueueRequestsFromMapFunc(pvMapper.pvMap)).
+		}, handler.EnqueueRequestsFromMapFunc(pvMapper.pvMap), builder.WithPredicates(util.SecretMgmtAddrPredicate)).
+		WithOptions(controller.Options{MaxConcurrentReconciles: 1}).
 		Complete(r)
 }
 
@@ -241,7 +238,7 @@ func (r *PersistentVolumeWatcher) getPVManagementAddress(pv *corev1.PersistentVo
 		}
 
 		r.Log.Info("looking for StorageClass Secret")
-		secret, err := util.GetStorageClassSecret(r.Client, r.Log, sc)
+		secret, err := util.GetStorageClassSecret(r.Client, sc)
 		if err != nil {
 			r.Log.Error(err, "failed to get StorageClass Secret")
 			return "", err
