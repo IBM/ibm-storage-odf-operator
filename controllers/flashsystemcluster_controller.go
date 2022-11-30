@@ -243,13 +243,6 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 		return reconcile.Result{}, nil
 	}
 
-	r.Log.Info("step: reset progressing conditions of the FlashSystemCluster resource")
-	if util.IsStatusConditionFalse(instance.Status.Conditions, odfv1alpha1.ConditionProgressing) {
-		reason := odfv1alpha1.ReasonReconcileInit
-		util.SetReconcileProgressingCondition(&instance.Status.Conditions, reason, "processing FlashSystem ODF resources")
-		instance.Status.Phase = util.PhaseProgressing
-	}
-
 	r.Log.Info("step: ensureSecretOwnership")
 	if err = r.ensureSecretOwnership(instance, newOwnerDetails); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
