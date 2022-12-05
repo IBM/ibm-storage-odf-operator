@@ -101,6 +101,21 @@ var SecretMgmtAddrPredicate = predicate.Funcs{
 		if !ok {
 			return false
 		}
+		_, isTopology := secret.Data[TopologySecretDataKey]
+		if isTopology {
+			secretMgmtDataByMgmtId := make(map[string]map[string]string)
+			err := json.Unmarshal(secret.Data[TopologySecretDataKey], &secretMgmtDataByMgmtId)
+			if err != nil {
+				return false
+			}
+			// checking that each mgmt_id object has a management address
+			for _, mgmtData := range secretMgmtDataByMgmtId {
+				if _, ok := mgmtData[SecretManagementAddressKey]; !ok {
+					return false
+				}
+			}
+			return true
+		}
 		_, exist := secret.Data[SecretManagementAddressKey]
 		return exist
 	},
@@ -108,6 +123,21 @@ var SecretMgmtAddrPredicate = predicate.Funcs{
 		secret, ok := e.Object.(*corev1.Secret)
 		if !ok {
 			return false
+		}
+		_, isTopology := secret.Data[TopologySecretDataKey]
+		if isTopology {
+			secretMgmtDataByMgmtId := make(map[string]map[string]string)
+			err := json.Unmarshal(secret.Data[TopologySecretDataKey], &secretMgmtDataByMgmtId)
+			if err != nil {
+				return false
+			}
+			// checking that each mgmt_id object has a management address
+			for _, mgmtData := range secretMgmtDataByMgmtId {
+				if _, ok := mgmtData[SecretManagementAddressKey]; !ok {
+					return false
+				}
+			}
+			return true
 		}
 		_, exist := secret.Data[SecretManagementAddressKey]
 		return exist
