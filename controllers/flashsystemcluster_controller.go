@@ -61,6 +61,38 @@ type CSIBlockMapper struct {
 	reconciler *FlashSystemClusterReconciler
 }
 
+type StorageclassMapper struct {
+	reconciler *FlashSystemClusterReconciler
+}
+
+func (s *StorageclassMapper) DefaultStorageClassToClusterMapperFunc(object client.Object) []reconcile.Request {
+	clusters := &odfv1alpha1.FlashSystemClusterList{}
+	err := s.reconciler.Client.List(context.TODO(), clusters)
+	if err != nil {
+		s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "DefaultStorageClassToClusterMapperFunc", s)
+		return nil
+	}
+
+	requests := []reconcile.Request{}
+	for _, c := range clusters.Items {
+		if c.Spec.DefaultPool.StorageClassName == object.GetName() {
+			req := reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: c.GetNamespace(),
+					Name:      c.GetName(),
+				},
+			}
+			requests = append(requests, req)
+		}
+	}
+
+	if len(requests) > 0 {
+		s.reconciler.Log.Info("reflect default storageClass deletion to FlashSystemCluster instance", "DefaultStorageClassToClusterMapperFunc", requests)
+	}
+
+	return requests
+}
+
 func (s *CSIBlockMapper) CSIToClusterMapFunc(_ client.Object) []reconcile.Request {
 	s.reconciler.IsCSICRCreated = false
 
@@ -410,6 +442,10 @@ func (r *FlashSystemClusterReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		reconciler: r,
 	}
 
+	storageclassMapper := &StorageclassMapper{
+		reconciler: r,
+	}
+
 	csiBlock := &unstructured.Unstructured{}
 	csiBlock.SetGroupVersionKind(schema.GroupVersionKind{
 		Kind:    "IBMBlockCSI",
@@ -432,6 +468,9 @@ func (r *FlashSystemClusterReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Watches(&source.Kind{
 			Type: &corev1.Secret{},
 		}, handler.EnqueueRequestsFromMapFunc(secretMapper.SecretToClusterMapFunc)).
+		Watches(&source.Kind{
+			Type: &storagev1.StorageClass{},
+		}, handler.EnqueueRequestsFromMapFunc(storageclassMapper.DefaultStorageClassToClusterMapperFunc), builder.WithPredicates(util.RunDeletePredicate)).
 		Watches(&source.Kind{
 			Type: csiBlock},
 			handler.EnqueueRequestsFromMapFunc(csiMapper.CSIToClusterMapFunc), builder.WithPredicates(util.RunDeletePredicate)).
