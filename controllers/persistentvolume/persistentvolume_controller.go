@@ -212,7 +212,6 @@ func (r *PersistentVolumeWatcher) getPVManagementAddress(pv *corev1.PersistentVo
 	r.Log.Info("looking for PersistentVolume management address")
 
 	var pvMgmtAddr string
-	pvVolumeHandle := pv.Spec.CSI.VolumeHandle
 
 	r.Log.Info("looking for PersistentVolumeClaim")
 	pvcRef := pv.Spec.ClaimRef
@@ -251,6 +250,7 @@ func (r *PersistentVolumeWatcher) getPVManagementAddress(pv *corev1.PersistentVo
 			return "", err
 		}
 
+		pvVolumeHandle := pv.Spec.CSI.VolumeHandle
 		if pvVolumeHandle == "" {
 			msg := "volumeHandle cannot be empty"
 			r.Log.Error(nil, msg)
