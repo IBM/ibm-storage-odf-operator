@@ -103,18 +103,7 @@ var SecretMgmtAddrPredicate = predicate.Funcs{
 		}
 		_, isTopology := secret.Data[TopologySecretDataKey]
 		if isTopology {
-			secretMgmtDataByMgmtId := make(map[string]map[string]string)
-			err := json.Unmarshal(secret.Data[TopologySecretDataKey], &secretMgmtDataByMgmtId)
-			if err != nil {
-				return false
-			}
-			// checking that each mgmt_id object has a management address
-			for _, mgmtData := range secretMgmtDataByMgmtId {
-				if _, ok := mgmtData[SecretManagementAddressKey]; !ok {
-					return false
-				}
-			}
-			return true
+			return checkTopologySecretHasMgmtAddr(secret)
 		}
 		_, exist := secret.Data[SecretManagementAddressKey]
 		return exist
@@ -126,18 +115,7 @@ var SecretMgmtAddrPredicate = predicate.Funcs{
 		}
 		_, isTopology := secret.Data[TopologySecretDataKey]
 		if isTopology {
-			secretMgmtDataByMgmtId := make(map[string]map[string]string)
-			err := json.Unmarshal(secret.Data[TopologySecretDataKey], &secretMgmtDataByMgmtId)
-			if err != nil {
-				return false
-			}
-			// checking that each mgmt_id object has a management address
-			for _, mgmtData := range secretMgmtDataByMgmtId {
-				if _, ok := mgmtData[SecretManagementAddressKey]; !ok {
-					return false
-				}
-			}
-			return true
+			return checkTopologySecretHasMgmtAddr(secret)
 		}
 		_, exist := secret.Data[SecretManagementAddressKey]
 		return exist
@@ -148,6 +126,10 @@ var SecretMgmtAddrPredicate = predicate.Funcs{
 		if !ok {
 			return false
 		}
+		_, isTopology := oldSecret.Data[TopologySecretDataKey]
+		if isTopology {
+			return checkIfTopologySecretUpdated(oldSecret, newSecret)
+		}
 
 		oldMgmtAddr, exist1 := oldSecret.Data[SecretManagementAddressKey]
 		newMgmtAddr, exist2 := newSecret.Data[SecretManagementAddressKey]
@@ -157,6 +139,44 @@ var SecretMgmtAddrPredicate = predicate.Funcs{
 	GenericFunc: func(e event.GenericEvent) bool {
 		return false
 	},
+}
+
+func checkTopologySecretHasMgmtAddr(secret *corev1.Secret) bool {
+	secretMgmtDataByMgmtId := make(map[string]map[string]string)
+	err := json.Unmarshal(secret.Data[TopologySecretDataKey], &secretMgmtDataByMgmtId)
+	if err != nil {
+		return false
+	}
+	for _, mgmtData := range secretMgmtDataByMgmtId {
+		if _, ok := mgmtData[SecretManagementAddressKey]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func checkIfTopologySecretUpdated(oldSecret *corev1.Secret, newSecret *corev1.Secret) bool {
+	oldSecretMgmtDataByMgmtId := make(map[string]map[string]string)
+	err := json.Unmarshal(oldSecret.Data[TopologySecretDataKey], &oldSecretMgmtDataByMgmtId)
+	if err != nil {
+		return false
+	}
+	newSecretMgmtDataByMgmtId := make(map[string]map[string]string)
+	err = json.Unmarshal(newSecret.Data[TopologySecretDataKey], &newSecretMgmtDataByMgmtId)
+	if err != nil {
+		return false
+	}
+	for mgmtId := range oldSecretMgmtDataByMgmtId {
+		if _, exist := newSecretMgmtDataByMgmtId[mgmtId]; exist {
+			oldSecretMgmtAddr := oldSecretMgmtDataByMgmtId[mgmtId][SecretManagementAddressKey]
+			newSecretMgmtAddr := newSecretMgmtDataByMgmtId[mgmtId][SecretManagementAddressKey]
+			if oldSecretMgmtAddr != newSecretMgmtAddr {
+				return false
+			}
+		}
+		return false
+	}
+	return true
 }
 
 var RunDeletePredicate = predicate.Funcs{
