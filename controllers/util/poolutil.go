@@ -167,14 +167,14 @@ func isTopologySecretUpdated(oldSecret *corev1.Secret, newSecret *corev1.Secret)
 		return false
 	}
 	for mgmtId := range oldSecretMgmtDataByMgmtId {
-		if _, exist := newSecretMgmtDataByMgmtId[mgmtId]; exist {
-			oldSecretMgmtAddr := oldSecretMgmtDataByMgmtId[mgmtId][SecretManagementAddressKey]
-			newSecretMgmtAddr := newSecretMgmtDataByMgmtId[mgmtId][SecretManagementAddressKey]
-			if oldSecretMgmtAddr != newSecretMgmtAddr {
-				return true
-			}
+		if _, exist := newSecretMgmtDataByMgmtId[mgmtId]; !exist {
+			return true
 		}
-		return true
+		oldSecretMgmtAddr := oldSecretMgmtDataByMgmtId[mgmtId][SecretManagementAddressKey]
+		newSecretMgmtAddr := newSecretMgmtDataByMgmtId[mgmtId][SecretManagementAddressKey]
+		if oldSecretMgmtAddr != newSecretMgmtAddr {
+			return true
+		}
 	}
 	return false
 }
