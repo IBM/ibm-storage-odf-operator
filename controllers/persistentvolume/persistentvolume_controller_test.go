@@ -35,25 +35,26 @@ import (
 
 var _ = Describe("PersistentVolume Controller", func() {
 	const (
-		FlashSystemName            = "flashsystemcluster-sample"
-		PersistentVolume           = "test-persistent-volume"
-		secondPersistentVolume     = "second-test-persistent-volume"
-		PvForTopology              = "topology-test-persistent-volume"
-		topologyPvWithArrayAddress = "second-topology-test-persistent-volume"
-		namespace                  = "openshift-storage"
-		PersistentVolumeClaim      = "test-persistent-volume-claim"
-		PvcForTopology             = "topology-test-persistent-volume-claim"
-		storageClassName           = "odf-flashsystemcluster"
-		topologyStorageClassName   = "topology-storageclass"
-		poolName                   = "Pool0"
-		secretName                 = "fs-secret-sample"
-		topologySecretName         = "topology-secret"
-		fsType                     = "ext4"
-		volPrefix                  = "product"
-		spaceEff                   = "thin"
-		volumeHandle               = "00000000000000000000000000000001"
-		byManagementIdData         = "{\"demo-management-id-1\":{\"pool\":\"demo-pool-1\",\"SpaceEfficiency\":\"dedup_compressed\",\"volume_name_prefix\":\"demo-prefix-1\"},\"demo-management-id-2\":{\"volume_name_prefix\":\"demo-prefix-2\", \"io_group\": \"demo-iogrp\"}}"
-		topologySecretConfigData   = "{\"demo-management-id-1\": {\"username\": \"ZnNkcml2ZXI=\",\"password\": \"ZnNkcml2ZXI=\",\"management_address\": \"OS4xMTAuNzAuOTY=\"},\"demo-management-id-2\": {\"username\": \"ZnNkcml2ZXI=\",\"password\": \"ZnNkcml2ZXI=\",\"management_address\": \"OS4xMTAuMTEuMjM=\"}}" // #nosec G101 - false positive
+		FlashSystemName          = "flashsystemcluster-sample"
+		PersistentVolume         = "test-persistent-volume"
+		topologyPV               = "second-topology-test-persistent-volume"
+		namespace                = "openshift-storage"
+		PersistentVolumeClaim    = "test-persistent-volume-claim"
+		PvcForTopology           = "topology-test-persistent-volume-claim"
+		storageClassName         = "odf-flashsystemcluster"
+		topologyStorageClassName = "topology-storageclass"
+		poolName                 = "Pool0"
+		secretName               = "fs-secret-sample"
+		topologySecretName       = "topology-secret"
+		fsType                   = "ext4"
+		volPrefix                = "product"
+		spaceEff                 = "thin"
+		volumeHandle             = "00000000000000000000000000000001"
+		topologyVolumeHandle     = "SVC:demo-management-id-2:25;600507607182869980000000000054D3"
+		byManagementIdData       = "{\"demo-management-id-1\":{\"pool\":\"demo-pool-1\",\"SpaceEfficiency\":\"dedup_compressed\",\"volume_name_prefix\":\"demo-prefix-1\"}," +
+			"\"demo-management-id-2\":{\"volume_name_prefix\":\"demo-prefix-2\", \"io_group\": \"demo-iogrp\"}}"
+		topologySecretConfigData = "{\"demo-management-id-1\": {\"username\": \"ZnNkcml2ZXI=\",\"password\": \"ZnNkcml2ZXI=\",\"management_address\": \"OS4xMTAuNzAuOTY=\"}," +
+			"						   \"demo-management-id-2\": {\"username\": \"ZnNkcml2ZXI=\",\"password\": \"ZnNkcml2ZXI=\",\"management_address\": \"OS4xMTAuMTEuMjM=\"}}" // #nosec G101 - false positive
 
 		timeout = time.Second * 20
 		//duration = time.Second * 10
@@ -237,8 +238,9 @@ var _ = Describe("PersistentVolume Controller", func() {
 			ctx := context.TODO()
 			volumeMode := corev1.PersistentVolumeBlock
 
-			pvToCreateList := map[string]string{PersistentVolume: storageClassName, secondPersistentVolume: storageClassName, PvForTopology: topologyStorageClassName, topologyPvWithArrayAddress: topologyStorageClassName}
-			for pvName, sc := range pvToCreateList {
+			pvToCreateList := map[string]map[string]string{PersistentVolume: {"sc": storageClassName, "pvc": PersistentVolumeClaim},
+				topologyPV: {"sc": topologyStorageClassName, "pvc": PvcForTopology}}
+			for pvName, pvObjects := range pvToCreateList {
 				pv := &corev1.PersistentVolume{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      pvName,
@@ -258,20 +260,16 @@ var _ = Describe("PersistentVolume Controller", func() {
 						},
 						ClaimRef: &corev1.ObjectReference{
 							Kind:      util.PersistentVolumeClaimKind,
-							Name:      PersistentVolumeClaim,
+							Name:      pvObjects["pvc"],
 							Namespace: namespace,
 						},
-						StorageClassName: sc,
+						StorageClassName: pvObjects["sc"],
 						VolumeMode:       &volumeMode,
 					},
 				}
-				if pvName == PvForTopology {
-					pv.Spec.ClaimRef.Name = PvcForTopology
-				}
-				if pvName == secondPersistentVolume || pvName == topologyPvWithArrayAddress {
-					pv.Spec.CSI.VolumeAttributes = map[string]string{
-						util.PVMgmtAddrKey: "OS4xMTAuMTEuMjM=",
-					}
+
+				if pvName == topologyPV {
+					pv.Spec.PersistentVolumeSource.CSI.VolumeHandle = topologyVolumeHandle
 				}
 				Expect(k8sClient.Create(ctx, pv)).Should(Succeed())
 
@@ -284,11 +282,12 @@ var _ = Describe("PersistentVolume Controller", func() {
 
 				Eventually(func() bool {
 					err := k8sClient.Get(ctx, pvLookupKey, createdPv)
-					if pvName == secondPersistentVolume || pvName == topologyPvWithArrayAddress {
-						return err == nil && createdPv.Labels[util.OdfFsStorageSystemLabelKey] == FlashSystemName
-					}
-					_, pvLabelExists := createdPv.Labels[util.OdfFsStorageSystemLabelKey]
-					return err == nil && !pvLabelExists
+					//fmt.Println(createdPv.Name)
+					//fmt.Println(createdPv.Labels)
+					//fmt.Println(createdPv.Spec.CSI.VolumeHandle)
+					//fmt.Println("------------------")
+					return err == nil && createdPv.Labels[util.OdfFsStorageSystemLabelKey] == FlashSystemName
+
 				}, timeout, interval).Should(BeTrue())
 			}
 		})
@@ -316,13 +315,14 @@ var _ = Describe("PersistentVolume Controller", func() {
 			By("Testing the addStorageSystemLabelToPV function with a topology StorageClass")
 			pvForTopology := &corev1.PersistentVolume{}
 			pvLookupKey = types.NamespacedName{
-				Name:      PvForTopology,
+				Name:      topologyPV,
 				Namespace: namespace,
 			}
 
 			Expect(k8sClient.Get(ctx, pvLookupKey, pvForTopology)).Should(Succeed())
 			err = watcher.ensureStorageSystemLabel(pvForTopology)
-			Expect(err).Should(HaveOccurred())
+			Expect(err).Should(Not(HaveOccurred()))
+			Expect(pv.Labels[util.OdfFsStorageSystemLabelKey]).Should(Equal(FlashSystemName))
 		})
 
 		It("should test the getPVManagementAddress function successfully", func() {
@@ -335,13 +335,13 @@ var _ = Describe("PersistentVolume Controller", func() {
 			}
 
 			By("Getting the Management Address from the PV")
+			expectedMgmtAddress := "OS4xMTAuMTEuMjM="
 			pv := &corev1.PersistentVolume{}
 			pvLookupKey := types.NamespacedName{
 				Name:      PersistentVolume,
 				Namespace: namespace,
 			}
 			Expect(k8sClient.Get(ctx, pvLookupKey, pv)).Should(Succeed())
-			expectedMgmtAddress := "OS4xMTAuMTEuMjM="
 			extractedMgmtAddr, err := watcher.getPVManagementAddress(pv)
 			Expect(err).Should(Not(HaveOccurred()))
 			Expect(extractedMgmtAddr).Should(Equal(expectedMgmtAddress))
@@ -349,12 +349,13 @@ var _ = Describe("PersistentVolume Controller", func() {
 			By("Testing the getPVManagementAddress function with a topology StorageClass")
 			pvForTopology := &corev1.PersistentVolume{}
 			pvLookupKey = types.NamespacedName{
-				Name:      PvForTopology,
+				Name:      topologyPV,
 				Namespace: namespace,
 			}
 			Expect(k8sClient.Get(ctx, pvLookupKey, pvForTopology)).Should(Succeed())
-			_, err = watcher.getPVManagementAddress(pvForTopology)
-			Expect(err).Should(HaveOccurred())
+			extractedMgmtAddr, err = watcher.getPVManagementAddress(pvForTopology)
+			Expect(err).Should(Not(HaveOccurred()))
+			Expect(extractedMgmtAddr).Should(Equal(expectedMgmtAddress))
 
 			By("Testing the getPVManagementAddress function with a StorageClass and no secret")
 			secretLookupKey := types.NamespacedName{
@@ -436,17 +437,6 @@ var _ = Describe("PersistentVolume Controller", func() {
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
-			By("Getting the PV Management Address from the PV with the PVMgmtAddrKey field")
-			pvWithMgmtAddrKey := &corev1.PersistentVolume{}
-			pvLookupKey = types.NamespacedName{
-				Name:      secondPersistentVolume,
-				Namespace: namespace,
-			}
-			Expect(k8sClient.Get(ctx, pvLookupKey, pvWithMgmtAddrKey)).Should(Succeed())
-			extractedMgmtAddr, err = watcher.getPVManagementAddress(pvWithMgmtAddrKey)
-			Expect(err).Should(Not(HaveOccurred()))
-			Expect(extractedMgmtAddr).Should(Equal(expectedMgmtAddress))
-			Expect(pvWithMgmtAddrKey.Spec.CSI.VolumeAttributes[util.PVMgmtAddrKey]).Should(Equal(extractedMgmtAddr))
 		})
 
 	})
