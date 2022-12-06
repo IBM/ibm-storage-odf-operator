@@ -103,7 +103,7 @@ var SecretMgmtAddrPredicate = predicate.Funcs{
 		}
 		_, isTopology := secret.Data[TopologySecretDataKey]
 		if isTopology {
-			return checkTopologySecretHasMgmtAddr(secret)
+			return isTopologySecretHasMgmtAddr(secret)
 		}
 		_, exist := secret.Data[SecretManagementAddressKey]
 		return exist
@@ -115,7 +115,7 @@ var SecretMgmtAddrPredicate = predicate.Funcs{
 		}
 		_, isTopology := secret.Data[TopologySecretDataKey]
 		if isTopology {
-			return checkTopologySecretHasMgmtAddr(secret)
+			return isTopologySecretHasMgmtAddr(secret)
 		}
 		_, exist := secret.Data[SecretManagementAddressKey]
 		return exist
@@ -128,7 +128,7 @@ var SecretMgmtAddrPredicate = predicate.Funcs{
 		}
 		_, isTopology := oldSecret.Data[TopologySecretDataKey]
 		if isTopology {
-			return checkIfTopologySecretUpdated(oldSecret, newSecret)
+			return isTopologySecretUpdated(oldSecret, newSecret)
 		}
 
 		oldMgmtAddr, exist1 := oldSecret.Data[SecretManagementAddressKey]
@@ -141,7 +141,7 @@ var SecretMgmtAddrPredicate = predicate.Funcs{
 	},
 }
 
-func checkTopologySecretHasMgmtAddr(secret *corev1.Secret) bool {
+func isTopologySecretHasMgmtAddr(secret *corev1.Secret) bool {
 	secretMgmtDataByMgmtId := make(map[string]map[string]string)
 	err := json.Unmarshal(secret.Data[TopologySecretDataKey], &secretMgmtDataByMgmtId)
 	if err != nil {
@@ -155,7 +155,7 @@ func checkTopologySecretHasMgmtAddr(secret *corev1.Secret) bool {
 	return true
 }
 
-func checkIfTopologySecretUpdated(oldSecret *corev1.Secret, newSecret *corev1.Secret) bool {
+func isTopologySecretUpdated(oldSecret *corev1.Secret, newSecret *corev1.Secret) bool {
 	oldSecretMgmtDataByMgmtId := make(map[string]map[string]string)
 	err := json.Unmarshal(oldSecret.Data[TopologySecretDataKey], &oldSecretMgmtDataByMgmtId)
 	if err != nil {
@@ -171,12 +171,12 @@ func checkIfTopologySecretUpdated(oldSecret *corev1.Secret, newSecret *corev1.Se
 			oldSecretMgmtAddr := oldSecretMgmtDataByMgmtId[mgmtId][SecretManagementAddressKey]
 			newSecretMgmtAddr := newSecretMgmtDataByMgmtId[mgmtId][SecretManagementAddressKey]
 			if oldSecretMgmtAddr != newSecretMgmtAddr {
-				return false
+				return true
 			}
 		}
-		return false
+		return true
 	}
-	return true
+	return false
 }
 
 var RunDeletePredicate = predicate.Funcs{
