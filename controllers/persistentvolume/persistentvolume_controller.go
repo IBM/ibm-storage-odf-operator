@@ -18,6 +18,8 @@ package persistentvolume
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -34,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"strings"
 
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 )
@@ -208,43 +211,72 @@ func (r *PersistentVolumeWatcher) ensureStorageSystemLabel(pv *corev1.Persistent
 func (r *PersistentVolumeWatcher) getPVManagementAddress(pv *corev1.PersistentVolume) (string, error) {
 	r.Log.Info("looking for PersistentVolume management address")
 
-	pvVolumeAttributes := pv.Spec.CSI.VolumeAttributes
-	pvMgmtAddr, ok := pvVolumeAttributes[util.PVMgmtAddrKey]
+	var pvMgmtAddr string
 
-	if !ok {
-		r.Log.Info("looking for PersistentVolumeClaim")
-		pvcRef := pv.Spec.ClaimRef
-		pvc := &corev1.PersistentVolumeClaim{}
-		err := r.Client.Get(context.TODO(), types.NamespacedName{
-			Name:      pvcRef.Name,
-			Namespace: pvcRef.Namespace},
-			pvc)
-		if err != nil {
-			r.Log.Error(err, "failed to get PersistentVolumeClaim")
+	r.Log.Info("looking for PersistentVolumeClaim")
+	pvcRef := pv.Spec.ClaimRef
+	pvc := &corev1.PersistentVolumeClaim{}
+	err := r.Client.Get(context.TODO(), types.NamespacedName{
+		Name:      pvcRef.Name,
+		Namespace: pvcRef.Namespace},
+		pvc)
+	if err != nil {
+		r.Log.Error(err, "failed to get PersistentVolumeClaim")
+		return "", err
+	}
+
+	r.Log.Info("looking for StorageClass")
+	sc := &storagev1.StorageClass{}
+	err = r.Client.Get(context.TODO(), types.NamespacedName{Name: *(pvc.Spec.StorageClassName)}, sc)
+	if err != nil {
+		r.Log.Error(err, "failed to get StorageClass")
+		return "", err
+	}
+
+	r.Log.Info("looking for StorageClass Secret")
+	secret, err := util.GetStorageClassSecret(r.Client, sc)
+	if err != nil {
+		r.Log.Error(err, "failed to get StorageClass Secret")
+		return "", err
+	}
+
+	_, isTopology := sc.Parameters[util.TopologyStorageClassByMgmtId]
+	if isTopology {
+		secretMgmtDataByMgmtId := make(map[string]interface{})
+		topologySecretData := string(secret.Data[util.TopologySecretDataKey])
+
+		if err = json.Unmarshal([]byte(topologySecretData), &secretMgmtDataByMgmtId); err != nil {
+			r.Log.Error(nil, "failed to unmarshal topology Secret")
 			return "", err
 		}
 
-		r.Log.Info("looking for StorageClass")
-		sc := &storagev1.StorageClass{}
-		err = r.Client.Get(context.TODO(), types.NamespacedName{Name: *(pvc.Spec.StorageClassName)}, sc)
-		if err != nil {
-			r.Log.Error(err, "failed to get StorageClass")
-			return "", err
+		pvVolumeHandle := pv.Spec.CSI.VolumeHandle
+		if pvVolumeHandle == "" {
+			msg := "volumeHandle cannot be empty"
+			r.Log.Error(nil, msg)
+			return "", fmt.Errorf(msg)
 		}
 
-		_, isTopology := sc.Parameters[util.TopologyStorageClassByMgmtId]
-		if isTopology {
-			return "", &util.UniqueFSCMatchError{}
+		pvVolumeHandleList := strings.Split(pvVolumeHandle, ":")
+		if len(pvVolumeHandleList) < 2 {
+			msg := "volumeHandle must contain system id"
+			r.Log.Error(nil, msg)
+			return "", fmt.Errorf(msg)
 		}
 
-		r.Log.Info("looking for StorageClass Secret")
-		secret, err := util.GetStorageClassSecret(r.Client, sc)
-		if err != nil {
-			r.Log.Error(err, "failed to get StorageClass Secret")
-			return "", err
+		pvMgmtId := pvVolumeHandleList[1]
+		matchSecretMgmtData, exist := secretMgmtDataByMgmtId[pvMgmtId]
+		if !exist {
+			msg := "could not find system id in topology Secret"
+			r.Log.Error(nil, msg)
+			return "", fmt.Errorf(msg)
 		}
 
+		pvMgmtAddr = matchSecretMgmtData.(map[string]interface{})[util.SecretManagementAddressKey].(string)
+
+	} else {
 		pvMgmtAddr = string(secret.Data[util.SecretManagementAddressKey])
 	}
+
 	return pvMgmtAddr, nil
 }
