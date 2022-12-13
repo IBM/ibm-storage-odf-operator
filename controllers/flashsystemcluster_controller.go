@@ -483,6 +483,13 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alph
 	if configmap.Data == nil {
 		configmap.Data = make(map[string]string)
 	}
+	if _, exists := configmap.Data[util.PoolsKey]; exists {
+		delete(configmap.Data, util.PoolsKey)
+		if err = r.Client.Update(context.TODO(), configmap); err != nil {
+			r.Log.Error(err, "failed to update configmap and remove \"pools\" key")
+			return err
+		}
+	}
 	if _, exist := configmap.Data[instance.Name]; !exist {
 		value := util.FlashSystemClusterMapContent{
 			ScPoolMap: make(map[string]string), Secret: instance.Spec.Secret.Name}
