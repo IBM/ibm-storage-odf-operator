@@ -38,6 +38,7 @@ import (
 
 const (
 	PoolConfigmapName     = "ibm-flashsystem-pools"
+	PoolsKey              = "pools"
 	FSCConfigmapMountPath = "/config"
 
 	TopologySecretDataKey        = "config"
