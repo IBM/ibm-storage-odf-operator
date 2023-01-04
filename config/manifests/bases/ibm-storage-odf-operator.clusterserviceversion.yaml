@@ -3,7 +3,7 @@ kind: ClusterServiceVersion
 metadata:
   annotations:
     alm-examples: '[]'
-    capabilities: Full lifecycle
+    capabilities: Seamless Upgrades
     console.openshift.io/plugins: '["ibm-storage-odf-plugin"]'
     operators.openshift.io/infrastructure-features: '["disconnected"]'
     operators.operatorframework.io/operator-type: non-standalone

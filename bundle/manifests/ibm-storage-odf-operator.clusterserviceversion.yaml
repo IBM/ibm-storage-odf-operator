@@ -28,7 +28,7 @@ metadata:
           }
         }
       ]
-    capabilities: Full lifecycle
+    capabilities: Seamless Upgrades
     console.openshift.io/plugins: '["ibm-storage-odf-plugin"]'
     operators.operatorframework.io/builder: operator-sdk-v1.4.0+git
     operators.operatorframework.io/operator-type: non-standalone
