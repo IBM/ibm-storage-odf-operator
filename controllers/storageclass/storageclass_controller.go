@@ -215,6 +215,15 @@ func (r *StorageClassWatcher) ensureConfigMapUpdated(request reconcile.Request, 
 		return fscErr
 	}
 
+	for fscName := range fscToPoolsMap {
+		fscExist := configMap.Data[fscName]
+		if !fscExist {
+			msg := "failed to get FlashSystemCluster entry from pools ConfigMap"
+			r.Log.Error(nil, msg, "FlashSystemCluster", fscName, "ConfigMap", configMap.Name)
+			return fmt.Errorf(msg)
+		}
+	}
+
 	isSCDeleted := !sc.GetDeletionTimestamp().IsZero()
 	for fscName := range configMap.Data {
 		if isSCDeleted {
