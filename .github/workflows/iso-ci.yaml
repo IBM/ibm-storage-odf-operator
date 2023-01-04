@@ -35,7 +35,7 @@ jobs:
       run: |
         make test
 
-    - name: login to Docker Hub
+    - name: login to quay.io Hub
       # Only if we need to push an image
       if: ${{ github.event_name == 'release' && github.event.action == 'published' }}
       uses: docker/login-action@v1
