@@ -5,7 +5,6 @@ metadata:
     alm-examples: '[]'
     capabilities: Seamless Upgrades
     console.openshift.io/plugins: '["ibm-storage-odf-plugin"]'
-    operators.openshift.io/infrastructure-features: '["disconnected"]'
     operators.operatorframework.io/operator-type: non-standalone
   name: ibm-storage-odf-operator.v0.0.0
   namespace: placeholder
