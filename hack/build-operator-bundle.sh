@@ -21,7 +21,7 @@ set -e
 source hack/common.sh
 
 echo "Building Operator bundle image ${BUNDLE_FULL_IMAGE_NAME}..."
-docker build -f bundle.Dockerfile -t "${BUNDLE_FULL_IMAGE_NAME}" .
+docker build --no-cache -f bundle.Dockerfile -t "${BUNDLE_FULL_IMAGE_NAME}" .
 
 echo
 echo "Pushing Operator bundle image to image registry..."
@@ -44,15 +44,15 @@ else
 
   echo "Overriding CSV file to develop registry"
   sed -i "s/registry.connect.redhat.com\/ibm\/ibm-block-csi-operator:${CSI_RELEASE_NUMBER}/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-operator-amd64:${CSI_LATEST_TAG}/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
-  sed -i "s/ibmcom\/ibm-block-csi-driver-controller/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-driver-controller-amd64/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
-  sed -i "s/ibmcom\/ibm-block-csi-driver-node/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-driver-node-amd64/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
-  sed -i "s/ibmcom\/ibm-block-csi-host-definer/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-host-definer-amd64/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
+  sed -i "s/quay.io\/ibmcsiblock\/ibm-block-csi-driver-controller/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-driver-controller-amd64/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
+  sed -i "s/quay.io\/ibmcsiblock\/ibm-block-csi-driver-node/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-driver-node-amd64/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
+  sed -i "s/quay.io\/ibmcsiblock\/ibm-block-csi-host-definer/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-host-definer-amd64/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
   sed -i "s/\"tag\": \"${CSI_RELEASE_NUMBER}\"/\"tag\": \"${CSI_LATEST_TAG}\"/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
 
   cd "${CSI_DOCKERFILE_PATH}"
   echo
   echo "Building and pushing CSI bundle image using ${CSI_DOCKERFILE_PATH}/${CSI_DOCKERFILE_NAME}"
-  docker build -f "${CSI_DOCKERFILE_NAME}" -t "${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}" .
+  docker build --no-cache -f "${CSI_DOCKERFILE_NAME}" -t "${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}" .
   docker tag "${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}" "${IMAGE_REGISTRY}/${REGISTRY_NAMESPACE}/${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}"
   echo
   docker push "${IMAGE_REGISTRY}/${REGISTRY_NAMESPACE}/${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}"
