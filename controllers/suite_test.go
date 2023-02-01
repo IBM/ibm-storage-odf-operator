@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
-	util "github.com/IBM/ibm-storage-odf-operator/controllers/util"
+	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	//+kubebuilder:scaffold:imports
 )
@@ -115,7 +115,7 @@ var _ = BeforeSuite(func() {
 	err = os.Setenv(util.ExporterImageEnvVar, "docker.io/ibmcom/ibm-storage-odf-block-driver:v0.0.22")
 	Expect(err).NotTo(HaveOccurred())
 
-	// create manager and register controller for tset
+	// create manager and register controller for test
 	ns, err := util.GetWatchNamespace()
 	Expect(err).ToNot(HaveOccurred())
 

@@ -19,7 +19,6 @@ package controllers
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -38,47 +37,61 @@ import (
 
 const (
 	// exporter related dependencies
-	// FlashSystemClusterSpec.Name as resource name for multiple flashsystem clusters
+	// FlashSystemClusterSpec.Name as resource name for multiple flashSystem clusters
 
-	ExporterClusterConfigMapMountPoint = "/cluster-configmap"
+	// ExporterClusterConfigMapMountPoint = "/cluster-configmap"
+
+	ExporterClusterConfigMapVolumeName = "storageclass-pool"
 	ServiceAccount                     = "ibm-storage-odf-operator"
+	fsObjectsPrefix                    = "ibm-flashsystem-storage"
+	fsServiceName                      = "ibm-flashsystem-storage-service"
+	fsDeploymentName                   = "ibm-flashsystem-storage-deployment"
+	fsServiceMonitorName               = "ibm-flashsystem-storage-service-monitor"
 
 	portMetrics    = "metrics"
 	scrapeInterval = "1m"
 	scrapeTimeout  = "20s"
 
-	fsSecretUserKey     = "username"
-	fsSecretPasswdKey   = "password"
-	fsSecretEndPointKey = "management_address"
-
-    // #nosec
-	CredentialHashAnnotation  = "odf.ibm.com/credential-hash"
-	// #nosec
-	CredentialResourceVersion = "odf.ibm.com/credential-resource-version"
-
-	flashsystemPrometheusRuleFilepath = "/prometheus-rules/prometheus-flashsystem-rules.yaml"
+	FlashSystemPrometheusRuleFilepath = "/prometheus-rules/prometheus-flashsystem-rules.yaml"
 	// ruleName                          = "prometheus-flashsystem-rules"
-	// FlashsystemPrometheusRuleFileEnv is only for UT
-	FlashsystemPrometheusRuleFileEnv = "TEST_FS_PROM_RULE_FILE"
+
+	// FlashSystemPrometheusRuleFileEnv is only for UT
+	FlashSystemPrometheusRuleFileEnv = "TEST_FS_PROM_RULE_FILE"
 )
 
-// TODO: wrapper func for deployment name translation from cluster name
-func getExporterDeploymentName(clusterName string) string {
-	return clusterName
+func IsFSCSecret(secretName string) bool {
+	return strings.HasPrefix(secretName, fsObjectsPrefix)
 }
 
-func getExporterMetricsServiceName(clusterName string) string {
-	return clusterName
+// TODO: wrapper func for deployment name translation from cluster name
+func getExporterDeploymentName() string {
+	return fsDeploymentName
+}
+
+func getExporterMetricsServiceName() string {
+	return fsServiceName
+}
+
+func getExporterMetricsServiceMonitorName() string {
+	return fsServiceMonitorName
+}
+
+func isOwnerExist(ownerReferences []metav1.OwnerReference, newOwner metav1.OwnerReference) bool {
+	for _, owner := range ownerReferences {
+		if owner.UID == newOwner.UID {
+			return true
+		}
+	}
+	return false
 }
 
 func InitExporterMetricsService(instance *odfv1alpha1.FlashSystemCluster) *corev1.Service {
-
-	name := getExporterMetricsServiceName(instance.Name)
-	labels := util.GetLabels(instance.Name)
+	serviceName := getExporterMetricsServiceName()
+	labels := util.GetLabels()
 
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name:      serviceName,
 			Namespace: instance.Namespace,
 			Labels:    labels,
 			OwnerReferences: []metav1.OwnerReference{
@@ -109,8 +122,8 @@ func InitExporterMetricsService(instance *odfv1alpha1.FlashSystemCluster) *corev
 	}
 }
 
-func updateExporterMetricsService(foundService *corev1.Service, expectedService *corev1.Service) *corev1.Service {
-	var isChanged bool
+func updateExporterMetricsService(foundService *corev1.Service, expectedService *corev1.Service, newOwner metav1.OwnerReference) *corev1.Service {
+	isChanged := false
 
 	if foundService.Spec.Type != expectedService.Spec.Type {
 		isChanged = true
@@ -118,7 +131,11 @@ func updateExporterMetricsService(foundService *corev1.Service, expectedService 
 
 	if len(foundService.Spec.Ports) != 1 ||
 		!reflect.DeepEqual(foundService.Spec.Ports[0], expectedService.Spec.Ports[0]) {
+		isChanged = true
+	}
 
+	if !isOwnerExist(foundService.GetOwnerReferences(), newOwner) {
+		foundService.SetOwnerReferences(append(foundService.GetOwnerReferences(), newOwner))
 		isChanged = true
 	}
 
@@ -137,35 +154,24 @@ func updateExporterMetricsService(foundService *corev1.Service, expectedService 
 				},
 			},
 		}
-		updatedService.Spec.Selector = util.GetLabels(foundService.Name)
-
+		updatedService.Spec.Selector = util.GetLabels()
 		return updatedService
 	}
-
 	return nil
 }
 
 func InitExporterDeployment(
 	instance *odfv1alpha1.FlashSystemCluster,
 	pullPolicy corev1.PullPolicy,
-	image string,
-	secret *corev1.Secret) (*appsv1.Deployment, error) {
+	image string) (*appsv1.Deployment, error) {
 
-	name := instance.Name
 	var replicaOne int32 = 1
 
-	deploymentName := getExporterDeploymentName(name)
-	labels := util.GetLabels(instance.Name)
+	deploymentName := getExporterDeploymentName()
+	labels := util.GetLabels()
 
-	secretDataHash, err := util.CalculateDataHash(secret.Data)
-	if err != nil {
-		return nil, err
-	}
-
-	annotations := map[string]string{
-		CredentialHashAnnotation:  secretDataHash,
-		CredentialResourceVersion: secret.ResourceVersion,
-	}
+	runAsNonRoot := true
+	allowPrivilegeEscalation := false
 
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -188,8 +194,7 @@ func InitExporterDeployment(
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels:      labels,
-					Annotations: annotations,
+					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
@@ -199,47 +204,9 @@ func InitExporterDeployment(
 							ImagePullPolicy: pullPolicy,
 							Env: []corev1.EnvVar{
 								{
-									Name:  "FLASHSYSTEM_CLUSTERNAME",
-									Value: name,
-								},
-								{
 									Name:  util.WatchNamespaceEnvVar,
 									Value: instance.Namespace,
-								},
-								{
-									Name: "USERNAME",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: secret.Name,
-											},
-											Key: fsSecretUserKey,
-										},
-									},
-								},
-								{
-									Name: "PASSWORD",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: secret.Name,
-											},
-											Key: fsSecretPasswdKey,
-										},
-									},
-								},
-								{
-									Name: "REST_API_IP",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: secret.Name,
-											},
-											Key: fsSecretEndPointKey,
-										},
-									},
-								},
-							},
+								}},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceCPU:    resource.MustParse("0.5"),
@@ -263,7 +230,7 @@ func InitExporterDeployment(
 								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
-								{Name: "storageclass-pool", MountPath: util.PoolConfigmapMountPath},
+								{Name: ExporterClusterConfigMapVolumeName, MountPath: util.FSCConfigmapMountPath},
 							},
 							LivenessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
@@ -289,12 +256,22 @@ func InitExporterDeployment(
 								SuccessThreshold:    1,
 								FailureThreshold:    3,
 							},
+							SecurityContext: &corev1.SecurityContext{
+								RunAsNonRoot:             &runAsNonRoot,
+								AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+								SeccompProfile: &corev1.SeccompProfile{
+									Type: corev1.SeccompProfileTypeRuntimeDefault,
+								},
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{"ALL"},
+								},
+							},
 						},
 					},
 					ServiceAccountName: ServiceAccount,
 					Volumes: []corev1.Volume{
 						{
-							Name: "storageclass-pool",
+							Name: ExporterClusterConfigMapVolumeName,
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
@@ -310,23 +287,25 @@ func InitExporterDeployment(
 	}, nil
 }
 
-func updateExporterDeployment(found *appsv1.Deployment, expected *appsv1.Deployment) *appsv1.Deployment {
-
-	if !reflect.DeepEqual(found.Spec, expected.Spec) {
+func updateExporterDeployment(found *appsv1.Deployment, expected *appsv1.Deployment, newOwner metav1.OwnerReference) *appsv1.Deployment {
+	isExist := isOwnerExist(found.GetOwnerReferences(), newOwner)
+	if !isExist {
+		found.SetOwnerReferences(append(found.GetOwnerReferences(), newOwner))
+	}
+	if !reflect.DeepEqual(found.Spec, expected.Spec) || !isExist {
 		updated := found.DeepCopy()
 		updated.Spec = *expected.Spec.DeepCopy()
 		return updated
 	}
-
 	return nil
 }
 
 func InitExporterMetricsServiceMonitor(instance *odfv1alpha1.FlashSystemCluster) *monitoringv1.ServiceMonitor {
-	selectLabels := util.GetLabels(instance.Name)
+	selectLabels := util.GetLabels()
 
 	serviceMonitor := &monitoringv1.ServiceMonitor{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name,
+			Name:      fsServiceMonitorName,
 			Namespace: instance.Namespace,
 			Labels:    selectLabels,
 			OwnerReferences: []metav1.OwnerReference{
@@ -357,11 +336,15 @@ func InitExporterMetricsServiceMonitor(instance *odfv1alpha1.FlashSystemCluster)
 	return serviceMonitor
 }
 
-func updateExporterMetricsServiceMonitor(
-	foundServiceMonitor *monitoringv1.ServiceMonitor,
-	expectedServiceMonitor *monitoringv1.ServiceMonitor) *monitoringv1.ServiceMonitor {
+func updateExporterMetricsServiceMonitor(foundServiceMonitor *monitoringv1.ServiceMonitor,
+	expectedServiceMonitor *monitoringv1.ServiceMonitor, newOwner metav1.OwnerReference) *monitoringv1.ServiceMonitor {
 
-	if reflect.DeepEqual(foundServiceMonitor.Spec, expectedServiceMonitor.Spec) {
+	isExist := isOwnerExist(foundServiceMonitor.GetOwnerReferences(), newOwner)
+	if !isExist {
+		foundServiceMonitor.SetOwnerReferences(append(foundServiceMonitor.GetOwnerReferences(), newOwner))
+	}
+
+	if reflect.DeepEqual(foundServiceMonitor.Spec, expectedServiceMonitor.Spec) && isExist {
 		return nil
 	}
 
@@ -371,31 +354,31 @@ func updateExporterMetricsServiceMonitor(
 	return updatedServiceMonitor
 }
 
-func getFlashsystemPrometheusRuleFilepath() string {
-	file, found := os.LookupEnv(FlashsystemPrometheusRuleFileEnv)
+func getFlashSystemPrometheusRuleFilepath() string {
+	file, found := os.LookupEnv(FlashSystemPrometheusRuleFileEnv)
 	if found {
 		return file
 	}
 
-	return flashsystemPrometheusRuleFilepath
+	return FlashSystemPrometheusRuleFilepath
 }
 
-func getPrometheusRules(instance *odfv1alpha1.FlashSystemCluster) (*monitoringv1.PrometheusRule, error) {
-	ruleFile, err := ioutil.ReadFile(filepath.Clean(getFlashsystemPrometheusRuleFilepath()))
+func getPrometheusRules(instance *odfv1alpha1.FlashSystemCluster, newOwnerDetails metav1.OwnerReference) (*monitoringv1.PrometheusRule, error) {
+	ruleFile, err := os.ReadFile(filepath.Clean(getFlashSystemPrometheusRuleFilepath()))
 	if err != nil {
-		return nil, fmt.Errorf("prometheusRules file could not be fetched. %v", err)
+		return nil, fmt.Errorf("PrometheusRules file could not be fetched. %v", err)
 	}
 	var promRule monitoringv1.PrometheusRule
 	err = k8sYAML.NewYAMLOrJSONDecoder(bytes.NewBufferString(string(ruleFile)), 8192).Decode(&promRule)
 	if err != nil {
-		return nil, fmt.Errorf("prometheusRules could not be decoded. %v", err)
+		return nil, fmt.Errorf("PrometheusRules could not be decoded. %v", err)
 	}
 
 	template := promRule.GetName()
 	promRule.SetName(instance.Name)
 	promRule.SetNamespace(instance.Namespace)
 
-	labels := util.GetLabels(instance.Name)
+	labels := util.GetLabels()
 	updateLabels := promRule.GetLabels()
 	if updateLabels == nil {
 		updateLabels = labels
@@ -415,17 +398,7 @@ func getPrometheusRules(instance *odfv1alpha1.FlashSystemCluster) (*monitoringv1
 			}
 		}
 	}
-
-	owner := []metav1.OwnerReference{
-		{
-			APIVersion: instance.APIVersion,
-			Kind:       instance.Kind,
-			Name:       instance.Name,
-			UID:        instance.UID,
-		},
-	}
-
-	promRule.ObjectMeta.SetOwnerReferences(owner)
+	promRule.ObjectMeta.SetOwnerReferences([]metav1.OwnerReference{newOwnerDetails})
 
 	return &promRule, nil
 }

@@ -20,7 +20,6 @@ import (
 	"context"
 	"flag"
 	"os"
-
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 
@@ -35,8 +34,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
-	console "github.com/IBM/ibm-storage-odf-operator/console"
+	"github.com/IBM/ibm-storage-odf-operator/console"
 	"github.com/IBM/ibm-storage-odf-operator/controllers"
+	"github.com/IBM/ibm-storage-odf-operator/controllers/persistentvolume"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/storageclass"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	configv1 "github.com/openshift/api/config/v1"
@@ -88,7 +88,7 @@ func main() {
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Namespace:              ns,
+		Namespace:              "",
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
 		Port:                   9443,
@@ -135,6 +135,16 @@ func main() {
 		ConsolePort: consolePort,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterVersion")
+		os.Exit(1)
+	}
+
+	if err = (&persistentvolume.PersistentVolumeWatcher{
+		Client:    mgr.GetClient(),
+		Namespace: ns,
+		Log:       ctrl.Log.WithName("controllers").WithName("PersistentVolumeWatcher"),
+		Scheme:    mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "PersistentVolumeWatcher")
 		os.Exit(1)
 	}
 

@@ -31,8 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const MAIN_BASE_PATH = "/"
-const COMPATIBILITY_BASE_PATH = "/compatibility/"
+const MainBasePath = "/"
+const CompatibilityBasePath = "/compatibility/"
 
 func GetDeployment(namespace string) *appsv1.Deployment {
 	return &appsv1.Deployment{
@@ -93,7 +93,7 @@ func GetConsolePluginCR(consolePort int, basePath string, serviceNamespace strin
 //+kubebuilder:rbac:groups=console.openshift.io,resources=consoleplugins,verbs=*
 //+kubebuilder:rbac:groups=operator.openshift.io,resources=consoles,verbs=*
 
-// ensure plugin is cleaned when uninstall operator
+// RemoveConsole ensure plugin is cleaned when uninstall operator
 func RemoveConsole(client client.Client, namespace string) error {
 	consolePlugin := consolev1alpha1.ConsolePlugin{}
 	if err := client.Get(context.TODO(), types.NamespacedName{
@@ -105,18 +105,18 @@ func RemoveConsole(client client.Client, namespace string) error {
 		}
 		return err
 	}
-	// Delete ibm consoleplugin
+	// Delete ibm ConsolePlugin
 	if err := client.Delete(context.TODO(), &consolePlugin); err != nil {
 		return err
 	}
 	return nil
 }
 func GetBasePath(clusterVersion string) string {
-	if strings.Contains(clusterVersion, "4.11") {
-		return COMPATIBILITY_BASE_PATH
+	if strings.Contains(clusterVersion, "4.12") {
+		return CompatibilityBasePath
 	}
 
-	return MAIN_BASE_PATH
+	return MainBasePath
 }
 
 func EnableIBMConsoleByDefault(client client.Client) error {

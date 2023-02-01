@@ -35,12 +35,11 @@ var (
 	PhaseError = "Error"
 	// PhaseReady is used when SetCompleteCondition is called
 	PhaseReady = "Ready"
-	// PhaseNotReady is used when waiting for system to be ready
-	// after reconcile is successful
+	// PhaseNotReady is used when waiting for system to be ready after reconcile is successful
 	PhaseNotReady = "Not Ready"
 )
 
-// SetProgressingCondition sets the ProgressingCondition to True and other conditions to
+// SetReconcileProgressingCondition sets the ProgressingCondition to True and other conditions to
 // false or Unknown. Used when we are just starting to reconcile, and there are no existing
 // conditions.
 func SetReconcileProgressingCondition(conditions *[]odfv1alpha1.Condition, reason string, message string) {
@@ -58,17 +57,16 @@ func SetReconcileProgressingCondition(conditions *[]odfv1alpha1.Condition, reaso
 		Message: message,
 	})
 
-	// TODO: watch & check CSI status
 	SetStatusCondition(conditions, odfv1alpha1.Condition{
 		Type:    odfv1alpha1.ProvisionerReady,
-		Status:  corev1.ConditionTrue,
+		Status:  corev1.ConditionUnknown,
 		Reason:  reason,
 		Message: message,
 	})
 }
 
-// SetErrorCondition sets the ConditionReconcileComplete to False in case of any errors
-// during the reconciliation process.
+// SetReconcileErrorCondition sets the ConditionReconcileComplete to False in
+// case of any errors during the reconciliation process.
 func SetReconcileErrorCondition(conditions *[]odfv1alpha1.Condition, reason string, message string) {
 	SetStatusCondition(conditions, odfv1alpha1.Condition{
 		Type:    odfv1alpha1.ConditionReconcileComplete,
@@ -76,9 +74,33 @@ func SetReconcileErrorCondition(conditions *[]odfv1alpha1.Condition, reason stri
 		Reason:  reason,
 		Message: message,
 	})
+	SetStatusCondition(conditions, odfv1alpha1.Condition{
+		Type:    odfv1alpha1.ConditionProgressing,
+		Status:  corev1.ConditionTrue,
+		Reason:  reason,
+		Message: "processing FlashSystem ODF resources",
+	})
 }
 
-// SetCompleteCondition sets the ConditionReconcileComplete to True and other Conditions
+// SetReconcileProvisionerErrorCondition sets the ProvisionerReady to False in
+// case CSI driver fails to start
+func SetReconcileProvisionerErrorCondition(conditions *[]odfv1alpha1.Condition, reason string, message string) {
+	SetStatusCondition(conditions, odfv1alpha1.Condition{
+		Type:    odfv1alpha1.ConditionReconcileComplete,
+		Status:  corev1.ConditionFalse,
+		Reason:  reason,
+		Message: message,
+	})
+
+	SetStatusCondition(conditions, odfv1alpha1.Condition{
+		Type:    odfv1alpha1.ProvisionerReady,
+		Status:  corev1.ConditionFalse,
+		Reason:  reason,
+		Message: message,
+	})
+}
+
+// SetReconcileCompleteCondition sets the ConditionReconcileComplete to True and other Conditions
 // to indicate that the reconciliation process has completed successfully.
 func SetReconcileCompleteCondition(conditions *[]odfv1alpha1.Condition, reason string, message string) {
 	SetStatusCondition(conditions, odfv1alpha1.Condition{
@@ -95,7 +117,6 @@ func SetReconcileCompleteCondition(conditions *[]odfv1alpha1.Condition, reason s
 		Message: message,
 	})
 
-	// TODO: watch & check CSI status
 	SetStatusCondition(conditions, odfv1alpha1.Condition{
 		Type:    odfv1alpha1.ProvisionerReady,
 		Status:  corev1.ConditionTrue,

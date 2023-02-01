@@ -17,13 +17,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go: ["1.15"]
+        go: ["1.18"]
     steps:
-    - uses: actions/setup-go@v2
+    - uses: actions/setup-go@v3
       with:
         go-version: ${{ matrix.go }}
 
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
@@ -35,15 +35,16 @@ jobs:
       run: |
         make test
 
-    - name: login to Docker Hub
+    - name: login to Quay.io
       # Only if we need to push an image
       if: ${{ github.event_name == 'release' && github.event.action == 'published' }}
       uses: docker/login-action@v1
       with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        registry: quay.io
+        username: ${{ secrets.QUAYIO_USERNAME }}
+        password: ${{ secrets.QUAYIO_TOKEN }}
 
-    # Setup for buildx
+      # Setup for buildx
     - name: set up QEMU
       uses: docker/setup-qemu-action@v1
     - name: set up Docker Buildx
@@ -77,7 +78,7 @@ jobs:
         # Only push if we are publishing a release
         push: ${{ github.event_name == 'release' && github.event.action == 'published' }}
         # Use a 'dev' tag, that won't be pushed, for non-release builds
-        tags: docker.io/ibmcom/ibm-storage-odf-operator:${{ steps.tag.outputs.version-without-v || 'dev' }}
+        tags: quay.io/ibmodffs/ibm-storage-odf-operator:${{ steps.tag.outputs.version-without-v || 'dev' }}
 
     - name: generate bundle manifests and metadata
       run: |
@@ -93,4 +94,4 @@ jobs:
         file: ./bundle.Dockerfile
         platforms: linux/amd64,linux/ppc64le,linux/s390x
         push: ${{ github.event_name == 'release' && github.event.action == 'published' }}
-        tags: docker.io/ibmcom/ibm-storage-odf-operator-bundle:${{ steps.tag.outputs.version-without-v || 'dev' }}
+        tags: quay.io/ibmodffs/ibm-storage-odf-operator-bundle:${{ steps.tag.outputs.version-without-v || 'dev' }}

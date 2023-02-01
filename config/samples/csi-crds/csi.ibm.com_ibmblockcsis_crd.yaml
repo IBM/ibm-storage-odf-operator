@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/instance: ibmblockcsis
     app.kubernetes.io/managed-by: ibm-block-csi-operator
     product: ibm-block-csi-driver
-    release: v1.10.0
+    release: v1.11.0
     csi: ibm
 spec:
   group: csi.ibm.com
@@ -16,7 +16,7 @@ spec:
     listKind: IBMBlockCSIList
     plural: ibmblockcsis
     shortNames:
-    - ibc
+      - ibc
     singular: ibmblockcsi
   scope: Namespaced
   subresources:
@@ -105,8 +105,8 @@ spec:
                                             type: string
                                           type: array
                                       required:
-                                      - key
-                                      - operator
+                                        - key
+                                        - operator
                                       type: object
                                     type: array
                                   matchFields:
@@ -141,8 +141,8 @@ spec:
                                             type: string
                                           type: array
                                       required:
-                                      - key
-                                      - operator
+                                        - key
+                                        - operator
                                       type: object
                                     type: array
                                 type: object
@@ -152,8 +152,8 @@ spec:
                                 format: int32
                                 type: integer
                             required:
-                            - preference
-                            - weight
+                              - preference
+                              - weight
                             type: object
                           type: array
                         requiredDuringSchedulingIgnoredDuringExecution:
@@ -206,8 +206,8 @@ spec:
                                             type: string
                                           type: array
                                       required:
-                                      - key
-                                      - operator
+                                        - key
+                                        - operator
                                       type: object
                                     type: array
                                   matchFields:
@@ -242,14 +242,14 @@ spec:
                                             type: string
                                           type: array
                                       required:
-                                      - key
-                                      - operator
+                                        - key
+                                        - operator
                                       type: object
                                     type: array
                                 type: object
                               type: array
                           required:
-                          - nodeSelectorTerms
+                            - nodeSelectorTerms
                           type: object
                       type: object
                     podAffinity:
@@ -313,8 +313,8 @@ spec:
                                                 type: string
                                               type: array
                                           required:
-                                          - key
-                                          - operator
+                                            - key
+                                            - operator
                                           type: object
                                         type: array
                                       matchLabels:
@@ -346,7 +346,7 @@ spec:
                                       is not allowed.
                                     type: string
                                 required:
-                                - topologyKey
+                                  - topologyKey
                                 type: object
                               weight:
                                 description: weight associated with matching the corresponding
@@ -354,8 +354,8 @@ spec:
                                 format: int32
                                 type: integer
                             required:
-                            - podAffinityTerm
-                            - weight
+                              - podAffinityTerm
+                              - weight
                             type: object
                           type: array
                         requiredDuringSchedulingIgnoredDuringExecution:
@@ -410,8 +410,8 @@ spec:
                                             type: string
                                           type: array
                                       required:
-                                      - key
-                                      - operator
+                                        - key
+                                        - operator
                                       type: object
                                     type: array
                                   matchLabels:
@@ -442,7 +442,7 @@ spec:
                                   is running. Empty topologyKey is not allowed.
                                 type: string
                             required:
-                            - topologyKey
+                              - topologyKey
                             type: object
                           type: array
                       type: object
@@ -509,8 +509,8 @@ spec:
                                                 type: string
                                               type: array
                                           required:
-                                          - key
-                                          - operator
+                                            - key
+                                            - operator
                                           type: object
                                         type: array
                                       matchLabels:
@@ -542,7 +542,7 @@ spec:
                                       is not allowed.
                                     type: string
                                 required:
-                                - topologyKey
+                                  - topologyKey
                                 type: object
                               weight:
                                 description: weight associated with matching the corresponding
@@ -550,8 +550,8 @@ spec:
                                 format: int32
                                 type: integer
                             required:
-                            - podAffinityTerm
-                            - weight
+                              - podAffinityTerm
+                              - weight
                             type: object
                           type: array
                         requiredDuringSchedulingIgnoredDuringExecution:
@@ -606,8 +606,8 @@ spec:
                                             type: string
                                           type: array
                                       required:
-                                      - key
-                                      - operator
+                                        - key
+                                        - operator
                                       type: object
                                     type: array
                                   matchLabels:
@@ -638,7 +638,7 @@ spec:
                                   is running. Empty topologyKey is not allowed.
                                 type: string
                             required:
-                            - topologyKey
+                              - topologyKey
                             type: object
                           type: array
                       type: object
@@ -691,8 +691,8 @@ spec:
                     type: object
                   type: array
               required:
-              - repository
-              - tag
+                - repository
+                - tag
               type: object
             imagePullSecrets:
               items:
@@ -762,8 +762,8 @@ spec:
                                             type: string
                                           type: array
                                       required:
-                                      - key
-                                      - operator
+                                        - key
+                                        - operator
                                       type: object
                                     type: array
                                   matchFields:
@@ -798,8 +798,8 @@ spec:
                                             type: string
                                           type: array
                                       required:
-                                      - key
-                                      - operator
+                                        - key
+                                        - operator
                                       type: object
                                     type: array
                                 type: object
@@ -809,8 +809,8 @@ spec:
                                 format: int32
                                 type: integer
                             required:
-                            - preference
-                            - weight
+                              - preference
+                              - weight
                             type: object
                           type: array
                         requiredDuringSchedulingIgnoredDuringExecution:
@@ -863,8 +863,8 @@ spec:
                                             type: string
                                           type: array
                                       required:
-                                      - key
-                                      - operator
+                                        - key
+                                        - operator
                                       type: object
                                     type: array
                                   matchFields:
@@ -899,14 +899,14 @@ spec:
                                             type: string
                                           type: array
                                       required:
-                                      - key
-                                      - operator
+                                        - key
+                                        - operator
                                       type: object
                                     type: array
                                 type: object
                               type: array
                           required:
-                          - nodeSelectorTerms
+                            - nodeSelectorTerms
                           type: object
                       type: object
                     podAffinity:
@@ -970,8 +970,8 @@ spec:
                                                 type: string
                                               type: array
                                           required:
-                                          - key
-                                          - operator
+                                            - key
+                                            - operator
                                           type: object
                                         type: array
                                       matchLabels:
@@ -1003,7 +1003,7 @@ spec:
                                       is not allowed.
                                     type: string
                                 required:
-                                - topologyKey
+                                  - topologyKey
                                 type: object
                               weight:
                                 description: weight associated with matching the corresponding
@@ -1011,8 +1011,8 @@ spec:
                                 format: int32
                                 type: integer
                             required:
-                            - podAffinityTerm
-                            - weight
+                              - podAffinityTerm
+                              - weight
                             type: object
                           type: array
                         requiredDuringSchedulingIgnoredDuringExecution:
@@ -1067,8 +1067,8 @@ spec:
                                             type: string
                                           type: array
                                       required:
-                                      - key
-                                      - operator
+                                        - key
+                                        - operator
                                       type: object
                                     type: array
                                   matchLabels:
@@ -1100,7 +1100,7 @@ spec:
                                   is running. Empty topologyKey is not allowed.
                                 type: string
                             required:
-                            - topologyKey
+                              - topologyKey
                             type: object
                           type: array
                       type: object
@@ -1167,8 +1167,8 @@ spec:
                                                 type: string
                                               type: array
                                           required:
-                                          - key
-                                          - operator
+                                            - key
+                                            - operator
                                           type: object
                                         type: array
                                       matchLabels:
@@ -1200,7 +1200,7 @@ spec:
                                       is not allowed.
                                     type: string
                                 required:
-                                - topologyKey
+                                  - topologyKey
                                 type: object
                               weight:
                                 description: weight associated with matching the corresponding
@@ -1208,8 +1208,8 @@ spec:
                                 format: int32
                                 type: integer
                             required:
-                            - podAffinityTerm
-                            - weight
+                              - podAffinityTerm
+                              - weight
                             type: object
                           type: array
                         requiredDuringSchedulingIgnoredDuringExecution:
@@ -1264,8 +1264,8 @@ spec:
                                             type: string
                                           type: array
                                       required:
-                                      - key
-                                      - operator
+                                        - key
+                                        - operator
                                       type: object
                                     type: array
                                   matchLabels:
@@ -1296,7 +1296,7 @@ spec:
                                   is running. Empty topologyKey is not allowed.
                                 type: string
                             required:
-                            - topologyKey
+                              - topologyKey
                             type: object
                           type: array
                       type: object
@@ -1349,8 +1349,8 @@ spec:
                     type: object
                   type: array
               required:
-              - repository
-              - tag
+                - repository
+                - tag
               type: object
             sidecars:
               items:
@@ -1368,14 +1368,14 @@ spec:
                     description: The tag of the csi sidecar image
                     type: string
                 required:
-                - name
-                - repository
-                - tag
+                  - name
+                  - repository
+                  - tag
                 type: object
               type: array
           required:
-          - controller
-          - node
+            - controller
+            - node
           type: object
         status:
           description: IBMBlockCSIStatus defines the observed state of IBMBlockCSI
@@ -1391,16 +1391,16 @@ spec:
               description: Version is the current driver version
               type: string
           required:
-          - controllerReady
-          - nodeReady
-          - phase
-          - version
+            - controllerReady
+            - nodeReady
+            - phase
+            - version
           type: object
       type: object
   version: v1
   versions:
-  - name: v1
-    served: true
-    storage: true
+    - name: v1
+      served: true
+      storage: true
 
 

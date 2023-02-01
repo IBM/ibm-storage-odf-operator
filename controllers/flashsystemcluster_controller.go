@@ -19,10 +19,13 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"reflect"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"strings"
 
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
-	"github.com/IBM/ibm-storage-odf-operator/controllers/storageclass"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	"github.com/go-logr/logr"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -30,8 +33,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -48,16 +53,71 @@ var (
 	watchNamespace string
 )
 
-type SecretMapper struct {
+type ReconcileMapper struct {
 	reconciler *FlashSystemClusterReconciler
 }
 
-func (s *SecretMapper) SecretToClusterMapFunc(object client.Object) []reconcile.Request {
+func (s *ReconcileMapper) DefaultStorageClassToClusterMapperFunc(object client.Object) []reconcile.Request {
+	clusters := &odfv1alpha1.FlashSystemClusterList{}
+	err := s.reconciler.Client.List(context.TODO(), clusters)
+	if err != nil {
+		s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "DefaultStorageClassToClusterMapperFunc", s)
+		return nil
+	}
+
+	requests := []reconcile.Request{}
+	for _, c := range clusters.Items {
+		if c.Spec.DefaultPool.StorageClassName == object.GetName() {
+			req := reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: c.GetNamespace(),
+					Name:      c.GetName(),
+				},
+			}
+			requests = append(requests, req)
+		}
+	}
+
+	if len(requests) > 0 {
+		s.reconciler.Log.Info("reflect default storageClass deletion to FlashSystemCluster instance", "DefaultStorageClassToClusterMapperFunc", requests)
+	}
+
+	return requests
+}
+
+func (s *ReconcileMapper) CSIToClusterMapFunc(_ client.Object) []reconcile.Request {
+	s.reconciler.IsCSICRCreated = false
+
+	clusters := &odfv1alpha1.FlashSystemClusterList{}
+	err := s.reconciler.Client.List(context.TODO(), clusters)
+	if err != nil {
+		s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "CSIToClusterMapFunc", s)
+		return nil
+	}
+
+	requests := []reconcile.Request{}
+	for _, c := range clusters.Items {
+		req := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: c.GetNamespace(),
+				Name:      c.GetName(),
+			},
+		}
+		requests = append(requests, req)
+	}
+
+	if len(requests) > 0 {
+		s.reconciler.Log.Info("Discovered a change in CSI CR. Reconciling FlashSystemCluster", "CSIToClusterMapFunc", requests)
+	}
+	return requests
+}
+
+func (s *ReconcileMapper) SecretToClusterMapFunc(object client.Object) []reconcile.Request {
 	clusters := &odfv1alpha1.FlashSystemClusterList{}
 
 	err := s.reconciler.Client.List(context.TODO(), clusters)
 	if err != nil {
-		s.reconciler.Log.Error(err, "failed to list flashsystemcluster", "SecretMapper", s)
+		s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "SecretToClusterMapFunc", s)
 		return nil
 	}
 
@@ -77,7 +137,7 @@ func (s *SecretMapper) SecretToClusterMapFunc(object client.Object) []reconcile.
 	}
 
 	if len(requests) > 0 {
-		s.reconciler.Log.Info("reflect secret update to flashsystemcluster instance", "SecretMapper", requests)
+		s.reconciler.Log.Info("reflect secret update to FlashSystemCluster instance", "SecretToClusterMapFunc", requests)
 	}
 
 	return requests
@@ -97,7 +157,7 @@ type FlashSystemClusterReconciler struct {
 //+kubebuilder:rbac:groups=odf.ibm.com,resources=flashsystemclusters,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=odf.ibm.com,resources=flashsystemclusters/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=odf.ibm.com,resources=flashsystemclusters/finalizers,verbs=update
-//+kubebuilder:rbac:groups=csi.ibm.com,resources=ibmblockcsis,verbs=get;list;create;update;patch;delete
+//+kubebuilder:rbac:groups=csi.ibm.com,resources=ibmblockcsis,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
@@ -117,7 +177,7 @@ type FlashSystemClusterReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.2/pkg/reconcile
-func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *FlashSystemClusterReconciler) Reconcile(_ context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
 	result := reconcile.Result{}
 	prevLogger := r.Log
@@ -132,20 +192,24 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 	}()
 
-	r.Log = r.Log.WithValues("flashsystemcluster", req.NamespacedName)
-	r.Log.Info("Reconciling FlashSystemCluster")
+	r.Log = r.Log.WithValues("FlashSystemCluster", req.NamespacedName)
+	r.Log.Info("reconciling FlashSystemCluster")
 
 	instance := &odfv1alpha1.FlashSystemCluster{}
 	err = r.Client.Get(context.TODO(), req.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			r.Log.Info("FlashSystemCluster resource was not found")
+			err = r.removeFscFromConfigMap(req.Name)
+			if err != nil {
+				r.Log.Error(err, "failed to delete entry from pools ConfigMap")
+				return ctrl.Result{}, err
+			}
 			return result, nil
 		}
 		// Error reading the object - requeue the request.
 		return result, err
 	}
-
 	result, err = r.reconcile(instance)
 
 	statusError := r.Client.Status().Update(context.TODO(), instance)
@@ -163,63 +227,81 @@ func (r *FlashSystemClusterReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSystemCluster) (ctrl.Result, error) {
 	var err error
+	newOwnerDetails := v1.OwnerReference{
+		Name:       instance.Name,
+		Kind:       instance.Kind,
+		APIVersion: instance.APIVersion,
+		UID:        instance.UID,
+	}
 
 	// Check GetDeletionTimestamp to determine if the object is under deletion
 	if instance.GetDeletionTimestamp().IsZero() {
 		if !util.IsContain(instance.GetFinalizers(), flashSystemClusterFinalizer) {
-			r.Log.Info("Append flashsystemcluster to finalizer")
+			r.Log.Info("append FlashSystemCluster to finalizer")
 			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, flashSystemClusterFinalizer)
-			if err := r.Client.Update(context.TODO(), instance); err != nil {
-				r.Log.Info("Update Error", "MetaUpdateErr", "Failed to update FlashSystemCluster with finalizer")
+			if err = r.Client.Update(context.TODO(), instance); err != nil {
+				r.Log.Info("Update Error", "MetaUpdateErr", "failed to update FlashSystemCluster with finalizer")
 				return reconcile.Result{}, err
 			}
 		}
 	} else {
 		// The object is marked for deletion
 		if util.IsContain(instance.GetFinalizers(), flashSystemClusterFinalizer) {
-			r.Log.Info("Removing finalizer")
-			if err := r.deleteDefaultStorageClass(instance); err != nil {
+			r.Log.Info("removing finalizer")
+			if err = r.deleteDefaultStorageClass(instance); err != nil {
 				return reconcile.Result{}, err
 			}
 
 			// Once all finalizers have been removed, the object will be deleted
 			instance.ObjectMeta.Finalizers = util.Remove(instance.ObjectMeta.Finalizers, flashSystemClusterFinalizer)
-			if err := r.Client.Update(context.TODO(), instance); err != nil {
-				r.Log.Info("Update Error", "MetaUpdateErr", "Failed to remove finalizer from FlashSystemCluster")
+			if err = r.Client.Update(context.TODO(), instance); err != nil {
+				r.Log.Info("Update Error", "MetaUpdateErr", "failed to remove finalizer from FlashSystemCluster")
 				return reconcile.Result{}, err
 			}
 		}
-		r.Log.Info("Object is terminated, skipping reconciliation")
+		if err = r.removeFscFromConfigMap(instance.Name); err != nil {
+			r.Log.Error(err, "failed to delete entry from pools ConfigMap")
+			return reconcile.Result{}, err
+		}
+		r.Log.Info("object is terminated, skipping reconciliation")
 		return reconcile.Result{}, nil
 	}
 
-	r.Log.Info("step: create or check FlashSystem CSI CR")
-	err = r.ensureFlashSystemCSICR(instance)
-	if err != nil {
-		r.Log.Error(err, "failed to ensureFlashSystemCSICR")
+	r.Log.Info("step: ensureSecretOwnership")
+	if err = r.ensureSecretOwnership(instance, newOwnerDetails); err != nil {
+		reason := odfv1alpha1.ReasonReconcileFailed
+		message := fmt.Sprintf("failed to ensureSecretOwnership: %v", err)
+		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
+		instance.Status.Phase = util.PhaseError
+
+		r.createEvent(instance, corev1.EventTypeWarning, util.FailedEnsureSecretOwnershipReason, message)
 		return reconcile.Result{}, err
 	}
 
-	r.Log.Info("step: reset progressing conditions of the FlashSystemCluster resource")
-	if util.IsStatusConditionFalse(instance.Status.Conditions, odfv1alpha1.ConditionProgressing) {
-		reason := odfv1alpha1.ReasonReconcileInit
-		message := "processing flashsystem ODF resources"
-		util.SetReconcileProgressingCondition(&instance.Status.Conditions, reason, message)
-		instance.Status.Phase = util.PhaseProgressing
+	r.Log.Info("step: ensureFlashSystemCSICR - create or check FlashSystem CSI CR")
+	if err = r.ensureFlashSystemCSICR(instance); err != nil {
+		reason := odfv1alpha1.ReasonReconcileFailed
+		message := fmt.Sprintf("failed to ensureFlashSystemCSICR: %v", err)
+		util.SetReconcileProvisionerErrorCondition(&instance.Status.Conditions, reason, message)
+
+		r.createEvent(instance, corev1.EventTypeWarning, util.FailedLaunchBlockCSIReason, message)
+		return reconcile.Result{}, err
 	}
 
 	r.Log.Info("step: ensureScPoolConfigMap")
-	if err = r.ensureScPoolConfigMap(); err != nil {
+	if err = r.ensureScPoolConfigMap(instance); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to ensureScPoolConfigMap: %v", err)
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
 		instance.Status.Phase = util.PhaseError
 
+		r.createEvent(instance, corev1.EventTypeWarning,
+			util.FailedScPoolConfigMapReason, message)
 		return reconcile.Result{}, err
 	}
 
 	r.Log.Info("step: ensureExporterService")
-	if err = r.ensureExporterService(instance); err != nil {
+	if err = r.ensureExporterService(instance, newOwnerDetails); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to ensureExporterService: %v", err)
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
@@ -227,12 +309,11 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 
 		r.createEvent(instance, corev1.EventTypeWarning,
 			util.FailedCreateServiceReason, message)
-
 		return reconcile.Result{}, err
 	}
 
 	r.Log.Info("step: ensureExporterDeployment")
-	if err = r.ensureExporterDeployment(instance); err != nil {
+	if err = r.ensureExporterDeployment(instance, newOwnerDetails); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to ensureExporterDeployment: %v", err)
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
@@ -245,7 +326,7 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 	}
 
 	r.Log.Info("step: ensureExporterServiceMonitor")
-	if err = r.ensureExporterServiceMonitor(instance); err != nil {
+	if err = r.ensureExporterServiceMonitor(instance, newOwnerDetails); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to ensureExporterServiceMonitor: %v", err)
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
@@ -276,7 +357,7 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 	}
 
 	r.Log.Info("step: enablePrometheusRules")
-	if err = r.enablePrometheusRules(instance); err != nil {
+	if err = r.enablePrometheusRules(instance, newOwnerDetails); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to enablePrometheusRules: %v", err)
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
@@ -298,11 +379,37 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 		instance.Status.Phase = util.PhaseReady
 	} else if util.IsStatusConditionTrue(instance.Status.Conditions, odfv1alpha1.ConditionProgressing) {
 		instance.Status.Phase = util.PhaseProgressing
+		r.Log.Info("flashSystemCluster reconcile finished with 'progressing' state")
 	} else {
 		instance.Status.Phase = util.PhaseNotReady
+		r.Log.Info("flashSystemCluster reconcile finished with 'not ready' state")
 	}
 
 	return reconcile.Result{}, nil
+}
+
+func (r *FlashSystemClusterReconciler) ensureSecretOwnership(instance *odfv1alpha1.FlashSystemCluster, newOwnerForSecret v1.OwnerReference) error {
+	// Reading the secret, if it has ownership then skip, else update the secret with details of the FlashSystemCluster
+	secret := &corev1.Secret{}
+	err := r.Client.Get(
+		context.TODO(),
+		types.NamespacedName{Name: instance.Spec.Secret.Name, Namespace: instance.Spec.Secret.Namespace},
+		secret)
+
+	if err != nil {
+		r.Log.Error(err, "failed to get secret for FlashSystemCluster")
+		return err
+	}
+	if secret.OwnerReferences == nil {
+		r.Log.Info("adding owner reference for FlashSystemCluster secret")
+		secret.SetOwnerReferences([]v1.OwnerReference{newOwnerForSecret})
+		err = r.Client.Update(context.TODO(), secret)
+		if err != nil {
+			r.Log.Error(err, "failed to update secret with owner reference")
+			return err
+		}
+	}
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -319,71 +426,112 @@ func (r *FlashSystemClusterReconciler) SetupWithManager(mgr ctrl.Manager) error 
 	}
 	r.ExporterImage = exporterImage
 
-	secretMapper := &SecretMapper{
+	reconcileMapper := &ReconcileMapper{
 		reconciler: r,
 	}
+
+	csiBlock := &unstructured.Unstructured{}
+	csiBlock.SetGroupVersionKind(schema.GroupVersionKind{
+		Kind:    "IBMBlockCSI",
+		Group:   "",
+		Version: "csi.ibm.com/v1",
+	})
 
 	//TODO: it seems operator-sdk 1.5 + golang 1.5 fails to watch resources through Owns
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&odfv1alpha1.FlashSystemCluster{}).
 		Watches(&source.Kind{
 			Type: &appsv1.Deployment{},
-		}, &handler.EnqueueRequestForObject{}).
+		}, &handler.EnqueueRequestForOwner{OwnerType: &odfv1alpha1.FlashSystemCluster{}}).
 		Watches(&source.Kind{
 			Type: &corev1.Service{},
-		}, &handler.EnqueueRequestForObject{}).
+		}, &handler.EnqueueRequestForOwner{OwnerType: &odfv1alpha1.FlashSystemCluster{}}).
 		Watches(&source.Kind{
 			Type: &monitoringv1.ServiceMonitor{},
-		}, &handler.EnqueueRequestForObject{}).
+		}, &handler.EnqueueRequestForOwner{OwnerType: &odfv1alpha1.FlashSystemCluster{}}).
 		Watches(&source.Kind{
 			Type: &corev1.Secret{},
-		}, handler.EnqueueRequestsFromMapFunc(secretMapper.SecretToClusterMapFunc)).
+		}, handler.EnqueueRequestsFromMapFunc(reconcileMapper.SecretToClusterMapFunc)).
+		Watches(&source.Kind{
+			Type: &storagev1.StorageClass{},
+		}, handler.EnqueueRequestsFromMapFunc(reconcileMapper.DefaultStorageClassToClusterMapperFunc), builder.WithPredicates(util.RunDeletePredicate)).
+		Watches(&source.Kind{
+			Type: csiBlock},
+			handler.EnqueueRequestsFromMapFunc(reconcileMapper.CSIToClusterMapFunc), builder.WithPredicates(util.RunDeletePredicate)).
+		WithOptions(controller.Options{MaxConcurrentReconciles: 1}).
 		Complete(r)
 
 }
 
-func (r *FlashSystemClusterReconciler) createEvent(instance *odfv1alpha1.FlashSystemCluster, eventtype, reason, message string) {
+func (r *FlashSystemClusterReconciler) createEvent(instance *odfv1alpha1.FlashSystemCluster, eventType, reason, message string) {
 	r.Log.Info(message)
 
-	event := util.InitK8sEvent(instance, eventtype, reason, message)
-	err := r.Client.Create(context.TODO(), event)
+	newEvent := util.InitK8sEvent(instance, eventType, reason, message)
+	err := r.Client.Create(context.TODO(), newEvent)
 	if err != nil {
-		r.Log.Error(err, "failed to create Event", "reason", reason, "message", message)
+		r.Log.Error(err, "failed to create event", "reason", reason, "message", message)
 	}
 }
 
 // this object will not bind with instance
-func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap() error {
-	expectedScPoolConfigMap := storageclass.InitScPoolConfigMap(watchNamespace)
-	foundScPoolConfigMap := &corev1.ConfigMap{}
-
-	err := r.Client.Get(
-		context.TODO(),
-		types.NamespacedName{Name: util.PoolConfigmapName, Namespace: watchNamespace},
-		foundScPoolConfigMap)
+func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alpha1.FlashSystemCluster) error {
+	configmap, err := util.GetCreateConfigmap(r.Client, r.Log, watchNamespace, true)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			r.Log.Info("create StorageClassPool ConfigMap")
-			return r.Client.Create(context.TODO(), expectedScPoolConfigMap)
-		}
-
-		r.Log.Error(err, "failed to create StorageClassPool ConfigMap")
 		return err
 	}
 
-	// storageclass_controller will update it.
+	if configmap.Data == nil {
+		configmap.Data = make(map[string]string)
+	}
+	if _, exists := configmap.Data[util.PoolsKey]; exists {
+		delete(configmap.Data, util.PoolsKey)
+		if err = r.Client.Update(context.TODO(), configmap); err != nil {
+			r.Log.Error(err, "failed to update configmap and remove \"pools\" key")
+			return err
+		}
+	}
+	if _, exist := configmap.Data[instance.Name]; !exist {
+		value := util.FlashSystemClusterMapContent{
+			ScPoolMap: make(map[string]string), Secret: instance.Spec.Secret.Name}
+		val, err := json.Marshal(value)
+		if err != nil {
+			return err
+		}
+		r.Log.Info("adding FlashSystemCluster to pools ConfigMap", "ConfigMap", configmap.Name)
+		configmap.Data[instance.Name] = string(val)
+		return r.Client.Update(context.TODO(), configmap)
+	}
 
 	return nil
 }
 
-func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1alpha1.FlashSystemCluster) error {
+func (r *FlashSystemClusterReconciler) removeFscFromConfigMap(fscName string) error {
+	r.Log.Info("removing FlashSystemCluster entry from pools ConfigMap", "ConfigMap", util.PoolConfigmapName)
+
+	configmap, err := util.GetCreateConfigmap(r.Client, r.Log, watchNamespace, true)
+	if err != nil {
+		return err
+	}
+	delete(configmap.Data, fscName)
+	err = r.Client.Update(context.TODO(), configmap)
+	if err != nil {
+		r.Log.Error(err, "failed to update pools ConfigMap", "ConfigMap", configmap.Name)
+		return err
+	}
+	return nil
+}
+
+func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1alpha1.FlashSystemCluster, newOwnerDetails v1.OwnerReference) error {
+	if err := r.deleteDuplicatedDeployment(instance); err != nil {
+		return err
+	}
 
 	exporterImg, err := util.GetExporterImage()
 	if err != nil {
 		r.Log.Error(err, "failed to get exporter image from pod env variable")
 	}
 
-	deploymentName := getExporterDeploymentName(instance.Name)
+	deploymentName := getExporterDeploymentName()
 
 	foundSecret := &corev1.Secret{}
 	err = r.Client.Get(
@@ -397,7 +545,7 @@ func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1a
 		return err
 	}
 
-	expectedDeployment, err := InitExporterDeployment(instance, corev1.PullIfNotPresent, exporterImg, foundSecret)
+	expectedDeployment, err := InitExporterDeployment(instance, corev1.PullIfNotPresent, exporterImg)
 	if err != nil {
 		return err
 	}
@@ -413,28 +561,26 @@ func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1a
 			return r.Client.Create(context.TODO(), expectedDeployment)
 		}
 
-		r.Log.Error(err, "failed to create exporter deployment")
+		r.Log.Error(err, "failed to get exporter deployment")
 		return err
 	}
 
-	if reflect.DeepEqual(foundDeployment.Spec, expectedDeployment.Spec) {
-		r.Log.Info("existing exporter deployment is expected with no change")
-		return nil
-	}
-
-	updatedDeployment := updateExporterDeployment(foundDeployment, expectedDeployment)
+	updatedDeployment := updateExporterDeployment(foundDeployment, expectedDeployment, newOwnerDetails)
 	if updatedDeployment != nil {
 		r.Log.Info("update exporter deployment")
 		return r.Client.Update(context.TODO(), updatedDeployment)
 	}
 
+	r.Log.Info("existing exporter deployment is expected with no change")
 	return nil
 }
 
-func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alpha1.FlashSystemCluster) error {
-
+func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alpha1.FlashSystemCluster, newOwnerDetails v1.OwnerReference) error {
+	if err := r.deleteDuplicatedService(instance); err != nil {
+		return err
+	}
 	expectedService := InitExporterMetricsService(instance)
-	serviceName := getExporterMetricsServiceName(instance.Name)
+	serviceName := getExporterMetricsServiceName()
 	foundService := &corev1.Service{}
 
 	err := r.Client.Get(
@@ -446,48 +592,122 @@ func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alph
 			r.Log.Info("create exporter service")
 			return r.Client.Create(context.TODO(), expectedService)
 		}
-
-		r.Log.Error(err, "failed to create exporter service")
+		r.Log.Error(err, "failed to get exporter service")
 		return err
 	}
 
-	updatedService := updateExporterMetricsService(foundService, expectedService)
-	if updatedService == nil {
-		r.Log.Info("existing exporter service is expected with no change")
-		return nil
+	updatedService := updateExporterMetricsService(foundService, expectedService, newOwnerDetails)
+	if updatedService != nil {
+		r.Log.Info("update exporter service")
+		return r.Client.Update(context.TODO(), updatedService)
 	}
 
-	r.Log.Info("update exporter service")
-	return r.Client.Update(context.TODO(), updatedService)
+	r.Log.Info("existing exporter service is expected with no change")
+	return nil
 }
 
-func (r *FlashSystemClusterReconciler) ensureExporterServiceMonitor(instance *odfv1alpha1.FlashSystemCluster) error {
+func (r *FlashSystemClusterReconciler) deleteDuplicatedService(instance *odfv1alpha1.FlashSystemCluster) error {
+	servicesList := &corev1.ServiceList{}
+	if err := r.getObjectListByLabel(instance, servicesList); err != nil {
+		r.Log.Error(err, "failed to list services")
+		return err
+	}
+
+	for _, currentService := range servicesList.Items {
+		if r.isOldObject(currentService.GetLabels(), currentService.Name) {
+			deleteService := currentService
+			if err := r.Client.Delete(context.Background(), &deleteService); err != nil {
+				r.Log.Error(err, "failed to delete historical service")
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (r *FlashSystemClusterReconciler) deleteDuplicatedDeployment(instance *odfv1alpha1.FlashSystemCluster) error {
+	DeploymentList := &appsv1.DeploymentList{}
+	if err := r.getObjectListByLabel(instance, DeploymentList); err != nil {
+		r.Log.Error(err, "failed to list deployments")
+		return err
+	}
+
+	for _, currentDeployment := range DeploymentList.Items {
+		if r.isOldObject(currentDeployment.GetLabels(), currentDeployment.Name) {
+			deleteDeployment := currentDeployment
+			if err := r.Client.Delete(context.Background(), &deleteDeployment); err != nil {
+				r.Log.Error(err, "failed to delete historical deployment")
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (r *FlashSystemClusterReconciler) deleteDuplicatedServiceMonitor(instance *odfv1alpha1.FlashSystemCluster) error {
+	serviceMonitorList := &monitoringv1.ServiceMonitorList{}
+	if err := r.getObjectListByLabel(instance, serviceMonitorList); err != nil {
+		r.Log.Error(err, "failed to list serviceMonitors")
+		return err
+	}
+
+	for _, currentSM := range serviceMonitorList.Items {
+		if r.isOldObject(currentSM.GetLabels(), currentSM.Name) {
+			deleteSM := currentSM
+			if err := r.Client.Delete(context.Background(), deleteSM); err != nil {
+				r.Log.Error(err, "failed to delete historical serviceMonitor")
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (r *FlashSystemClusterReconciler) getObjectListByLabel(instance *odfv1alpha1.FlashSystemCluster, list client.ObjectList) error {
+	opts := []client.ListOption{client.InNamespace(instance.Namespace),
+		client.MatchingLabels{util.OdfLabel.Name: util.OdfLabel.Value}}
+	return r.Client.List(context.Background(), list, opts...)
+}
+
+func (r *FlashSystemClusterReconciler) isOldObject(labels map[string]string, objectName string) bool {
+	if _, keyFound := labels[util.OdfFsLabel.Name]; !keyFound && strings.HasPrefix(objectName, fsObjectsPrefix) {
+		r.Log.Info(fmt.Sprintf("found an old FlashSystem ODF object. Deleting %v.", objectName))
+		return true
+	}
+	return false
+}
+
+func (r *FlashSystemClusterReconciler) ensureExporterServiceMonitor(instance *odfv1alpha1.FlashSystemCluster, newOwnerDetails v1.OwnerReference) error {
+	if err := r.deleteDuplicatedServiceMonitor(instance); err != nil {
+		return err
+	}
 
 	expectedServiceMonitor := InitExporterMetricsServiceMonitor(instance)
+	serviceMonitorName := getExporterMetricsServiceMonitorName()
 	foundServiceMonitor := &monitoringv1.ServiceMonitor{}
 
 	err := r.Client.Get(
 		context.TODO(),
-		types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace},
+		types.NamespacedName{Name: serviceMonitorName, Namespace: instance.Namespace},
 		foundServiceMonitor)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			r.Log.Info("create exporter servicemonitor")
+			r.Log.Info("create exporter serviceMonitor")
 			return r.Client.Create(context.TODO(), expectedServiceMonitor)
 		}
 
-		r.Log.Error(err, "failed to get exporter servicemonitor")
+		r.Log.Error(err, "failed to get exporter serviceMonitor")
 		return err
 	}
 
-	updatedServiceMonitor := updateExporterMetricsServiceMonitor(foundServiceMonitor, expectedServiceMonitor)
-	if updatedServiceMonitor == nil {
-		r.Log.Info("existing exporter servicemonitor is expected with no change")
-		return nil
+	updatedServiceMonitor := updateExporterMetricsServiceMonitor(foundServiceMonitor, expectedServiceMonitor, newOwnerDetails)
+	if updatedServiceMonitor != nil {
+		r.Log.Info("update exporter serviceMonitor")
+		return r.Client.Update(context.TODO(), updatedServiceMonitor)
 	}
 
-	r.Log.Info("update exporter servicemonitor")
-	return r.Client.Update(context.TODO(), updatedServiceMonitor)
+	r.Log.Info("existing exporter serviceMonitor is expected with no change")
+	return nil
 }
 
 // create storage class in case of pool parameters provided.
@@ -522,16 +742,10 @@ func (r *FlashSystemClusterReconciler) ensureDefaultStorageClass(instance *odfv1
 			return nil
 		}
 
-		err = r.Client.Delete(
-			context.TODO(),
-			foundStorageClass)
-		if err != nil {
-			r.Log.Error(err, "failed to delete default StorageClass")
-			return err
-		}
-
-		r.createEvent(instance, corev1.EventTypeWarning,
-			util.DeletedDuplicatedStorageClassReason, "delete StorageClass with same name as default StorageClass")
+		msg := "storageClass with same name already exists and doesn't match ODF-FS requirements. " +
+			"Deletion of existing StorageClass is required. Failing FlashSystemCluster reconcile"
+		r.createEvent(instance, corev1.EventTypeWarning, util.DeletedDuplicatedStorageClassReason, msg)
+		return fmt.Errorf(msg)
 	}
 
 	r.Log.Info("create default StorageClass")
@@ -539,13 +753,13 @@ func (r *FlashSystemClusterReconciler) ensureDefaultStorageClass(instance *odfv1
 }
 
 func (r *FlashSystemClusterReconciler) deleteDefaultStorageClass(instance *odfv1alpha1.FlashSystemCluster) error {
-	if instance.Spec.DefaultPool == nil {
+	expectedStorageClass := InitDefaultStorageClass(instance)
+	if expectedStorageClass == nil {
+		r.Log.Info("leave existing default StorageClass alone")
 		return nil
 	}
 
-	expectedStorageClass := InitDefaultStorageClass(instance)
 	foundStorageClass := &storagev1.StorageClass{}
-
 	err := r.Client.Get(
 		context.TODO(),
 		types.NamespacedName{Name: instance.Spec.DefaultPool.StorageClassName, Namespace: ""},
@@ -555,37 +769,30 @@ func (r *FlashSystemClusterReconciler) deleteDefaultStorageClass(instance *odfv1
 			// do nothing
 			return nil
 		}
-
 		r.Log.Error(err, "failed to get default StorageClass")
 		return err
 	}
 
-	if expectedStorageClass == nil {
-		r.Log.Info("leave existing default StorageClass alone")
+	err = r.Client.Delete(
+		context.TODO(),
+		foundStorageClass)
+	if err != nil {
+		r.Log.Error(err, "failed to delete default StorageClass")
+		return err
 	} else {
-		err = r.Client.Delete(
-			context.TODO(),
-			foundStorageClass)
-		if err != nil {
-			r.Log.Error(err, "failed to delete default StorageClass")
-			return err
-		} else {
-			r.Log.Info("delete default StorageClass")
-		}
+		r.Log.Info("delete default StorageClass")
 	}
-
 	return nil
 }
 
-func (r *FlashSystemClusterReconciler) enablePrometheusRules(instance *odfv1alpha1.FlashSystemCluster) error {
-	rule, err := getPrometheusRules(instance)
+func (r *FlashSystemClusterReconciler) enablePrometheusRules(instance *odfv1alpha1.FlashSystemCluster, newOwnerDetails v1.OwnerReference) error {
+	rule, err := getPrometheusRules(instance, newOwnerDetails)
 	if err != nil {
 		r.Log.Error(err, "prometheus rules file not found")
 		return err
 	}
-	err = r.CreateOrUpdatePrometheusRules(rule)
-	if err != nil {
-		r.Log.Error(err, "unable to deploy Prometheus rules")
+	if err = r.CreateOrUpdatePrometheusRules(rule); err != nil {
+		r.Log.Error(err, "unable to deploy prometheus rules")
 		return err
 	}
 	return nil
@@ -615,7 +822,7 @@ func (r *FlashSystemClusterReconciler) CreateOrUpdatePrometheusRules(rule *monit
 
 func (r *FlashSystemClusterReconciler) ensureFlashSystemCSICR(instance *odfv1alpha1.FlashSystemCluster) error {
 	if r.IsCSICRCreated {
-		r.Log.Info("flashsystem CSI CR is already created, skip")
+		r.Log.Info("FlashSystem CSI CR is already created, skip")
 		return nil
 	}
 
@@ -635,10 +842,6 @@ func (r *FlashSystemClusterReconciler) ensureFlashSystemCSICR(instance *odfv1alp
 		r.Log.Info("start to create CSI CR instance...")
 		obj, err := CreateIBMBlockCSICR(r.CSIDynamicClient, instance.Namespace)
 		if err != nil {
-			r.createEvent(instance, corev1.EventTypeWarning,
-				util.FailedLaunchBlockCSIReason,
-				fmt.Sprintf("CSI CR:  %s/%s", obj.GetNamespace(), obj.GetName()))
-
 			return err
 		}
 		r.createEvent(instance, corev1.EventTypeNormal,

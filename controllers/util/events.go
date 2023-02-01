@@ -27,22 +27,23 @@ import (
 
 // Reasons for ibm storage odf events
 const (
-	// SuccessfulCreateBlockCSIReason is added in an event when Block CSI
-	// is successfully launched.
+	// SuccessfulLaunchBlockCSIReason is added in an event when Block CSI is successfully launched.
 	SuccessfulLaunchBlockCSIReason      = "SuccessfulLaunchBlockCSI"
 	FailedLaunchBlockCSIReason          = "FailedLaunchBlockCSI"
 	SuccessfulDetectBlockCSIReason      = "SuccessfulDetectBlockCSI"
 	FailedLaunchBlockExporterReason     = "FailedLaunchBlockExporter"
+	FailedEnsureSecretOwnershipReason   = "FailedEnsureSecretOwnership"
 	FailedCreateServiceReason           = "FailedCreateService"
+	FailedScPoolConfigMapReason         = "FailedEnsureScPoolConfigMap"
 	FailedCreateServiceMonitorReason    = "FailedCreateServiceMonitor"
 	FailedCreateStorageClassReason      = "FailedCreateStorageClass"
 	DeletedDuplicatedStorageClassReason = "DeletedDuplicatedStorageClass"
 	FailedCreatePromRuleReason          = "FailedCreatePromRule"
 )
 
-func InitK8sEvent(instance *odfv1alpha1.FlashSystemCluster, eventtype, reason, message string) *corev1.Event {
+func InitK8sEvent(instance *odfv1alpha1.FlashSystemCluster, eventType, reason, message string) *corev1.Event {
 	t := metav1.Time{Time: time.Now()}
-	selectLabels := GetLabels(instance.Name)
+	selectLabels := GetLabels()
 	return &corev1.Event{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%v.%x", instance.Name, t.UnixNano()),
@@ -62,7 +63,7 @@ func InitK8sEvent(instance *odfv1alpha1.FlashSystemCluster, eventtype, reason, m
 		FirstTimestamp: t,
 		LastTimestamp:  t,
 		Count:          1,
-		Type:           eventtype,
+		Type:           eventType,
 	}
 
 }

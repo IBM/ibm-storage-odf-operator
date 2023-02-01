@@ -13,8 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package storageclass
+package persistentvolume
 
 import (
 	"fmt"
@@ -45,13 +44,13 @@ import (
 var k8sClient client.Client
 var testEnv *envtest.Environment
 var isRealCluster bool
-var testStorageClassWatcher *StorageClassWatcher
+var testPersistentVolumeWatcher *PersistentVolumeWatcher
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 
 	RunSpecsWithDefaultAndCustomReporters(t,
-		"StorageClass Suite",
+		"Persistent Volume Suite",
 		[]Reporter{printer.NewlineReporter{}})
 }
 
@@ -118,13 +117,13 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	testStorageClassWatcher = &StorageClassWatcher{
+	testPersistentVolumeWatcher = &PersistentVolumeWatcher{
 		Client:    mgr.GetClient(),
 		Namespace: ns,
-		Log:       ctrl.Log.WithName("controllers").WithName("StorageClassWatcher"),
+		Log:       ctrl.Log.WithName("controllers").WithName("Persistent Volume"),
 		Scheme:    mgr.GetScheme(),
 	}
-	err = testStorageClassWatcher.SetupWithManager(mgr)
+	err = testPersistentVolumeWatcher.SetupWithManager(mgr)
 	Expect(err).ToNot(HaveOccurred())
 
 	go func() {

@@ -24,11 +24,22 @@ import (
 	"os"
 )
 
+type Label struct {
+	Name  string
+	Value string
+}
+
 // WatchNamespaceEnvVar is the constant for env variable WATCH_NAMESPACE
 // which is the namespace where the watch activity happens.
 // this value is empty if the operator is running with clusterScope.
 const WatchNamespaceEnvVar = "WATCH_NAMESPACE"
 const ExporterImageEnvVar = "EXPORTER_IMAGE"
+
+const OdfFsStorageSystemLabelKey = "odf-fs-storage-system"
+
+var OdfLabel = Label{"odf", "storage.ibm.com"}
+var ComponentLabel = Label{"app.kubernetes.io/component", "ibm-storage-odf-operator"}
+var OdfFsLabel = Label{"odf-fs", "odf-fs-workspace"}
 
 // GetWatchNamespace returns the namespace the operator should be watching for changes
 func GetWatchNamespace() (string, error) {
@@ -49,11 +60,11 @@ func GetExporterImage() (string, error) {
 }
 
 // GetLabels returns the labels with cluster name
-func GetLabels(clusterName string) map[string]string {
+func GetLabels() map[string]string {
 	return map[string]string{
-		"app.kubernetes.io/component": "ibm-storage-odf-operator",
-		"app.kubernetes.io/name":      clusterName,
-		"odf":                         "storage.ibm.com",
+		OdfLabel.Name:       OdfLabel.Value,
+		ComponentLabel.Name: ComponentLabel.Value,
+		OdfFsLabel.Name:     OdfFsLabel.Value,
 	}
 }
 
