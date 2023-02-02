@@ -45,8 +45,7 @@ pipeline {
             steps {
                 script {
                     sh(label: 'Execute Python build image script', script:
-                    'python3 -c "from hack.build_images import build_and_push_driver_image;
-                    build_and_push_driver_image(\'${DOCKER_REGISTRY}\', \'${DRIVER_GIT_BRANCH}\', \'${PLATFORM}\')"')
+                    'python3 -c "from hack.build_images import build_and_push_driver_image; build_and_push_driver_image(\'${DOCKER_REGISTRY}\', \'${DRIVER_GIT_BRANCH}\', \'${PLATFORM}\')"')
                     env.DRIVER_IMAGE=getLastImageCreated()
                 }
             }
@@ -55,21 +54,19 @@ pipeline {
             steps {
                 script {
                     sh(label: 'Execute Python build image script', script:
-                    'python3 -c "from hack.build_images import build_and_push_console_image;
-                    build_and_push_console_image(\'${DOCKER_REGISTRY}\', \'${CONSOLE_GIT_BRANCH}\', \'${PLATFORM}\')"')
+                    'python3 -c "from hack.build_images import build_and_push_console_image; build_and_push_console_image(\'${DOCKER_REGISTRY}\', \'${CONSOLE_GIT_BRANCH}\', \'${PLATFORM}\')"')
                     env.CONSOLE_IMAGE=getLastImageCreated()
                 }
             }
         }
-        stage ('Operator: Build and push image') {
-            steps {
-                script {
-                    sh(label: 'Execute Python Code', script:
-                    'python3 -c "from hack.build_images import build_and_push_operator_image;
-                    build_and_push_operator_image(\'${DOCKER_REGISTRY}\', \'${OPERATOR_GIT_BRANCH}\', \'${DRIVER_IMAGE}\', \'${CONSOLE_IMAGE}\', \'${PLATFORM}\')"')
-                }
-            }
-        }
+//         stage ('Operator: Build and push image') {
+//             steps {
+//                 script {
+//                     sh(label: 'Execute Python Code', script:
+//                     'python3 -c "from hack.build_images import build_and_push_operator_image; build_and_push_operator_image(\'${DOCKER_REGISTRY}\', \'${OPERATOR_GIT_BRANCH}\', \'${DRIVER_IMAGE}\', \'${CONSOLE_IMAGE}\', \'${PLATFORM}\')"')
+//                 }
+//             }
+//         }
     }
     post {
         always {
