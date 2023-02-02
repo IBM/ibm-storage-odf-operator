@@ -1,10 +1,10 @@
 def cleanupEnv() {
     sh(label: 'Execute Python cleanup env script', script:
-    'python3 -c "from hack.build_images import cleanup_env; cleanup_env()"')
+    'python3 -c "from hack.build_images import cleanup_env; cleanup_env(\'${OUTPUT_FILE}\')"')
 }
 
 def getLastImageCreated() {
-    def lines = readFile(params.OUTPUT_FILE).readLines()
+    def lines = readFile(env.OUTPUT_FILE).readLines()
     return lines.get(lines.size()-1)
 }
 
@@ -21,6 +21,7 @@ pipeline {
     }
     environment {
         registryCredentialsID = 'csi_w3_user'
+        OUTPUT_FILE = 'odf-images-url.txt'
         CONSOLE_IMAGE = ''
         DRIVER_IMAGE = ''
     }
@@ -45,7 +46,7 @@ pipeline {
             steps {
                 script {
                     sh(label: 'Execute Python build image script', script:
-                    'python3 -c "from hack.build_images import build_and_push_driver_image; build_and_push_driver_image(\'${DOCKER_REGISTRY}\', \'${DRIVER_GIT_BRANCH}\', \'${PLATFORM}\')"')
+                    'python3 -c "from hack.build_images import build_and_push_driver_image; build_and_push_driver_image(\'${DOCKER_REGISTRY}\', \'${DRIVER_GIT_BRANCH}\', \'${PLATFORM}\', \'${OUTPUT_FILE}\')"')
                     env.DRIVER_IMAGE=getLastImageCreated()
                 }
             }
@@ -54,7 +55,7 @@ pipeline {
             steps {
                 script {
                     sh(label: 'Execute Python build image script', script:
-                    'python3 -c "from hack.build_images import build_and_push_console_image; build_and_push_console_image(\'${DOCKER_REGISTRY}\', \'${CONSOLE_GIT_BRANCH}\', \'${PLATFORM}\')"')
+                    'python3 -c "from hack.build_images import build_and_push_console_image; build_and_push_console_image(\'${DOCKER_REGISTRY}\', \'${CONSOLE_GIT_BRANCH}\', \'${PLATFORM}\', \'${OUTPUT_FILE}\')"')
                     env.CONSOLE_IMAGE=getLastImageCreated()
                 }
             }
@@ -63,7 +64,7 @@ pipeline {
 //             steps {
 //                 script {
 //                     sh(label: 'Execute Python Code', script:
-//                     'python3 -c "from hack.build_images import build_and_push_operator_image; build_and_push_operator_image(\'${DOCKER_REGISTRY}\', \'${OPERATOR_GIT_BRANCH}\', \'${DRIVER_IMAGE}\', \'${CONSOLE_IMAGE}\', \'${PLATFORM}\')"')
+//                     'python3 -c "from hack.build_images import build_and_push_operator_image; build_and_push_operator_image(\'${DOCKER_REGISTRY}\', \'${OPERATOR_GIT_BRANCH}\', \'${DRIVER_IMAGE}\', \'${CONSOLE_IMAGE}\', \'${PLATFORM}\', \'${OUTPUT_FILE}\')"')
 //                 }
 //             }
 //         }

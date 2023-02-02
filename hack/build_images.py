@@ -21,12 +21,10 @@ DRIVER_CLONE_LOCAL_DIR = 'ibm-storage-odf-block-driver'
 CONSOLE_CLONE_LOCAL_DIR = 'ibm-storage-odf-console'
 OPERATOR_CLONE_LOCAL_DIR = 'ibm-storage-odf-operator'
 
-OUTPUT_FILE_NAME = 'odf-images-url.txt'
-
 OPERATOR_CSV_PATH = f'{OPERATOR_CLONE_LOCAL_DIR}/bundle/manifests/ibm-storage-odf-operator.clusterserviceversion.yaml'
 
 
-def build_and_push_operator_image(docker_registry, git_branch,  driver_image, console_image, platform):
+def build_and_push_operator_image(docker_registry, git_branch,  driver_image, console_image, platform, output_file):
     print("Cloning git project", flush=True)
     git.Repo.clone_from(OPERATOR_GIT_URL, OPERATOR_CLONE_LOCAL_DIR, branch=git_branch)
 
@@ -44,7 +42,7 @@ def build_and_push_operator_image(docker_registry, git_branch,  driver_image, co
     print("Dumping created image name", flush=True)
     operator_image_name = f'{docker_registry}/{OPERATOR_DOCKER_REPO_NAME}:{image_tag}'
     catalog_image_name = f'{docker_registry}/{CATALOG_DOCKER_REPO_NAME}:{image_tag}'
-    with open(OUTPUT_FILE_NAME, "a") as images_file:
+    with open(output_file, "a") as images_file:
         images_file.write(operator_image_name + "\n")
         images_file.write(catalog_image_name + "\n")
 
@@ -63,17 +61,17 @@ def edit_operator_csv(driver_image, console_image):
         yaml.dump(csv, f)
 
 
-def build_and_push_driver_image(docker_registry, git_branch, platform):
+def build_and_push_driver_image(docker_registry, git_branch, platform, output_file):
     build_and_push_image(docker_registry, DRIVER_DOCKER_REPO_NAME, DRIVER_GIT_URL, git_branch,
-     DRIVER_CLONE_LOCAL_DIR, platform)
+     DRIVER_CLONE_LOCAL_DIR, platform, output_file)
 
 
-def build_and_push_console_image(docker_registry, git_branch, platform):
+def build_and_push_console_image(docker_registry, git_branch, platform, output_file):
     build_and_push_image(docker_registry, CONSOLE_DOCKER_REPO_NAME, CONSOLE_GIT_URL, git_branch,
-     CONSOLE_CLONE_LOCAL_DIR, platform)
+     CONSOLE_CLONE_LOCAL_DIR, platform, output_file)
 
 
-def build_and_push_image(docker_registry, docker_repo_name, git_url, git_branch, local_dir, platform):
+def build_and_push_image(docker_registry, docker_repo_name, git_url, git_branch, local_dir, platform, output_file):
     """
     build and push odf console/driver docker image
     :param docker_registry: docker registry name including namespace (if exist) to push the image into. e.g. docker.io/tyichye
@@ -82,6 +80,7 @@ def build_and_push_image(docker_registry, docker_repo_name, git_url, git_branch,
     :param git_branch: branch name to build the image from. e.g. release-1.3.0
     :param local_dir: local directory to clone the git repo into
     :param platform: docker build platform. linux/amd64, linux/ppc64le, linux/s390x
+    :param output_file: Jenkins archive file to dumping the generated image name
     """
 
     print("Cloning git project", flush=True)
@@ -99,7 +98,7 @@ def build_and_push_image(docker_registry, docker_repo_name, git_url, git_branch,
 
     print("Dumping created image name", flush=True)
     image_name = f'{docker_registry}/{docker_repo_name}:{image_tag}'
-    with open(OUTPUT_FILE_NAME, "a") as images_file:
+    with open(output_file, "a") as images_file:
         images_file.write(image_name + "\n")
 
 
@@ -111,7 +110,7 @@ def generate_image_tag(branch_name):
     return image_tag
 
 
-def cleanup_env():
+def cleanup_env(output_file):
     print("cleanup env", flush=True)
     if os.path.exists(DRIVER_CLONE_LOCAL_DIR):
         rmtree(DRIVER_CLONE_LOCAL_DIR)
@@ -119,5 +118,5 @@ def cleanup_env():
         rmtree(CONSOLE_CLONE_LOCAL_DIR)
     if os.path.exists(OPERATOR_CLONE_LOCAL_DIR):
         rmtree(OPERATOR_CLONE_LOCAL_DIR)
-    if os.path.exists(OUTPUT_FILE_NAME):
-        os.remove(OUTPUT_FILE_NAME)
+    if os.path.exists(output_file):
+        os.remove(output_file)
