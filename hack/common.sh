@@ -40,7 +40,7 @@ CSI_CSV_FILE="ibm-block-csi-operator.clusterserviceversion.yaml"
 CSI_GA_CR_URL="https://raw.githubusercontent.com/IBM/ibm-block-csi-operator/${CSI_RELEASE}/config/samples/${CSI_CR_FILE}"
 
 VCS_URL="https://github.com/IBM/ibm-storage-odf-operator"
-VCS_REF="1.3.0-$(git rev-parse --short HEAD)"
+VCS_REF="1.4.0-$(git rev-parse --short HEAD)"
 RELEASE_VERSION=$(cat version/version.go | grep "Version =" | awk -F '"' '{print $2}')
 
 CHANNELS="stable-v1.3"
