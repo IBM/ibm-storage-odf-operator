@@ -399,11 +399,8 @@ spec:
                   - name: ibm-odf-console-serving-cert
                     secret:
                       secretName: ibm-odf-console-serving-cert
-              securityContext:
-                allowPrivilegeEscalation: false
-                capabilities:
-                  drop:
-                    - all
+                securityContext:
+                  runAsNonRoot: true
       permissions:
         - rules:
             - apiGroups:
