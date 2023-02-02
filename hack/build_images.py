@@ -25,11 +25,11 @@ def build_and_push_operator_image(docker_registry, git_branch,  driver_image, co
 
     print("Building image")
     env_vars = dict(IMAGE_REGISTRY=docker_registry, IMAGE_TAG=image_tag, **os.environ)
-    subprocess.run(["make", "-C", f'{local_dir}/', "build"], env=env_vars)
-    subprocess.run(["make", "-C", f'{local_dir}/', "docker-build"], env=env_vars)
-    subprocess.run(["make", "-C", f'{local_dir}/', "bundle-build"], env=env_vars)
+    subprocess.run(["make", "-C", f'{local_dir}/', "build"], env=env_vars, check=True)
+    subprocess.run(["make", "-C", f'{local_dir}/', "docker-build"], env=env_vars, check=True)
+    subprocess.run(["make", "-C", f'{local_dir}/', "bundle-build"], env=env_vars, check=True)
     edit_operator_csv(local_dir, driver_image, console_image)
-    subprocess.run(["make", "-C", f'{local_dir}/', "catalog-build"], env=env_vars)
+    subprocess.run(["make", "-C", f'{local_dir}/', "catalog-build"], env=env_vars, check=True)
 
     print("Writing image name to images file")
     image_name = docker_registry + '/' + docker_repo_name + ':' + image_tag
@@ -97,7 +97,7 @@ def build_and_push_image(docker_registry, docker_repo_name, git_url, git_branch,
                     f"REGISTRY={docker_registry}",
                     f"IMAGE_TAG={image_tag}",
                     f"TARGET_BRANCH={git_branch}",
-                    f"PLATFORM={platform}"])
+                    f"PLATFORM={platform}"], check=True)
 
     print("Writing image name to images file", flush=True)
     image_name = docker_registry + '/' + docker_repo_name + ':' + image_tag
