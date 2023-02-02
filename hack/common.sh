@@ -26,7 +26,7 @@ DEFAULT_KUSTOMIZE_VERSION="v3.8.7"
 # Check IBM block storage CSI driver versions on https://www.ibm.com/docs/en/blockstg-csi-driver
 # shellcheck disable=SC2034
 CSI_CR_FILE="csi.ibm.com_v1_ibmblockcsi_cr.yaml"
-CSI_RELEASE="v1.11.0"
+CSI_RELEASE="v1.12.0"
 CSI_RELEASE_NUMBER="${CSI_RELEASE:1}"
 CSI_DEVELOP_REGISTRY="stg-artifactory.xiv.ibm.com:5030"
 CSI_LATEST_TAG="latest"
@@ -43,8 +43,8 @@ VCS_URL="https://github.com/IBM/ibm-storage-odf-operator"
 VCS_REF="1.4.0-$(git rev-parse --short HEAD)"
 RELEASE_VERSION=$(cat version/version.go | grep "Version =" | awk -F '"' '{print $2}')
 
-CHANNELS="stable-v1.3"
-DEFAULT_CHANNEL="stable-v1.3"
+CHANNELS="stable-v1.4"
+DEFAULT_CHANNEL="stable-v1.4"
 
 GO111MODULE="on"
 GOPROXY="https://proxy.golang.org"
