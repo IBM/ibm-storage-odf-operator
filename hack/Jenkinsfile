@@ -1,0 +1,88 @@
+def cleanupEnv() {
+    if (fileExists("${OUTPUT_FILE}")) {
+        sh "rm -r ${OUTPUT_FILE}"
+    }
+}
+
+def getLastImageCreated() {
+    def lines = readFile(params.OUTPUT_FILE).readLines()
+    return lines.get(lines.size()-1)
+}
+
+pipeline {
+    agent {
+        label 'docker-engine'
+    }
+    parameters {
+        string(name: 'DOCKER_REGISTRY', defaultValue: "stg-artifactory.xiv.ibm.com:5030")
+        string(name: 'DRIVER_GIT_BRANCH', defaultValue: "release-1.4.0")
+        string(name: 'CONSOLE_GIT_BRANCH', defaultValue: "release-1.4.0")
+        string(name: 'OPERATOR_GIT_BRANCH', defaultValue: "release-1.4.0")
+        string(name: 'PLATFORM', defaultValue: "linux/amd64")
+        string(name: 'OUTPUT_FILE', defaultValue: "odf-images-url.txt")
+    }
+    environment {
+        registryCredentialsID = 'csi_w3_user'
+        CONDOLE_IMAGE = ''
+        DRIVER_IMAGE = ''
+    }
+    options {
+        ansiColor('xterm')
+    }
+    stages {
+        stage ('Login to registry') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: registryCredentialsID, usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                    sh 'docker login -u $USERNAME -p $PASSWORD ${DOCKER_REGISTRY}'
+                }
+            }
+        }
+        stage ('Driver: Build and push image') {
+            steps {
+                script {
+                    echo "Building driver image"
+                    sh(label: 'Execute Python build image script', script: 'python3 -c "import hack.build_images; build_images.build_and_push_driver_image(\'${DOCKER_REGISTRY}\', \'${DRIVER_GIT_BRANCH}\', \'${PLATFORM}\', \'${OUTPUT_FILE}\')"')
+                    env.DRIVER_IMAGE=getLastImageCreated()
+                }
+            }
+        }
+        stage ('Console: Build and push image') {
+            steps {
+                script {
+                    echo "Building console image"
+
+                    sh(label: 'Execute Python build image script', script: 'python3 -c "import hack.build_images; build_images.build_and_push_console_image(\'${DOCKER_REGISTRY}\', \'${CONSOLE_GIT_BRANCH}\', \'${PLATFORM}\', \'${OUTPUT_FILE}\')"')
+                    env.CONSOLE_IMAGE=getLastImageCreated()
+                }
+            }
+        }
+//         stage ('Operator: Build and push image') {
+//             steps {
+//                 script {
+//                     echo "Building operator image"
+//                     sh(label: 'Execute Python Code', script: 'python3 -c "import hack.build_images; build_images.build_and_push_operator_image(\'${DOCKER_REGISTRY}\', \'${OPERATOR_GIT_BRANCH}\', \'${DRIVER_IMAGE}\', \'${CONSOLE_IMAGE}\', \'${PLATFORM}\', \'${OUTPUT_FILE}\')"')
+//                 }
+//             }
+//         }
+    }
+    post {
+        always {
+            sh 'docker logout ${DOCKER_REGISTRY}'
+        }
+        success {
+            script {
+                echo "finished successfully"
+                if (fileExists("${OUTPUT_FILE}")) {
+                    archiveArtifacts "${OUTPUT_FILE}"
+                }
+            }
+        }
+        cleanup {
+            script {
+                if (fileExists("${OUTPUT_FILE}")) {
+                    sh 'rm ${OUTPUT_FILE}'
+                }
+            }
+        }
+    }
+}
