@@ -73,6 +73,14 @@ pipeline {
         always {
             sh 'docker logout ${DOCKER_REGISTRY}'
         }
+        success {
+            script {
+                echo "finished successfully"
+                if (fileExists("${OUTPUT_FILE}")) {
+                    archiveArtifacts "${OUTPUT_FILE}"
+                }
+            }
+        }
         cleanup {
             script {
                 cleanupEnv()
