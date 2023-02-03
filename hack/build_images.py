@@ -26,7 +26,7 @@ OPERATOR_CSV_PATH = f'{OPERATOR_CLONE_LOCAL_DIR}/bundle/manifests/ibm-storage-od
 
 def build_and_push_operator_image(docker_registry, git_branch,  driver_image, console_image, platform, output_file):
     print("Cloning git project", flush=True)
-    git.Repo.clone_from(OPERATOR_GIT_URL, OPERATOR_CLONE_LOCAL_DIR, branch=git_branch)
+#     git.Repo.clone_from(OPERATOR_GIT_URL, OPERATOR_CLONE_LOCAL_DIR, branch=git_branch)
 
     print("Generating image tag", flush=True)
     image_tag = generate_image_tag(git_branch)
@@ -35,7 +35,7 @@ def build_and_push_operator_image(docker_registry, git_branch,  driver_image, co
 
     print("Building image")
     env_vars = dict(IMAGE_REGISTRY=docker_registry, PLATFORM=platform,
-        IMAGE_TAG=image_tag, DRIVER_IMAGE_TAG=driver_image_tag, CONSOLE_IMAGE_TAG=console_image_tag,, **os.environ)
+        IMAGE_TAG=image_tag, DRIVER_IMAGE_TAG=driver_image_tag, CONSOLE_IMAGE_TAG=console_image_tag, **os.environ)
 
     run_operator_make_command("build", env_vars)
     run_operator_make_command("docker-build", env_vars)
