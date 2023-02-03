@@ -30,13 +30,16 @@ def build_and_push_operator_image(docker_registry, git_branch,  driver_image, co
 
     print("Generating image tag", flush=True)
     image_tag = generate_image_tag(git_branch)
+    driver_image_tag = driver_image.split(":")[-1]
+    console_image_tag = console_image.split(":")[-1]
 
     print("Building image")
-    env_vars = dict(IMAGE_REGISTRY=docker_registry, IMAGE_TAG=image_tag, BUILD_PLATFORM=platform, **os.environ)
+    env_vars = dict(IMAGE_REGISTRY=docker_registry, PLATFORM=platform,
+        IMAGE_TAG=image_tag, DRIVER_IMAGE_TAG=driver_image_tag, CONSOLE_IMAGE_TAG=console_image_tag,, **os.environ)
+
     run_operator_make_command("build", env_vars)
     run_operator_make_command("docker-build", env_vars)
     run_operator_make_command("bundle-build", env_vars)
-    edit_operator_csv(driver_image, console_image)
     run_operator_make_command("catalog-build", env_vars)
 
     print("Dumping created image name", flush=True)

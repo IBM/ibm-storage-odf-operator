@@ -51,6 +51,13 @@ fi
 ../../${KUSTOMIZE_BIN} edit set image controller="${OPERATOR_FULL_IMAGE_NAME}"
 popd
 
+
+pushd config/console
+
+../../${KUSTOMIZE_BIN} edit set image ibm-console="${CONSOLE_FULL_IMAGE_NAME}"
+popd
+
+
 ${KUSTOMIZE_BIN} build config/manifests | ${OPERATOR_SDK_BIN} generate bundle -q --overwrite --version "${RELEASE_VERSION}" ${BUNDLE_METADATA_OPTS}
 
 echo "Validating the generated files..."
