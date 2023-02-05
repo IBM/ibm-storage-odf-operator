@@ -1,3 +1,4 @@
+---
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -42,6 +43,9 @@ spec:
             value: docker.io/ibmcom/ibm-storage-odf-block-driver:v0.0.22
         securityContext:
           allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - all
         volumeMounts:
         - name: manager-config
           mountPath: /config

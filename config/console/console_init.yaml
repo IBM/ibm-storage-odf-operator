@@ -25,7 +25,14 @@ spec:
             - name: ibm-odf-console-serving-cert
               mountPath: /var/serving-cert
               readOnly: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - all
       volumes:
         - name: ibm-odf-console-serving-cert
           secret:
             secretName: ibm-odf-console-serving-cert
+      securityContext:
+        runAsNonRoot: true

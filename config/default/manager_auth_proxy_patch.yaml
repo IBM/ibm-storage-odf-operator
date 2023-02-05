@@ -1,3 +1,4 @@
+---
 # This patch injects a sidecar container which is an HTTP proxy for the
 # controller manager, it performs RBAC authorization against the Kubernetes API using SubjectAccessReviews.
 apiVersion: apps/v1
@@ -10,15 +11,20 @@ spec:
     spec:
       containers:
       - name: kube-rbac-proxy
-        image: registry.redhat.io/openshift4/ose-kube-rbac-proxy:v4.9
+        image: registry.redhat.io/openshift4/ose-kube-rbac-proxy:v4.11
         args:
         - "--secure-listen-address=0.0.0.0:8443"
         - "--upstream=http://127.0.0.1:8080/"
         - "--logtostderr=true"
-        - "--v=10"
+        - "--v=0"
         ports:
         - containerPort: 8443
           name: https
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - all
       - name: manager
         args:
         - "--health-probe-bind-address=:8081"
