@@ -36,7 +36,7 @@ pipeline {
                      dir(reportFolder) {
                         writeFile file: '${OUTPUT_FILE}', text: ''
                     }
-                    sh 'docker build -t odf-build-images -f Dockerfile-build-images . '
+                    sh 'docker build -t odf-build-images -f hack/Dockerfile-build-images . '
                     withCredentials([usernamePassword(credentialsId: registryCredentialsID, usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
                         sh 'docker login -u $USERNAME -p $PASSWORD ${DOCKER_REGISTRY}'
                     }

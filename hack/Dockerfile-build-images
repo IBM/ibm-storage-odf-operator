@@ -1,14 +1,14 @@
 FROM golang:1.18
 
 WORKDIR /
-COPY build_images.py .
+COPY hack/build_images.py .
 
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get install git glibc-source -y
 
 # Install python packages for build_images script
 RUN apt-get install python3 python3-pip -y
-RUN pip3 install pyYaml gitPython -y
+RUN pip3 install pyYaml gitPython
 
 # Install docker
 RUN curl -fsSL get.docker.com | CHANNEL=stable sh
