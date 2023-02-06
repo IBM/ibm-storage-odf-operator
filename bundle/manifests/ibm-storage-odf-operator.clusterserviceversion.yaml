@@ -394,12 +394,12 @@ spec:
                       - mountPath: /var/serving-cert
                         name: ibm-odf-console-serving-cert
                         readOnly: true
+                securityContext:
+                  runAsNonRoot: true
                 volumes:
                   - name: ibm-odf-console-serving-cert
                     secret:
                       secretName: ibm-odf-console-serving-cert
-                securityContext:
-                  runAsNonRoot: true
       permissions:
         - rules:
             - apiGroups:

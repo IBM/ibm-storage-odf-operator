@@ -11,4 +11,4 @@ spec:
       - name: manager
         env:
         - name: EXPORTER_IMAGE
-          value: quay.io/bvered/ibm-storage-odf-block-driver:1.4.0_testcsv
+          value: quay.io/ibmodffs/ibm-storage-odf-block-driver:1.4.0
