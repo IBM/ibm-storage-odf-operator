@@ -324,7 +324,7 @@ spec:
                         valueFrom:
                           fieldRef:
                             fieldPath: metadata.annotations['olm.operatorNamespace']
-                    image: registry.connect.redhat.com/ibm//ibm-storage-odf-operator:1.4.0
+                    image: registry.connect.redhat.com/ibm/ibm-storage-odf-operator:1.4.0
                     imagePullPolicy: Always
                     livenessProbe:
                       httpGet:
