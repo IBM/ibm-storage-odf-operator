@@ -1,5 +1,5 @@
 def getLastImageCreated() {
-    def lines = readFile("/report/${OUTPUT_FILE}").readLines()
+    def lines = readFile("${WORKSPACE}/report/${OUTPUT_FILE}").readLines()
     return lines.get(lines.size()-1)
 }
 
@@ -32,9 +32,6 @@ pipeline {
                         dir(reportFolder) {
                             deleteDir()
                         }
-                    }
-                     dir(reportFolder) {
-                        writeFile file: '${OUTPUT_FILE}', text: ''
                     }
                     sh 'docker build -t odf-build-images -f hack/Dockerfile-build-images . '
                     withCredentials([usernamePassword(credentialsId: registryCredentialsID, usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
