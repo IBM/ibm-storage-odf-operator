@@ -1,4 +1,3 @@
----
 apiVersion: odf.ibm.com/v1alpha1
 kind: FlashSystemCluster
 metadata:
