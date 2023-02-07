@@ -17,8 +17,6 @@ pipeline {
     environment {
         registryCredentialsID = 'csi_w3_user'
         OUTPUT_FILE = 'odf-images-url.txt'
-        CONSOLE_IMAGE = ''
-        DRIVER_IMAGE = ''
     }
     options {
         ansiColor('xterm')
@@ -50,7 +48,7 @@ pipeline {
                         odf-build-images \
                         "from build_images import build_and_push_driver_image; build_and_push_driver_image(\'${DOCKER_REGISTRY}\', \'${DRIVER_GIT_BRANCH}\', \'${PLATFORM}\', \'report/${OUTPUT_FILE}\')"
                     '''
-                    DRIVER_IMAGE=getLastImageCreated()
+                    env.DRIVER_IMAGE=getLastImageCreated()
                 }
             }
         }
@@ -64,7 +62,7 @@ pipeline {
                         odf-build-images \
                         "from build_images import build_and_push_console_image; build_and_push_console_image(\'${DOCKER_REGISTRY}\', \'${CONSOLE_GIT_BRANCH}\', \'${PLATFORM}\', \'report/${OUTPUT_FILE}\')"
                     '''
-                    CONSOLE_IMAGE=getLastImageCreated()
+                    env.CONSOLE_IMAGE=getLastImageCreated()
                 }
             }
         }
