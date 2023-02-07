@@ -1,11 +1,8 @@
 from datetime import datetime
-from shutil import rmtree
 import os
 import git
 import subprocess
-
-import yaml
-from yaml.loader import SafeLoader
+import pytz
 
 
 OPERATOR_GIT_URL = 'https://github.com/IBM/ibm-storage-odf-operator.git'
@@ -88,7 +85,8 @@ def build_and_push_image(docker_registry, docker_repo_name, git_url, git_branch,
 
 def generate_image_tag(branch_name):
     print("Generating image tag", flush=True)
-    now = datetime.now()
+    israelTimeZone = pytz.timezone("Asia/Jerusalem")
+    now = datetime.now(israelTimeZone)
     generated_dt = now.strftime("%d.%m.%y-%H.%M")
     generated_branch_name = branch_name.split("/")[-1]
     image_tag = (generated_dt + "-" + generated_branch_name)[:128]
