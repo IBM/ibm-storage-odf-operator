@@ -76,7 +76,7 @@ def build_and_push_image(docker_registry, docker_repo_name, git_url, git_branch,
     image_tag = generate_image_tag(git_branch)
 
     print("Building image", flush=True)
-    subprocess.run(["make", "-C", f'{local_dir}/', "build-image",
+    subprocess.run(["make", "-C", f'{local_dir}/', "push-image",
                     f"REGISTRY={docker_registry}",
                     f"IMAGE_TAG={image_tag}",
                     f"TARGET_BRANCH={git_branch}",
