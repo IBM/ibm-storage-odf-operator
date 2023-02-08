@@ -101,6 +101,6 @@ jobs:
       uses: docker/build-push-action@v2
       with:
         context: ./must-gather
-        file: ./Dockerfile
+        file: ./must-gather/Dockerfile
         push: ${{ github.event_name == 'release' && github.event.action == 'published' }}
         tags: quay.io/ibmodffs/ibm-storage-odf-operator-must-gather:${{ steps.tag.outputs.version-without-v || 'dev' }}
