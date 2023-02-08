@@ -95,3 +95,12 @@ jobs:
         platforms: linux/amd64,linux/ppc64le,linux/s390x
         push: ${{ github.event_name == 'release' && github.event.action == 'published' }}
         tags: quay.io/ibmodffs/ibm-storage-odf-operator-bundle:${{ steps.tag.outputs.version-without-v || 'dev' }}
+
+      # Build and (optionally) push the operator must gather image
+    - name: build the operator must gather image
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: ./must-gather/Dockerfile
+        push: ${{ github.event_name == 'release' && github.event.action == 'published' }}
+        tags: quay.io/ibmodffs/ibm-storage-odf-operator-must-gather:${{ steps.tag.outputs.version-without-v || 'dev' }}
