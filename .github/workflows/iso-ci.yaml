@@ -100,7 +100,7 @@ jobs:
     - name: build the operator must gather image
       uses: docker/build-push-action@v2
       with:
-        context: .
-        file: ./must-gather/Dockerfile
+        context: ./must-gather
+        file: ./Dockerfile
         push: ${{ github.event_name == 'release' && github.event.action == 'published' }}
         tags: quay.io/ibmodffs/ibm-storage-odf-operator-must-gather:${{ steps.tag.outputs.version-without-v || 'dev' }}
