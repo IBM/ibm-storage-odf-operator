@@ -71,7 +71,6 @@ To install own development builds of ISO, first build and push the operator imag
 
 ```
 $ export IMAGE_REGISTRY=<add new registry url here>
-$ export REGISTRY_NAMESPACE=<add namespace here>
 $ export IMAGE_TAG=<some-tag>
 $ make docker-build
 ```
