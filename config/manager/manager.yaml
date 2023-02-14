@@ -34,7 +34,7 @@ spec:
         imagePullPolicy: Always
         name: manager
         env:
-          - name: WATCH_NAMESPACE
+          - name: RESOURCES_NAMESPACE
             valueFrom:
               fieldRef:
                 fieldPath: metadata.annotations['olm.operatorNamespace']

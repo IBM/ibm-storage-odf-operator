@@ -320,7 +320,7 @@ spec:
                     env:
                       - name: EXPORTER_IMAGE
                         value: quay.io/ibmodffs/ibm-storage-odf-block-driver:1.4.0
-                      - name: WATCH_NAMESPACE
+                      - name: RESOURCES_NAMESPACE
                         valueFrom:
                           fieldRef:
                             fieldPath: metadata.annotations['olm.operatorNamespace']
