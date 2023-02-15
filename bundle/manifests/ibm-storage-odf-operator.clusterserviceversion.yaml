@@ -298,13 +298,18 @@ spec:
                       - --secure-listen-address=0.0.0.0:8443
                       - --upstream=http://127.0.0.1:8080/
                       - --logtostderr=true
-                      - --v=10
-                    image: registry.redhat.io/openshift4/ose-kube-rbac-proxy:v4.9
+                      - --v=0
+                    image: registry.redhat.io/openshift4/ose-kube-rbac-proxy:v4.11
                     name: kube-rbac-proxy
                     ports:
                       - containerPort: 8443
                         name: https
                     resources: {}
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - all
                   - args:
                       - --health-probe-bind-address=:8081
                       - --metrics-bind-address=127.0.0.1:8080
@@ -315,7 +320,7 @@ spec:
                     env:
                       - name: EXPORTER_IMAGE
                         value: quay.io/ibmodffs/ibm-storage-odf-block-driver:1.4.0
-                      - name: WATCH_NAMESPACE
+                      - name: RESOURCES_NAMESPACE
                         valueFrom:
                           fieldRef:
                             fieldPath: metadata.annotations['olm.operatorNamespace']
@@ -343,6 +348,9 @@ spec:
                         memory: 200Mi
                     securityContext:
                       allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - all
                     volumeMounts:
                       - mountPath: /config
                         name: manager-config
@@ -377,10 +385,17 @@ spec:
                       limits:
                         cpu: 50m
                         memory: 100Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - all
                     volumeMounts:
                       - mountPath: /var/serving-cert
                         name: ibm-odf-console-serving-cert
                         readOnly: true
+                securityContext:
+                  runAsNonRoot: true
                 volumes:
                   - name: ibm-odf-console-serving-cert
                     secret:

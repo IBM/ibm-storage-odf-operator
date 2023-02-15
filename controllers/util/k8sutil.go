@@ -29,10 +29,10 @@ type Label struct {
 	Value string
 }
 
-// WatchNamespaceEnvVar is the constant for env variable WATCH_NAMESPACE
+// WatchNamespaceEnvVar is the constant for env variable RESOURCES_NAMESPACE
 // which is the namespace where the watch activity happens.
 // this value is empty if the operator is running with clusterScope.
-const WatchNamespaceEnvVar = "WATCH_NAMESPACE"
+const WatchNamespaceEnvVar = "RESOURCES_NAMESPACE"
 const ExporterImageEnvVar = "EXPORTER_IMAGE"
 
 const OdfFsStorageSystemLabelKey = "odf-fs-storage-system"

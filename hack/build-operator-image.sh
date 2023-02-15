@@ -21,5 +21,4 @@ set -e
 source hack/common.sh
 
 echo "Building Operator image and Pushing to image registry ${OPERATOR_FULL_IMAGE_NAME}..."
-docker buildx build -t "${OPERATOR_FULL_IMAGE_NAME}" --build-arg VCS_REF=${VCS_REF} --build-arg VCS_URL=${VCS_URL} --platform ${PLATFORM} . --push
-
+docker buildx build -t "${OPERATOR_FULL_IMAGE_NAME}" --build-arg VCS_REF=${VCS_REF} --build-arg VCS_URL=${VCS_URL} . --push
