@@ -83,7 +83,7 @@ type storageClassMapper struct {
 func (f *storageClassMapper) ConfigMapToStorageClassMapFunc(object client.Object) []reconcile.Request {
 	requests := []reconcile.Request{}
 	if object.GetName() == util.PoolConfigmapName {
-		f.reconciler.Log.Info("Discovered ODF-FS configMap deletion. Reconciling all storageClasses", "ConfigMapToStorageClassMapFunc")
+		f.reconciler.Log.Info("Discovered ODF-FS configMap deletion. Reconciling all storageClasses", "ConfigMapToStorageClassMapFunc", f)
 
 		storageClasses := &storagev1.StorageClassList{}
 		err := f.reconciler.Client.List(context.TODO(), storageClasses)
@@ -93,13 +93,15 @@ func (f *storageClassMapper) ConfigMapToStorageClassMapFunc(object client.Object
 		}
 
 		for _, sc := range storageClasses.Items {
-			req := reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Namespace: sc.GetNamespace(),
-					Name:      sc.GetName(),
-				},
+			if sc.Provisioner == util.CsiIBMBlockDriver {
+				req := reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Namespace: sc.GetNamespace(),
+						Name:      sc.GetName(),
+					},
+				}
+				requests = append(requests, req)
 			}
-			requests = append(requests, req)
 		}
 	}
 	return requests
