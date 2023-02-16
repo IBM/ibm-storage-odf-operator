@@ -86,16 +86,18 @@ func (s *ReconcileMapper) DefaultStorageClassToClusterMapperFunc(object client.O
 }
 
 func (s *ReconcileMapper) ConfigMapToClusterMapFunc(object client.Object) []reconcile.Request {
-	clusters := &odfv1alpha1.FlashSystemClusterList{}
-	err := s.reconciler.Client.List(context.TODO(), clusters)
-	if err != nil {
-		s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "ConfigMapToClusterMapFunc", s)
-		return nil
-	}
-
 	requests := []reconcile.Request{}
-	for _, c := range clusters.Items {
-		if object.GetName() == util.PoolConfigmapName {
+	if object.GetName() == util.PoolConfigmapName {
+		s.reconciler.Log.Info("Discovered ODF-FS configMap deletion. Reconciling all FlashSystemClusters", "ConfigMapToClusterMapFunc")
+
+		clusters := &odfv1alpha1.FlashSystemClusterList{}
+		err := s.reconciler.Client.List(context.TODO(), clusters)
+		if err != nil {
+			s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "ConfigMapToClusterMapFunc", s)
+			return nil
+		}
+
+		for _, c := range clusters.Items {
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Namespace: c.GetNamespace(),
