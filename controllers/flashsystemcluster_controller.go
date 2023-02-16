@@ -85,6 +85,29 @@ func (s *ReconcileMapper) DefaultStorageClassToClusterMapperFunc(object client.O
 	return requests
 }
 
+func (s *ReconcileMapper) ConfigMapToClusterMapFunc(object client.Object) []reconcile.Request {
+	clusters := &odfv1alpha1.FlashSystemClusterList{}
+	err := s.reconciler.Client.List(context.TODO(), clusters)
+	if err != nil {
+		s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "ConfigMapToClusterMapFunc", s)
+		return nil
+	}
+
+	requests := []reconcile.Request{}
+	for _, c := range clusters.Items {
+		if object.GetName() == util.PoolConfigmapName {
+			req := reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: c.GetNamespace(),
+					Name:      c.GetName(),
+				},
+			}
+			requests = append(requests, req)
+		}
+	}
+	return requests
+}
+
 func (s *ReconcileMapper) CSIToClusterMapFunc(_ client.Object) []reconcile.Request {
 	s.reconciler.IsCSICRCreated = false
 
@@ -455,6 +478,9 @@ func (r *FlashSystemClusterReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Watches(&source.Kind{
 			Type: &storagev1.StorageClass{},
 		}, handler.EnqueueRequestsFromMapFunc(reconcileMapper.DefaultStorageClassToClusterMapperFunc), builder.WithPredicates(util.RunDeletePredicate)).
+		Watches(&source.Kind{
+			Type: &corev1.ConfigMap{},
+		}, handler.EnqueueRequestsFromMapFunc(reconcileMapper.ConfigMapToClusterMapFunc), builder.WithPredicates(util.RunDeletePredicate)).
 		Watches(&source.Kind{
 			Type: csiBlock},
 			handler.EnqueueRequestsFromMapFunc(reconcileMapper.CSIToClusterMapFunc), builder.WithPredicates(util.RunDeletePredicate)).
