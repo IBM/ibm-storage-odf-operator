@@ -80,6 +80,33 @@ type storageClassMapper struct {
 	reconciler *StorageClassWatcher
 }
 
+func (f *storageClassMapper) ConfigMapToStorageClassMapFunc(object client.Object) []reconcile.Request {
+	requests := []reconcile.Request{}
+	if object.GetName() == util.PoolConfigmapName {
+		f.reconciler.Log.Info("Discovered ODF-FS configMap deletion. Reconciling all storageClasses", "ConfigMapToStorageClassMapFunc", f)
+
+		storageClasses := &storagev1.StorageClassList{}
+		err := f.reconciler.Client.List(context.TODO(), storageClasses)
+		if err != nil {
+			f.reconciler.Log.Error(err, "failed to list StorageClasses", "ConfigMapToStorageClassMapFunc", f)
+			return nil
+		}
+
+		for _, sc := range storageClasses.Items {
+			if sc.Provisioner == util.CsiIBMBlockDriver {
+				req := reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Namespace: sc.GetNamespace(),
+						Name:      sc.GetName(),
+					},
+				}
+				requests = append(requests, req)
+			}
+		}
+	}
+	return requests
+}
+
 func (f *storageClassMapper) fscStorageClassMap(_ client.Object) []reconcile.Request {
 	storageClasses := &storagev1.StorageClassList{}
 	err := f.reconciler.Client.List(context.TODO(), storageClasses)
@@ -153,6 +180,9 @@ func (r *StorageClassWatcher) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&source.Kind{
 			Type: &v1alpha1.FlashSystemCluster{},
 		}, handler.EnqueueRequestsFromMapFunc(scMapper.fscStorageClassMap), builder.WithPredicates(util.IgnoreUpdateAndGenericPredicate)).
+		Watches(&source.Kind{
+			Type: &corev1.ConfigMap{},
+		}, handler.EnqueueRequestsFromMapFunc(scMapper.ConfigMapToStorageClassMapFunc), builder.WithPredicates(util.RunDeletePredicate)).
 		Watches(&source.Kind{
 			Type: &corev1.Secret{},
 		}, handler.EnqueueRequestsFromMapFunc(scMapper.secretStorageClassMap), builder.WithPredicates(util.SecretMgmtAddrPredicate)).
