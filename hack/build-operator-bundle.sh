@@ -19,6 +19,8 @@
 set -e
 
 source hack/common.sh
+source hack/ensure-opm.sh
+
 
 echo "Building Operator bundle image ${BUNDLE_FULL_IMAGE_NAME}..."
 ${OPM_BIN} alpha bundle build --directory bundle/metadata/ --tag "${BUNDLE_FULL_IMAGE_NAME}" --output-dir . --package ibm-storage-odf-operator --channels stable-v1.4
