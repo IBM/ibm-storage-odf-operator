@@ -21,7 +21,8 @@ set -e
 source hack/common.sh
 
 echo "Building Operator bundle image ${BUNDLE_FULL_IMAGE_NAME}..."
-docker build --no-cache -f bundle.Dockerfile -t "${BUNDLE_FULL_IMAGE_NAME}" .
+${OPM_BIN} alpha bundle build --directory bundle/metadata/ --tag "${BUNDLE_FULL_IMAGE_NAME}" --output-dir . --package ibm-storage-odf-operator --channels stable-v1.4
+#docker build --no-cache -f bundle.Dockerfile -t "${BUNDLE_FULL_IMAGE_NAME}" .
 
 echo
 echo "Pushing Operator bundle image to image registry..."
@@ -61,4 +62,3 @@ else
   cd "${oldPWD}"
   rm -rf "${CSI_LOCAL_PATH}"
 fi
-
