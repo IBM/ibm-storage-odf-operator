@@ -23,10 +23,7 @@ source hack/ensure-opm.sh
 
 
 echo "Building Operator bundle image ${BUNDLE_FULL_IMAGE_NAME}..."
-${OPM_BIN} alpha bundle build --directory bundle/metadata/ --tag "${BUNDLE_FULL_IMAGE_NAME}" --output-dir . --package ibm-storage-odf-operator --channels stable-v1.4
-#docker build --no-cache -f bundle.Dockerfile -t "${BUNDLE_FULL_IMAGE_NAME}" .
-
-echo
+${OPM_BIN} alpha bundle build --directory bundle/metadata/ --tag "${BUNDLE_FULL_IMAGE_NAME}" --output-dir . --package "${OPERATOR_IMAGE_NAME}" --channels "${CHANNELS}"
 echo "Pushing Operator bundle image to image registry..."
 docker push "${BUNDLE_FULL_IMAGE_NAME}"
 echo
@@ -36,12 +33,12 @@ if curl --head --silent --fail "${CSI_GA_CR_URL}" &> /dev/null; then
 else
   echo "CSI tag doesn't exist yet, cloning CSI GitHub repository"
   oldPWD=$(pwd)
-  if [ ! -d "${CSI_LOCAL_PATH}" ]
+  if [ ! -d "${CSI_OPERATOR_IMAGE_NAME}" ]
   then
       git clone "${CSI_GIT_PATH}"
-      cd "${CSI_LOCAL_PATH}"
+      cd "${CSI_OPERATOR_IMAGE_NAME}"
   else
-      cd "${CSI_LOCAL_PATH}"
+      cd "${CSI_OPERATOR_IMAGE_NAME}"
       git pull
   fi
 
@@ -52,15 +49,13 @@ else
   sed -i "s/quay.io\/ibmcsiblock\/ibm-block-csi-host-definer/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-host-definer-amd64/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
   sed -i "s/\"tag\": \"${CSI_RELEASE_NUMBER}\"/\"tag\": \"${CSI_LATEST_TAG}\"/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
 
-  cd "${CSI_DOCKERFILE_PATH}"
-  echo
+  cd "${oldPWD}/${CSI_OPERATOR_IMAGE_NAME}"
   echo "Building and pushing CSI bundle image using ${CSI_DOCKERFILE_PATH}/${CSI_DOCKERFILE_NAME}"
-  docker build --no-cache -f "${CSI_DOCKERFILE_NAME}" -t "${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}" .
-  docker tag "${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}" "${IMAGE_REGISTRY}/${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}"
-  echo
+  ${OPM_BIN} alpha bundle build --directory "${CSI_CSV_PATH}" --tag "${IMAGE_REGISTRY}/${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}" --output-dir . --package "${CSI_OPERATOR_IMAGE_NAME}" --channels "${CSI_CHANNEL}"
   docker push "${IMAGE_REGISTRY}/${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}"
+  echo
 
   echo "Deleting CSI repository clone"
   cd "${oldPWD}"
-  rm -rf "${CSI_LOCAL_PATH}"
+  rm -rf "${CSI_OPERATOR_IMAGE_NAME}"
 fi
