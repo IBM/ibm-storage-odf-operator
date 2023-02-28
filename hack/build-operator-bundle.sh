@@ -63,6 +63,7 @@ check_and_build_csi_bundle_image(){
     override_csi_csi_file
 
     cd "${oldPWD}/${CSI_OPERATOR_IMAGE_NAME}"
+    source hack/ensure-opm.sh
     build_push_bundle_image "${IMAGE_REGISTRY}/${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}" "${CSI_CSV_PATH}" "${CSI_OPERATOR_IMAGE_NAME}" "${CSI_CHANNEL}"
     echo
 
