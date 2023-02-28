@@ -40,4 +40,4 @@ fi
 
 FULLPATH_OPM_BIN=$(readlink -f "${OPM_BIN}")
 export OPM_BIN="${FULLPATH_OPM_BIN}"
-echo "Using new opm at full path ${OPM_BIN}"
+echo "Using opm at full path ${OPM_BIN}"

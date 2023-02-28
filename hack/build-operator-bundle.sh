@@ -35,7 +35,7 @@ build_push_bundle_image(){
 
 clone_csi_repo(){
   echo "CSI tag doesn't exist yet, cloning CSI GitHub repository"
-  oldPWD=$(PWD)
+  oldPWD=$(pwd)
   if [ ! -d "${CSI_OPERATOR_IMAGE_NAME}" ]
   then
     git clone "${CSI_GIT_PATH}"
