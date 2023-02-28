@@ -34,7 +34,10 @@ if [ ! -x "${OPM_BIN}" ] || [[ -x "${OPM_BIN}" && "$(${OPM_BIN} version | awk -F
         echo "Downloading opm ${OPM_VERSION} CLI tool for ${LOCAL_OS_TYPE}..."
         curl -JL "${OPM_URL}" -o "${OPM_BIN}"
         chmod +x "${OPM_BIN}"
-        echo "Using OPM - ${OPM_BIN}"
 else
         echo "Using opm cached at ${OPM_BIN}"
 fi
+
+FULLPATH_OPM_BIN=$(readlink -f "${OPM_BIN}")
+export OPM_BIN="${FULLPATH_OPM_BIN}"
+echo "Using new opm at full path ${OPM_BIN}"

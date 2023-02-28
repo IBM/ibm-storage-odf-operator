@@ -35,7 +35,7 @@ build_push_bundle_image(){
 
 clone_csi_repo(){
   echo "CSI tag doesn't exist yet, cloning CSI GitHub repository"
-  oldPWD=$(pwd)
+  oldPWD=$(PWD)
   if [ ! -d "${CSI_OPERATOR_IMAGE_NAME}" ]
   then
     git clone "${CSI_GIT_PATH}"
@@ -62,9 +62,9 @@ check_and_build_csi_bundle_image(){
     clone_csi_repo
     override_csi_csi_file
 
-    export OPM_BIN="${oldPWD}"/build/_output/bin/opm
+    #export OPM_BIN="${oldPWD}"/build/_output/bin/opm
     echo "my opm is ${OPM_BIN}"
-    cd "${oldPWD}/${CSI_OPERATOR_IMAGE_NAME}"
+    #cd "${oldPWD}/${CSI_OPERATOR_IMAGE_NAME}"
     build_push_bundle_image "${IMAGE_REGISTRY}/${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}" "${CSI_CSV_PATH}" "${CSI_OPERATOR_IMAGE_NAME}" "${CSI_CHANNEL}"
     echo
 
