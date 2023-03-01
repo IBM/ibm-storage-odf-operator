@@ -27,7 +27,7 @@ def build_and_push_operator_image(docker_registry, git_branch,  driver_image, co
     driver_image_tag = driver_image.split(":")[-1]
     console_image_tag = console_image.split(":")[-1]
 
-    print("Building image")
+    print("Building image", flush=True)
     env_vars = dict(IMAGE_REGISTRY=docker_registry, PLATFORM=platform,
         IMAGE_TAG=image_tag, DRIVER_IMAGE_TAG=driver_image_tag, CONSOLE_IMAGE_TAG=console_image_tag, **os.environ)
 
