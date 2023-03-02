@@ -37,3 +37,7 @@ if [ ! -x "${OPM_BIN}" ] || [[ -x "${OPM_BIN}" && "$(${OPM_BIN} version | awk -F
 else
         echo "Using opm cached at ${OPM_BIN}"
 fi
+
+FULLPATH_OPM_BIN=$(readlink -f "${OPM_BIN}")
+export OPM_BIN="${FULLPATH_OPM_BIN}"
+echo "Using opm at full path ${OPM_BIN}"

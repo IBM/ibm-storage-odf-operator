@@ -15,7 +15,7 @@ pipeline {
         string(name: 'PLATFORM', defaultValue: "linux/amd64")
     }
     environment {
-        registryCredentialsID = 'csi_w3_user'
+        registryCredentialsID = 'odf_w3_user'
         OUTPUT_FILE = 'odf-images-url.txt'
     }
     options {
