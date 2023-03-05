@@ -90,7 +90,7 @@ pipeline {
                 if (fileExists("report/${OUTPUT_FILE}")) {
                     archiveArtifacts "report/${OUTPUT_FILE}"
                     env.CATALOG_IMAGE=getLastImageCreated()
-                    echo "${CATALOG_IMAGE}"
+                    echo "Catalog image name - ${CATALOG_IMAGE}"
                 }
             }
         }
