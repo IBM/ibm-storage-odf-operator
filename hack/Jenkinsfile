@@ -89,6 +89,8 @@ pipeline {
                 echo "finished successfully"
                 if (fileExists("report/${OUTPUT_FILE}")) {
                     archiveArtifacts "report/${OUTPUT_FILE}"
+                    env.CATALOG_IMAGE=getLastImageCreated()
+                    echo "${CATALOG_IMAGE}"
                 }
             }
         }
