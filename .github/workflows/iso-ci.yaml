@@ -23,7 +23,7 @@ jobs:
       with:
         go-version: ${{ matrix.go }}
 
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v3.2.0
       with:
         fetch-depth: 0
 
@@ -38,7 +38,7 @@ jobs:
     - name: login to Quay.io
       # Only if we need to push an image
       if: ${{ github.event_name == 'release' && github.event.action == 'published' }}
-      uses: docker/login-action@v1
+      uses: docker/login-action@v2
       with:
         registry: quay.io
         username: ${{ secrets.QUAYIO_USERNAME }}
@@ -46,9 +46,9 @@ jobs:
 
       # Setup for buildx
     - name: set up QEMU
-      uses: docker/setup-qemu-action@v1
+      uses: docker/setup-qemu-action@v2
     - name: set up Docker Buildx
-      uses: docker/setup-buildx-action@v1.6.0
+      uses: docker/setup-buildx-action@v2
 
     # Debugging information
     - name: docker info
@@ -67,7 +67,7 @@ jobs:
 
     # Build and (optionally) push the operator image
     - name: build the operator image
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v3
       with:
         context: .
         file: ./Dockerfile
@@ -88,7 +88,7 @@ jobs:
 
     # Build and (optionally) push the operator bundle image
     - name: build the operator bundle image
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v3
       with:
         context: .
         file: ./bundle.Dockerfile
@@ -98,7 +98,7 @@ jobs:
 
       # Build and (optionally) push the operator must gather image
     - name: build the operator must gather image
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v3
       with:
         context: ./must-gather
         file: ./must-gather/Dockerfile
