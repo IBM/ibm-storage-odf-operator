@@ -4,5 +4,13 @@ reviewers:
   - tyichye19
   - benmenachem
   - hatsavar
+
 approvers:
   - bvered
+  - alonfirestein
+  - tyichye19
+  - benmenachem
+  - hatsavar
+
+emeritus_approvers:
+  - gyaozhou
