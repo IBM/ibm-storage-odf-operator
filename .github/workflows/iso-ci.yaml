@@ -62,8 +62,11 @@ jobs:
 
     - name: get tag without v
       id: tag
+      shell: bash
       if: ${{ github.event_name == 'release' && github.event.action == 'published' }}
-      uses: battila7/get-version-action@v2
+      run: |
+        BUILD_VERSION=${{ github.event.release.tag_name }}
+        echo "BUILD_VERSION=${BUILD_VERSION:1}" >> $GITHUB_ENV
 
     # Build and (optionally) push the operator image
     - name: build the operator image
@@ -73,16 +76,16 @@ jobs:
         file: ./Dockerfile
         platforms: linux/amd64,linux/ppc64le,linux/s390x
         build-args: |
-          VCS_REF=${{ steps.tag.outputs.version-without-v || 'dev' }}-${{ steps.vars.outputs.sha_short }}
+          VCS_REF=${{ env.BUILD_VERSION || 'dev' }}-${{ steps.vars.outputs.sha_short }}
           VCS_URL=${{ env.VCS_URL }}
         # Only push if we are publishing a release
         push: ${{ github.event_name == 'release' && github.event.action == 'published' }}
         # Use a 'dev' tag, that won't be pushed, for non-release builds
-        tags: quay.io/ibmodffs/ibm-storage-odf-operator:${{ steps.tag.outputs.version-without-v || 'dev' }}
+        tags: quay.io/ibmodffs/ibm-storage-odf-operator:${{ env.BUILD_VERSION || 'dev' }}
 
     - name: generate bundle manifests and metadata
       run: |
-        export IMAGE_TAG=${{ steps.tag.outputs.version-without-v || 'dev' }}
+        export IMAGE_TAG=${{ env.BUILD_VERSION || 'dev' }}
         make bundle
         rm -rf ./bundle/manifests/ibm-storage-odf-operator_v1_serviceaccount.yaml
 
@@ -94,7 +97,7 @@ jobs:
         file: ./bundle.Dockerfile
         platforms: linux/amd64,linux/ppc64le,linux/s390x
         push: ${{ github.event_name == 'release' && github.event.action == 'published' }}
-        tags: quay.io/ibmodffs/ibm-storage-odf-operator-bundle:${{ steps.tag.outputs.version-without-v || 'dev' }}
+        tags: quay.io/ibmodffs/ibm-storage-odf-operator-bundle:${{ env.BUILD_VERSION || 'dev' }}
 
       # Build and (optionally) push the operator must gather image
     - name: build the operator must gather image
@@ -103,4 +106,4 @@ jobs:
         context: ./must-gather
         file: ./must-gather/Dockerfile
         push: ${{ github.event_name == 'release' && github.event.action == 'published' }}
-        tags: quay.io/ibmodffs/ibm-storage-odf-operator-must-gather:${{ steps.tag.outputs.version-without-v || 'dev' }}
+        tags: quay.io/ibmodffs/ibm-storage-odf-operator-must-gather:${{ env.BUILD_VERSION || 'dev' }}
