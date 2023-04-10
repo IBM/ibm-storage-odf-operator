@@ -1,10 +1,16 @@
 reviewers:
-  - keslerzhu
-  - WangDanDan7
-  - lbscorpio
-  - likezhao-ibm
-  - jacklu1024
-  - shdn-ibm
-  - gyaozhou
+  - bvered
+  - alonfirestein
+  - tyichye19
+  - benmenachem
+  - hatsavar
+
 approvers:
+  - bvered
+  - alonfirestein
+  - tyichye19
+  - benmenachem
+  - hatsavar
+
+emeritus_approvers:
   - gyaozhou
