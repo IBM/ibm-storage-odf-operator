@@ -46,13 +46,15 @@ clone_csi_repo(){
   fi
 }
 
-override_csi_csi_file(){
+override_csi_csv_file(){
   echo "Overriding CSV file to develop registry"
   sed -i "s/registry.connect.redhat.com\/ibm\/ibm-block-csi-operator:${CSI_RELEASE_NUMBER}/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-operator-amd64:${CSI_LATEST_TAG}/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
   sed -i "s/quay.io\/ibmcsiblock\/ibm-block-csi-driver-controller/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-driver-controller-amd64/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
   sed -i "s/quay.io\/ibmcsiblock\/ibm-block-csi-driver-node/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-driver-node-amd64/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
   sed -i "s/quay.io\/ibmcsiblock\/ibm-block-csi-host-definer/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-host-definer-amd64/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
   sed -i "s/\"tag\": \"${CSI_RELEASE_NUMBER}\"/\"tag\": \"${CSI_LATEST_TAG}\"/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
+  sed -i "s/\"repository\": \"quay.io\/ibmcsiblock\/csi-volume-group-operator\"/\"repository\": \"${CSI_VOLUME_GROUP_DEVELOP_PATH}\"/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
+  sed -i "s/\"tag\": \"${CSI_VOLUME_GROUP_TAG}\"/\"tag\": \"${CSI_LATEST_TAG}\"/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
 }
 
 check_and_build_csi_bundle_image(){
@@ -60,7 +62,7 @@ check_and_build_csi_bundle_image(){
     echo "CSI release is GAed. Using official images"
   else
     clone_csi_repo
-    override_csi_csi_file
+    override_csi_csv_file
     build_push_bundle_image "${IMAGE_REGISTRY}/${CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME}:${IMAGE_TAG}" "${CSI_CSV_PATH}" "${CSI_OPERATOR_IMAGE_NAME}" "${CSI_CHANNEL}"
     echo
 
