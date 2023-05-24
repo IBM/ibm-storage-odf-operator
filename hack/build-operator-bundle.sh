@@ -19,7 +19,7 @@
 set -e
 
 source hack/common.sh
-#source hack/ensure-opm.sh
+source hack/ensure-opm.sh
 
 build_push_bundle_image(){
   bundle_image_name=${1}
@@ -72,12 +72,10 @@ check_and_build_csi_bundle_image(){
   fi
 }
 
-add_previous_ODF_image_bundle(){
-
-}
 
 build_push_bundle_image "${BUNDLE_FULL_IMAGE_NAME}" "bundle/metadata/" "${OPERATOR_IMAGE_NAME}" "${CHANNELS}"
-#check_and_build_csi_bundle_image
+check_and_build_csi_bundle_image
 if [ "${ENABLE_UPGRADE}" == "True" ]; then
-  add_previous_ODF_image_bundle
+  echo "Upgrade is enabled, pulling previous bundle image"
+  docker pull "${PREVIOUS_BUNDLE_IMAGE_PATH}"
 fi
