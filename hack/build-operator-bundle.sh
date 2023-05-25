@@ -75,4 +75,7 @@ check_and_build_csi_bundle_image(){
 
 build_push_bundle_image "${BUNDLE_FULL_IMAGE_NAME}" "bundle/metadata/" "${OPERATOR_IMAGE_NAME}" "${CHANNELS}"
 check_and_build_csi_bundle_image
-
+if [ "${ENABLE_UPGRADE}" == "True" ]; then
+  echo "Upgrade is enabled, pulling previous bundle image"
+  docker pull "${PREVIOUS_BUNDLE_IMAGE_PATH}"
+fi
