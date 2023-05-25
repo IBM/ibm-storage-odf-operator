@@ -103,6 +103,7 @@ check_and_add_previous_odf_bundle_to_catalog(){
 
 init_parent_catalog "${CATALOG_IMAGE_NAME}"
 check_and_add_previous_odf_bundle_to_catalog
+echo
 echo "Adding current ODF-FS bundle image into catalog"
 add_bundle_image_to_existing_catalog "${OPERATOR_IMAGE_NAME}" "${CHANNELS}" "${BUNDLE_FULL_IMAGE_NAME}" "${OPERATOR_IMAGE_NAME_VERSION}"
 echo
