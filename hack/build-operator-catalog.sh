@@ -36,9 +36,11 @@ add_bundle_image_to_existing_catalog() {
 initialize_operator_catalog() {
   operator_package_name=${1}
   channel=${2}
-  echo "Initializing operator ${operator_package_name} catalog"
-  mkdir -p "${operator_package_name}" || exit
-  ${OPM_BIN} init "${operator_package_name}" --default-channel="${channel}" --output yaml >> "${operator_package_name}"/index.yaml
+  if [ ! -d "${operator_package_name}" ]; then
+    echo "Initializing operator ${operator_package_name} catalog"
+    mkdir "${operator_package_name}" || exit
+    ${OPM_BIN} init "${operator_package_name}" --default-channel="${channel}" --output yaml >> "${operator_package_name}"/index.yaml
+  fi
 }
 
 add_bundle_to_catalog() {
@@ -100,12 +102,12 @@ check_and_add_previous_odf_bundle_to_catalog(){
 
 
 init_parent_catalog "${CATALOG_IMAGE_NAME}"
-echo "Adding ODF-FS bundle into catalog"
+check_and_add_previous_odf_bundle_to_catalog
+echo "Adding current ODF-FS bundle image into catalog"
 add_bundle_image_to_existing_catalog "${OPERATOR_IMAGE_NAME}" "${CHANNELS}" "${BUNDLE_FULL_IMAGE_NAME}" "${OPERATOR_IMAGE_NAME_VERSION}"
 echo
 check_and_add_csi_bundle_to_catalog
 echo
-check_and_add_previous_odf_bundle_to_catalog
 
 cd -
 build_push_catalog_image "${CATALOG_IMAGE_NAME}" "${CATALOG_FULL_IMAGE_NAME}"
