@@ -76,7 +76,7 @@ build_push_catalog_image() {
 
 init_parent_catalog() {
   catalog_name=${1}
-  mkdir -p "${catalog_name}" || exit
+  mkdir "${catalog_name}" || exit
   echo "Generating parent catalog Dockerfile"
   ${OPM_BIN} alpha generate dockerfile "${catalog_name}"
   cd "${catalog_name}"
