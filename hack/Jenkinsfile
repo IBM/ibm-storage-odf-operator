@@ -13,6 +13,7 @@ pipeline {
         string(name: 'CONSOLE_GIT_BRANCH', defaultValue: "release-1.4.0")
         string(name: 'OPERATOR_GIT_BRANCH', defaultValue: "release-1.4.0")
         string(name: 'PLATFORM', defaultValue: "linux/amd64")
+        string(name: 'ENABLE_UPGRADE', defaultValue: "False")
     }
     environment {
         registryCredentialsID = 'odf_w3_user'
@@ -74,7 +75,7 @@ pipeline {
                         -v /root/.docker:/root/.docker \
                         -v /var/run/docker.sock:/var/run/docker.sock \
                         odf-build-images \
-                        "from build_images import build_and_push_operator_image; build_and_push_operator_image(\'${DOCKER_REGISTRY}\', \'${OPERATOR_GIT_BRANCH}\', \'${DRIVER_IMAGE}\', \'${CONSOLE_IMAGE}\', \'${PLATFORM}\', \'report/${OUTPUT_FILE}\')"
+                        "from build_images import build_and_push_operator_image; build_and_push_operator_image(\'${DOCKER_REGISTRY}\', \'${OPERATOR_GIT_BRANCH}\', \'${DRIVER_IMAGE}\', \'${CONSOLE_IMAGE}\', \'${PLATFORM}\', \'${ENABLE_UPGRADE}\', \'report/${OUTPUT_FILE}\')"
                     '''
                 }
             }
