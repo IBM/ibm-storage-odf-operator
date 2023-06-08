@@ -34,14 +34,17 @@ spec:
         imagePullPolicy: Always
         name: manager
         env:
-          - name: WATCH_NAMESPACE
+          - name: RESOURCES_NAMESPACE
             valueFrom:
               fieldRef:
-                fieldPath: metadata.namespace
+                fieldPath: metadata.annotations['olm.operatorNamespace']
           - name: EXPORTER_IMAGE
             value: docker.io/ibmcom/ibm-storage-odf-block-driver:v0.0.22
         securityContext:
           allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - all
         volumeMounts:
         - name: manager-config
           mountPath: /config

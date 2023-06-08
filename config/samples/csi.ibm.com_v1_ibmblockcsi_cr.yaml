@@ -2,18 +2,18 @@ apiVersion: csi.ibm.com/v1
 kind: IBMBlockCSI
 metadata:
   name: ibm-block-csi
-  namespace: openshift-storage
+  namespace: default
   labels:
     app.kubernetes.io/name: ibm-block-csi
     app.kubernetes.io/instance: ibm-block-csi
     app.kubernetes.io/managed-by: ibm-block-csi-operator
-    release: v1.11.0
+    release: v1.11.1
 spec:
   # controller is a statefulSet with ibm-block-csi-controller container
   # and csi-provisioner, csi-attacher, csi-snapshotter and livenessprobe sidecars.
   controller:
-    repository: quay.io/ibmcsiblock/ibm-block-csi-driver-controller
-    tag: "1.11.0"
+    repository: stg-artifactory.xiv.ibm.com:5030/ibm-block-csi-driver-controller-amd64
+    tag: "latest"
     imagePullPolicy: IfNotPresent
     affinity:
       nodeAffinity:
@@ -30,8 +30,8 @@ spec:
   # node is a daemonSet with ibm-block-csi-node container
   # and csi-node-driver-registrar and livenessprobe sidecars.
   node:
-    repository: quay.io/ibmcsiblock/ibm-block-csi-driver-node
-    tag: "1.11.0"
+    repository: stg-artifactory.xiv.ibm.com:5030/ibm-block-csi-driver-node-amd64
+    tag: "latest"
     imagePullPolicy: IfNotPresent
     affinity:
       nodeAffinity:

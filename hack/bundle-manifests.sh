@@ -51,6 +51,13 @@ fi
 ../../${KUSTOMIZE_BIN} edit set image controller="${OPERATOR_FULL_IMAGE_NAME}"
 popd
 
+
+pushd config/console
+
+../../${KUSTOMIZE_BIN} edit set image ibm-console="${CONSOLE_FULL_IMAGE_NAME}"
+popd
+
+
 ${KUSTOMIZE_BIN} build config/manifests | ${OPERATOR_SDK_BIN} generate bundle -q --overwrite --version "${RELEASE_VERSION}" ${BUNDLE_METADATA_OPTS}
 
 echo "Validating the generated files..."
@@ -60,5 +67,5 @@ echo "Updating the olm.skipRange for new release version ${RELEASE_VERSION}..."
 ${YQ_BIN} eval -i ".metadata.annotations.\"olm.skipRange\" = \">=0.0.1 <${RELEASE_VERSION}\"" "${CSV_PATH}"
 
 echo "add certification required labels to bundle.Dockerfile"
-echo "LABEL com.redhat.openshift.versions=\"v4.12\"" >> ./bundle.Dockerfile
+echo "LABEL com.redhat.openshift.versions=\"v4.13\"" >> ./bundle.Dockerfile
 echo "LABEL com.redhat.delivery.operator.bundle=true" >> ./bundle.Dockerfile

@@ -1,0 +1,97 @@
+def getLastImageCreated() {
+    def lines = readFile("report/${OUTPUT_FILE}").readLines()
+    return lines.get(lines.size()-1)
+}
+
+pipeline {
+    agent {
+        label 'docker-engine'
+    }
+    parameters {
+        string(name: 'DOCKER_REGISTRY', defaultValue: "stg-artifactory.xiv.ibm.com:5030")
+        string(name: 'DRIVER_GIT_BRANCH', defaultValue: "release-1.4.0")
+        string(name: 'CONSOLE_GIT_BRANCH', defaultValue: "release-1.4.0")
+        string(name: 'OPERATOR_GIT_BRANCH', defaultValue: "release-1.4.0")
+        string(name: 'PLATFORM', defaultValue: "linux/amd64")
+        string(name: 'ENABLE_UPGRADE', defaultValue: "False")
+    }
+    environment {
+        registryCredentialsID = 'odf_w3_user'
+        OUTPUT_FILE = 'odf-images-url.txt'
+    }
+    options {
+        ansiColor('xterm')
+    }
+    stages {
+        stage ('Setup environment') {
+            steps {
+                script {
+                    reportFolder = 'report'
+                    if (fileExists(reportFolder)) {
+                        dir(reportFolder) {
+                            deleteDir()
+                        }
+                    }
+                    sh 'docker build -t odf-build-images -f hack/Dockerfile-build-images . '
+                    withCredentials([usernamePassword(credentialsId: registryCredentialsID, usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                        sh 'docker login -u $USERNAME -p $PASSWORD ${DOCKER_REGISTRY}'
+                    }
+                }
+            }
+        }
+        stage ('Driver: Build and push image') {
+            steps {
+                script {
+                    sh '''
+                        docker run -v ${WORKSPACE}/report:/report \
+                        -v /root/.docker:/root/.docker \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        odf-build-images \
+                        "from build_images import build_and_push_driver_image; build_and_push_driver_image(\'${DOCKER_REGISTRY}\', \'${DRIVER_GIT_BRANCH}\', \'${PLATFORM}\', \'report/${OUTPUT_FILE}\')"
+                    '''
+                    env.DRIVER_IMAGE=getLastImageCreated()
+                }
+            }
+        }
+        stage ('Console: Build and push image') {
+            steps {
+                script {
+                    sh '''
+                        docker run -v ${WORKSPACE}/report:/report \
+                        -v /root/.docker:/root/.docker \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        odf-build-images \
+                        "from build_images import build_and_push_console_image; build_and_push_console_image(\'${DOCKER_REGISTRY}\', \'${CONSOLE_GIT_BRANCH}\', \'${PLATFORM}\', \'report/${OUTPUT_FILE}\')"
+                    '''
+                    env.CONSOLE_IMAGE=getLastImageCreated()
+                }
+            }
+        }
+        stage ('Operator: Build and push image') {
+            steps {
+                script {
+                    sh '''
+                        docker run -v ${WORKSPACE}/report:/report \
+                        -v /root/.docker:/root/.docker \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        odf-build-images \
+                        "from build_images import build_and_push_operator_image; build_and_push_operator_image(\'${DOCKER_REGISTRY}\', \'${OPERATOR_GIT_BRANCH}\', \'${DRIVER_IMAGE}\', \'${CONSOLE_IMAGE}\', \'${PLATFORM}\', \'${ENABLE_UPGRADE}\', \'report/${OUTPUT_FILE}\')"
+                    '''
+                }
+            }
+        }
+    }
+    post {
+        always {
+            sh 'docker logout ${DOCKER_REGISTRY}'
+        }
+        success {
+            script {
+                echo "finished successfully"
+                if (fileExists("report/${OUTPUT_FILE}")) {
+                    archiveArtifacts "report/${OUTPUT_FILE}"
+                }
+            }
+        }
+    }
+}
