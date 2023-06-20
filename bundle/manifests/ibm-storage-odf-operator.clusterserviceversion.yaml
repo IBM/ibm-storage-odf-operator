@@ -281,17 +281,20 @@ spec:
       deployments:
         - label:
             odf: storage.ibm.com
+            odf-fs: odf-fs-workspace
           name: ibm-storage-odf-operator
           spec:
             replicas: 1
             selector:
               matchLabels:
                 odf: storage.ibm.com
+                odf-fs: odf-fs-workspace
             strategy: {}
             template:
               metadata:
                 labels:
                   odf: storage.ibm.com
+                  odf-fs: odf-fs-workspace
               spec:
                 containers:
                   - args:
@@ -364,16 +367,22 @@ spec:
                     name: manager-config
         - label:
             app: ibm-odf-console
+            odf: storage.ibm.com
+            odf-fs: odf-fs-workspace
           name: ibm-odf-console
           spec:
             selector:
               matchLabels:
                 app: ibm-odf-console
+                odf: storage.ibm.com
+                odf-fs: odf-fs-workspace
             strategy: {}
             template:
               metadata:
                 labels:
                   app: ibm-odf-console
+                  odf: storage.ibm.com
+                  odf-fs: odf-fs-workspace
               spec:
                 containers:
                   - image: quay.io/ibmodffs/ibm-storage-odf-plugin:1.5.0
