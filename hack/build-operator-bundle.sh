@@ -53,8 +53,8 @@ override_csi_csv_file(){
   sed -i "s/quay.io\/ibmcsiblock\/ibm-block-csi-driver-node/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-driver-node-amd64/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
   sed -i "s/quay.io\/ibmcsiblock\/ibm-block-csi-host-definer/${CSI_DEVELOP_REGISTRY}\/ibm-block-csi-host-definer-amd64/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
   sed -i "s/\"tag\": \"${CSI_RELEASE_NUMBER}\"/\"tag\": \"${CSI_LATEST_TAG}\"/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
-  sed -i "s/\"repository\": \"quay.io\/ibmcsiblock\/csi-volume-group-operator\"/\"repository\": \"${CSI_VOLUME_GROUP_OPERATOR_DEVELOP_PATH}\"/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
-  sed -i "s/\"tag\": \"${CSI_VOLUME_GROUP_OPERATOR_TAG}\"/\"tag\": \"${CSI_LATEST_TAG}\"/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
+  sed -i "s/quay.io\/ibmcsiblock\/csi-volume-group-operator/${CSI_VOLUME_GROUP_OPERATOR_DEVELOP_PATH}/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
+  sed -i "s/tag: "\"${CSI_VOLUME_GROUP_OPERATOR_TAG}\""/tag: "\"${CSI_LATEST_TAG}\""/g" "${CSI_CSV_PATH}/${CSI_CSV_FILE}"
 }
 
 check_and_build_csi_bundle_image(){
