@@ -3,6 +3,7 @@ kind: Service
 metadata:
   labels:
     odf: storage.ibm.com
+    odf-fs: odf-fs-workspace
   name: ibm-storage-odf-operator-metrics-service
   namespace: openshift-storage
 spec:
@@ -12,3 +13,4 @@ spec:
     targetPort: https
   selector:
     odf: storage.ibm.com
+    odf-fs: odf-fs-workspace

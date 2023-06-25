@@ -4,6 +4,7 @@ metadata:
   labels:
     odf: storage.ibm.com
     openshift.io/cluster-monitoring: "true"
+    odf-fs: odf-fs-workspace
   name: openshift-storage
 ---
 apiVersion: apps/v1
@@ -13,15 +14,18 @@ metadata:
   namespace: openshift-storage
   labels:
     odf: storage.ibm.com
+    odf-fs: odf-fs-workspace
 spec:
   selector:
     matchLabels:
       odf: storage.ibm.com
+      odf-fs: odf-fs-workspace
   replicas: 1
   template:
     metadata:
       labels:
         odf: storage.ibm.com
+        odf-fs: odf-fs-workspace
     spec:
       securityContext:
         runAsNonRoot: true

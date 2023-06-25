@@ -3,6 +3,8 @@ namePrefix: ibm-odf-
 # Labels to add to all resources and selectors.
 commonLabels:
   app: ibm-odf-console
+  odf-fs: odf-fs-workspace
+  odf: storage.ibm.com
 
 resources:
   - console_init.yaml

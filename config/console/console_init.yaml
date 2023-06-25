@@ -6,10 +6,14 @@ spec:
   selector:
     matchLabels:
       app: ibm-odf-console
+      odf-fs: odf-fs-workspace
+      odf: storage.ibm.com
   template:
     metadata:
       labels:
         app: ibm-odf-console
+        odf-fs: odf-fs-workspace
+        odf: storage.ibm.com
     spec:
       containers:
         - name: ibm-odf-console
