@@ -32,7 +32,7 @@ LOG_PATH="${BASE_COLLECTION_PATH}/rule/"
 mkdir -p ${LOG_PATH}
 
 echo "INFO: Gathering Rules"
-ODF_RULES=($(oc -n ${ODF_NAMESPACE} get prometheusrules.monitoring.coreos.com --no-headers -o custom-columns=":metadata.name" -l odf="storage.ibm.com"))
+ODF_RULES=($(oc -n ${ODF_NAMESPACE} get prometheusrules.monitoring.coreos.com --no-headers -o custom-columns=":metadata.name" -l odf="storage.ibm.com",odf-fs="odf-fs-workspace"))
 
 if [ "${FILTER_STRING}" != "" ]; then
 
