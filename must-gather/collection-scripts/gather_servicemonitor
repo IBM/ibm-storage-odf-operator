@@ -32,7 +32,7 @@ LOG_PATH="${BASE_COLLECTION_PATH}/servicemonitor/"
 mkdir -p ${LOG_PATH}
 
 echo "INFO: Gathering ServiceMonitors"
-ODF_SERVICEMONS=($(oc -n ${ODF_NAMESPACE} get servicemonitor --no-headers -o custom-columns=":metadata.name" -l odf="storage.ibm.com"))
+ODF_SERVICEMONS=($(oc -n ${ODF_NAMESPACE} get servicemonitor --no-headers -o custom-columns=":metadata.name" -l odf="storage.ibm.com",odf-fs="odf-fs-workspace"))
 
 if [ "${FILTER_STRING}" != "" ]; then
 

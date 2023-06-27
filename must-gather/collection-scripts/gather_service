@@ -32,7 +32,7 @@ LOG_PATH="${BASE_COLLECTION_PATH}/service/"
 mkdir -p ${LOG_PATH}
 
 echo "INFO: Gathering Services"
-ODF_SERVICES=($(oc -n ${ODF_NAMESPACE} get service --no-headers -o custom-columns=":metadata.name" -l odf="storage.ibm.com"))
+ODF_SERVICES=($(oc -n ${ODF_NAMESPACE} get service --no-headers -o custom-columns=":metadata.name" -l odf="storage.ibm.com",odf-fs="odf-fs-workspace"))
 
 if [ "${FILTER_STRING}" != "" ]; then
 

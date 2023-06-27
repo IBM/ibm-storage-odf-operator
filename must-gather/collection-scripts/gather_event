@@ -31,5 +31,5 @@ LOG_PATH="${BASE_COLLECTION_PATH}/event/"
 mkdir -p ${LOG_PATH}
 
 echo "INFO: Gathering Events"
-oc -n ${ODF_NAMESPACE} get event -o wide -l odf="storage.ibm.com" > "${LOG_PATH}"/events.log 2>&1
+oc -n ${ODF_NAMESPACE} get event -o wide -l odf="storage.ibm.com", odf-fs="odf-fs-workspace" > "${LOG_PATH}"/events.log 2>&1
 
