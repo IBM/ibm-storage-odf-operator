@@ -295,15 +295,15 @@ func GetCreateODFFSPoolsConfigmap(client client.Client, log logr.Logger, ns stri
 	return configMap, err
 }
 func initODFFSPoolsConfigMap(ns string) *corev1.ConfigMap {
-	selectLabels := GetLabels()
-	scPoolConfigMap := &corev1.ConfigMap{
+	labels := GetLabels()
+	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ODFFSPoolsConfigmapName,
 			Namespace: ns,
-			Labels:    selectLabels,
+			Labels:    labels,
 		},
 	}
-	return scPoolConfigMap
+	return configMap
 }
 
 func MapClustersByMgmtAddress(client client.Client, logger logr.Logger) (map[string]v1alpha1.FlashSystemCluster, error) {
