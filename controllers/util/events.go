@@ -35,6 +35,7 @@ const (
 	FailedEnsureSecretOwnershipReason   = "FailedEnsureSecretOwnership"
 	FailedCreateServiceReason           = "FailedCreateService"
 	FailedScPoolConfigMapReason         = "FailedEnsureScPoolConfigMap"
+	FailedODFFSPoolsConfigMapReason     = "FailedEnsureODFFSPoolsConfigMap"
 	FailedCreateServiceMonitorReason    = "FailedCreateServiceMonitor"
 	FailedCreateStorageClassReason      = "FailedCreateStorageClass"
 	DeletedDuplicatedStorageClassReason = "DeletedDuplicatedStorageClass"
