@@ -107,7 +107,7 @@ jobs:
         file: ./ibm-storage-odf-catalog.Dockerfile
         platforms: linux/amd64,linux/ppc64le,linux/s390x
         push: ${{ github.event_name == 'release' && github.event.action == 'published' }}
-        tags: quay.io/ibmodffs/ibm-storage-odf-operator-bundle:${{ env.BUILD_VERSION || 'dev' }}
+        tags: quay.io/ibmodffs/ibm-storage-odf-catalog:${{ env.BUILD_VERSION || 'dev' }}
 
       # Build and (optionally) push the operator must gather image
     - name: build the operator must gather image
