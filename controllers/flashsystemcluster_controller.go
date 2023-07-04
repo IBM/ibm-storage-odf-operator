@@ -230,6 +230,11 @@ func (r *FlashSystemClusterReconciler) Reconcile(_ context.Context, req ctrl.Req
 				r.Log.Error(err, "failed to delete entry from pools ConfigMap")
 				return ctrl.Result{}, err
 			}
+			err = r.removeFscFromODFFSConfigMap(req.Name)
+			if err != nil {
+				r.Log.Error(err, "failed to delete entry from odf-fs-pools ConfigMap")
+				return ctrl.Result{}, err
+			}
 			return result, nil
 		}
 		// Error reading the object - requeue the request.
@@ -286,6 +291,10 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 		}
 		if err = r.removeFscFromConfigMap(instance.Name); err != nil {
 			r.Log.Error(err, "failed to delete entry from pools ConfigMap")
+			return reconcile.Result{}, err
+		}
+		if err = r.removeFscFromODFFSConfigMap(instance.Name); err != nil {
+			r.Log.Error(err, "failed to delete entry from odf-fs-pools ConfigMap")
 			return reconcile.Result{}, err
 		}
 		r.Log.Info("object is terminated, skipping reconciliation")
@@ -556,7 +565,7 @@ func (r *FlashSystemClusterReconciler) ensureODFFSPoolsConfigMap(instance *odfv1
 	}
 
 	if _, exist := configmap.Data[instance.Name]; !exist {
-		value := "" // TODO: ODF-543 - Create FlashSystemCluster data
+		value := util.ODFFSPoolsConfigMapFSCContent{PoolData: make(map[string]util.ODFFSPoolsConfigMapPoolsContent)}
 		val, err := json.Marshal(value)
 		if err != nil {
 			return err
@@ -576,6 +585,24 @@ func (r *FlashSystemClusterReconciler) removeFscFromConfigMap(fscName string) er
 	if err != nil {
 		return err
 	}
+	delete(configmap.Data, fscName)
+	err = r.Client.Update(context.TODO(), configmap)
+	if err != nil {
+		r.Log.Error(err, "failed to update pools ConfigMap", "ConfigMap", configmap.Name)
+		return err
+	}
+	return nil
+}
+
+// TODO - check if can combine between removeFscFromConfigMap and removeFscFromODFFSConfigMap
+func (r *FlashSystemClusterReconciler) removeFscFromODFFSConfigMap(fscName string) error {
+	r.Log.Info("removing FlashSystemCluster entry from odf-fs-pools ConfigMap", "ConfigMap", util.ODFFSPoolsConfigmapName)
+
+	configmap, err := util.GetCreateODFFSPoolsConfigmap(r.Client, r.Log, watchNamespace, true)
+	if err != nil {
+		return err
+	}
+
 	delete(configmap.Data, fscName)
 	err = r.Client.Update(context.TODO(), configmap)
 	if err != nil {
