@@ -82,6 +82,28 @@ type FSCConfigMapData struct {
 	FlashSystemClusterMap map[string]FlashSystemClusterMapContent
 }
 
+type FenceStatus string
+
+const (
+	FenceStarted  FenceStatus = "Started"
+	FenceComplete FenceStatus = "Complete"
+	Idle          FenceStatus = "Idle"
+)
+
+type ODFFSPoolsConfigMapPoolsContent struct {
+	SCList      []string    `json:"storageClasses"`
+	OG          string      `json:"ownershipGroup"`
+	FenceStatus FenceStatus `json:"fenceStatus"`
+}
+
+type ODFFSPoolsConfigMapFSCContent struct {
+	PoolData map[string]ODFFSPoolsConfigMapPoolsContent
+}
+
+//type ODFFSPoolsConfigMapData struct {
+//	ODFFSMap map[string][]ODFFSPoolsConfigMapFSCContent
+//}
+
 var IgnoreUpdateAndGenericPredicate = predicate.Funcs{
 	CreateFunc: func(e event.CreateEvent) bool {
 		return true
