@@ -37,9 +37,10 @@ import (
 )
 
 const (
-	PoolConfigmapName     = "ibm-flashsystem-pools"
-	PoolsKey              = "pools"
-	FSCConfigmapMountPath = "/config"
+	PoolConfigmapName       = "ibm-flashsystem-pools"
+	ODFFSPoolsConfigmapName = "odf-fs-pools"
+	PoolsKey                = "pools"
+	FSCConfigmapMountPath   = "/config"
 
 	TopologySecretDataKey        = "config"
 	TopologyStorageClassByMgmtId = "by_management_id"
@@ -266,6 +267,43 @@ func initScPoolConfigMap(ns string) *corev1.ConfigMap {
 		},
 	}
 	return scPoolConfigMap
+}
+
+func GetCreateODFFSPoolsConfigmap(client client.Client, log logr.Logger, ns string, createIfMissing bool) (*corev1.ConfigMap, error) {
+	configMap := &corev1.ConfigMap{}
+
+	err := client.Get(
+		context.Background(),
+		types.NamespacedName{Namespace: ns, Name: ODFFSPoolsConfigmapName},
+		configMap)
+
+	if err != nil {
+		if errors.IsNotFound(err) && createIfMissing {
+			configMap = initODFFSPoolsConfigMap(ns)
+			configMap.Data = make(map[string]string)
+			log.Info("creating odf-fs-pools ConfigMap", "ConfigMap", ODFFSPoolsConfigmapName)
+			err = client.Create(context.Background(), configMap)
+			if err != nil {
+				log.Error(err, "failed to create odf-fs-pools ConfigMap", "ConfigMap", ODFFSPoolsConfigmapName)
+				return nil, err
+			}
+		} else {
+			log.Error(err, "failed to get odf-fs-pools ConfigMap", "ConfigMap", ODFFSPoolsConfigmapName)
+			return nil, err
+		}
+	}
+	return configMap, err
+}
+func initODFFSPoolsConfigMap(ns string) *corev1.ConfigMap {
+	labels := GetLabels()
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ODFFSPoolsConfigmapName,
+			Namespace: ns,
+			Labels:    labels,
+		},
+	}
+	return configMap
 }
 
 func MapClustersByMgmtAddress(client client.Client, logger logr.Logger) (map[string]v1alpha1.FlashSystemCluster, error) {

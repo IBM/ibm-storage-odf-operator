@@ -325,6 +325,18 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 		return reconcile.Result{}, err
 	}
 
+	r.Log.Info("step: ensureODFFSPoolsConfigMap")
+	if err = r.ensureODFFSPoolsConfigMap(instance); err != nil {
+		reason := odfv1alpha1.ReasonReconcileFailed
+		message := fmt.Sprintf("failed to ensureODFFSPoolsConfigMap: %v", err)
+		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
+		instance.Status.Phase = util.PhaseError
+
+		r.createEvent(instance, corev1.EventTypeWarning,
+			util.FailedODFFSPoolsConfigMapReason, message)
+		return reconcile.Result{}, err
+	}
+
 	r.Log.Info("step: ensureExporterService")
 	if err = r.ensureExporterService(instance, newOwnerDetails); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
@@ -526,6 +538,30 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alph
 			return err
 		}
 		r.Log.Info("adding FlashSystemCluster to pools ConfigMap", "ConfigMap", configmap.Name)
+		configmap.Data[instance.Name] = string(val)
+		return r.Client.Update(context.TODO(), configmap)
+	}
+
+	return nil
+}
+
+func (r *FlashSystemClusterReconciler) ensureODFFSPoolsConfigMap(instance *odfv1alpha1.FlashSystemCluster) error {
+	configmap, err := util.GetCreateODFFSPoolsConfigmap(r.Client, r.Log, watchNamespace, true)
+	if err != nil {
+		return err
+	}
+
+	if configmap.Data == nil {
+		configmap.Data = make(map[string]string)
+	}
+
+	if _, exist := configmap.Data[instance.Name]; !exist {
+		value := "" // TODO: ODF-543 - Create FlashSystemCluster data
+		val, err := json.Marshal(value)
+		if err != nil {
+			return err
+		}
+		r.Log.Info("adding FlashSystemCluster to odf-fs-pools ConfigMap", "ConfigMap", configmap.Name)
 		configmap.Data[instance.Name] = string(val)
 		return r.Client.Update(context.TODO(), configmap)
 	}
