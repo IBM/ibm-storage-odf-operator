@@ -565,7 +565,7 @@ func (r *FlashSystemClusterReconciler) ensureODFFSPoolsConfigMap(instance *odfv1
 	}
 
 	if _, exist := configmap.Data[instance.Name]; !exist {
-		value := util.ODFFSPoolsConfigMapFSCContent{PoolData: make(map[string]util.ODFFSPoolsConfigMapPoolsContent)}
+		value := util.ODFFSPoolsConfigMapFSCContent{PoolsData: make(map[string]util.ODFFSPoolsConfigMapPoolsContent)}
 		val, err := json.Marshal(value)
 		if err != nil {
 			return err
