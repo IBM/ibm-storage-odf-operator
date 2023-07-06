@@ -99,6 +99,16 @@ jobs:
         push: ${{ github.event_name == 'release' && github.event.action == 'published' }}
         tags: quay.io/ibmodffs/ibm-storage-odf-operator-bundle:${{ env.BUILD_VERSION || 'dev' }}
 
+    # Build and (optionally) push the operator bundle image
+    - name: build the CSI bundle image
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: ibm-block-csi-operator/deploy/olm-catalog/ibm-block-csi-operator/1.12.0/bundle-1.12.0.Dockerfile
+        platforms: linux/amd64,linux/ppc64le,linux/s390x
+        push: ${{ github.event_name == 'release' && github.event.action == 'published' }}
+        tags: quay.io/ibmodffs/ibm-block-csi-bundle:${{ env.BUILD_VERSION || 'dev' }}
+
       # Build and (optionally) push the operator catalog image
     - name: build the operator catalog image
       uses: docker/build-push-action@v2
