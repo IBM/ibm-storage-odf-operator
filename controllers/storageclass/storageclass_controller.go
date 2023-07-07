@@ -210,12 +210,12 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 	r.Log = r.Log.WithValues("StorageClass", request.NamespacedName)
 	r.Log.Info("reconciling StorageClass")
 
-	configMap, err := util.GetCreateConfigmap(r.Client, r.Log, r.Namespace, false)
+	configMap, err := util.GetCreateConfigmap(r.Client, r.Log, r.Namespace, false, util.PoolConfigmapName)
 	if err != nil {
 		return result, err
 	}
 
-	odfFsConfigMap, err := util.GetCreateODFFSPoolsConfigmap(r.Client, r.Log, r.Namespace, false)
+	odfFsConfigMap, err := util.GetCreateConfigmap(r.Client, r.Log, r.Namespace, false, util.ODFFSPoolsConfigmapName)
 	if err != nil {
 		return result, err
 	}
@@ -225,12 +225,7 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 		if errors.IsNotFound(err) {
 			r.Log.Info("StorageClass not found")
 			for fscName := range configMap.Data {
-				if err = r.removeStorageClassFromConfigMap(*configMap, fscName, request.Name); err != nil {
-					return result, err
-				}
-			}
-			for fscName := range odfFsConfigMap.Data {
-				if err = r.removeStorageClassFromODFFSConfigMap(*odfFsConfigMap, fscName, request.Name); err != nil {
+				if err = r.removeStorageClassFromConfigMaps(*configMap, *odfFsConfigMap, fscName, request.Name); err != nil {
 					return result, err
 				}
 			}
@@ -239,14 +234,14 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 		return result, err
 	}
 
-	if err = r.ensureConfigMapUpdated(request, sc, configMap, odfFsConfigMap); err != nil {
+	if err = r.ensureConfigMapsUpdated(request, sc, configMap, odfFsConfigMap); err != nil {
 		return result, err
 	}
 
 	return result, nil
 }
 
-func (r *StorageClassWatcher) ensureConfigMapUpdated(request reconcile.Request, sc *storagev1.StorageClass,
+func (r *StorageClassWatcher) ensureConfigMapsUpdated(request reconcile.Request, sc *storagev1.StorageClass,
 	configMap *corev1.ConfigMap, odfFsConfigMap *corev1.ConfigMap) error {
 
 	_, isTopology := sc.Parameters[util.TopologyStorageClassByMgmtId]
@@ -271,10 +266,7 @@ func (r *StorageClassWatcher) ensureConfigMapUpdated(request reconcile.Request, 
 	for fscName := range configMap.Data {
 		if isSCDeleted {
 			r.Log.Info("object is terminated")
-			if err := r.removeStorageClassFromConfigMap(*configMap, fscName, request.Name); err != nil {
-				return err
-			}
-			if err := r.removeStorageClassFromODFFSConfigMap(*odfFsConfigMap, fscName, request.Name); err != nil {
+			if err := r.removeStorageClassFromConfigMaps(*configMap, *odfFsConfigMap, fscName, request.Name); err != nil {
 				return err
 			}
 		} else {
@@ -284,17 +276,11 @@ func (r *StorageClassWatcher) ensureConfigMapUpdated(request reconcile.Request, 
 					r.Log.Error(nil, "cannot reconcile StorageClass without a pool")
 					return nil
 				}
-				if err := r.addStorageClassToConfigMap(*configMap, fscName, request.Name, poolName); err != nil {
-					return err
-				}
-				if err := r.addStorageClassToODFFSConfigMap(*odfFsConfigMap, fscName, request.Name, poolName); err != nil {
+				if err := r.addStorageClassToConfigMaps(*configMap, *odfFsConfigMap, fscName, request.Name, poolName); err != nil {
 					return err
 				}
 			} else {
-				if err := r.removeStorageClassFromConfigMap(*configMap, fscName, request.Name); err != nil {
-					return err
-				}
-				if err := r.removeStorageClassFromODFFSConfigMap(*odfFsConfigMap, fscName, request.Name); err != nil {
+				if err := r.removeStorageClassFromConfigMaps(*configMap, *odfFsConfigMap, fscName, request.Name); err != nil {
 					return err
 				}
 			}
@@ -426,34 +412,80 @@ func (r *StorageClassWatcher) mapClustersByMgmtId(topologySecret *corev1.Secret)
 	return clustersByMgmtId, nil
 }
 
-func (r *StorageClassWatcher) removeStorageClassFromConfigMap(configMap corev1.ConfigMap, fscName string, scName string) error {
-	r.Log.Info("removing StorageClass from pools ConfigMap", "FlashSystemCluster", fscName, "ConfigMap", configMap.Name)
+func (r *StorageClassWatcher) removeStorageClassFromConfigMaps(configMap corev1.ConfigMap, odfFsConfigMap corev1.ConfigMap, fscName string, scName string) error {
+	r.Log.Info("removing StorageClass from ConfigMap", "FlashSystemCluster", fscName, "ConfigMap", configMap.Name)
 
-	fscContent, exist := configMap.Data[fscName]
-	if exist {
-		var fsMap util.FlashSystemClusterMapContent
-		err := json.Unmarshal([]byte(fscContent), &fsMap)
+	fscContent, fscExist := configMap.Data[fscName]
+	if fscExist {
+		var fscMap util.FlashSystemClusterMapContent
+		err := json.Unmarshal([]byte(fscContent), &fscMap)
 		if err != nil {
-			r.Log.Error(err, "failed to unmarshal value from pools ConfigMap", "ConfigMap", configMap.Name)
+			r.Log.Error(err, "failed to unmarshal value from ConfigMap", "ConfigMap", configMap.Name)
 			return err
 		}
 
-		delete(fsMap.ScPoolMap, scName)
-		val, err := json.Marshal(fsMap)
+		poolName, scExist := fscMap.ScPoolMap[scName]
+		if scExist {
+			if err := r.removePoolFromODFFSConfigMap(odfFsConfigMap, fscName, scName, poolName, fscMap.ScPoolMap); err != nil {
+				return err
+			}
+
+			delete(fscMap.ScPoolMap, scName)
+			val, err := json.Marshal(fscMap)
+			if err != nil {
+				return err
+			}
+			configMap.Data[fscName] = string(val)
+			if err = r.Client.Update(context.TODO(), &configMap); err != nil {
+				r.Log.Error(err, "failed to update ConfigMap", "ConfigMap", configMap.Name)
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (r *StorageClassWatcher) removePoolFromODFFSConfigMap(odfFsConfigMap corev1.ConfigMap, fscName string,
+	scName string, poolName string, scMap map[string]string) error {
+
+	r.Log.Info("removing pool from ConfigMap", "FlashSystemCluster", fscName, "ConfigMap", odfFsConfigMap.Name)
+
+	for sc, pool := range scMap {
+		if pool == poolName && sc != scName {
+			r.Log.Info("existing StorageClass is using the pool, skip removing", "FlashSystemCluster", fscName, "ConfigMap", odfFsConfigMap.Name)
+			return nil
+		}
+	}
+
+	odfFsFscContent, fscExist := odfFsConfigMap.Data[fscName]
+	if fscExist {
+		var poolsMap util.ODFFSPoolsConfigMapFSCContent
+		err := json.Unmarshal([]byte(odfFsFscContent), &poolsMap.PoolsData)
+		if err != nil {
+			r.Log.Error(err, "failed to unmarshal value from ConfigMap", "ConfigMap", odfFsConfigMap.Name)
+			return err
+		}
+
+		delete(poolsMap.PoolsData, poolName)
+
+		val, err := json.Marshal(poolsMap.PoolsData)
 		if err != nil {
 			return err
 		}
-		configMap.Data[fscName] = string(val)
-		if err = r.Client.Update(context.TODO(), &configMap); err != nil {
-			r.Log.Error(err, "failed to update pools ConfigMap", "ConfigMap", configMap.Name)
+
+		odfFsConfigMap.Data[fscName] = string(val)
+		if err = r.Client.Update(context.TODO(), &odfFsConfigMap); err != nil {
+			r.Log.Error(err, "failed to update ConfigMap", "ConfigMap", odfFsConfigMap.Name)
 			return err
 		}
 	}
 	return nil
 }
 
-func (r *StorageClassWatcher) addStorageClassToConfigMap(configMap corev1.ConfigMap, fscName string, scName string, poolName string) error {
-	r.Log.Info("adding StorageClass to pools ConfigMap", "FlashSystemCluster", fscName, "ConfigMap", configMap.Name)
+func (r *StorageClassWatcher) addStorageClassToConfigMaps(configMap corev1.ConfigMap, odffsConfigMap corev1.ConfigMap,
+	fscName string, scName string, poolName string) error {
+	r.Log.Info("adding StorageClass to pools ConfigMap",
+		"FlashSystemCluster", fscName, "ConfigMap", configMap.Name)
 
 	fscContent, exist := configMap.Data[fscName]
 	if !exist {
@@ -480,57 +512,15 @@ func (r *StorageClassWatcher) addStorageClassToConfigMap(configMap corev1.Config
 		return err
 	}
 
-	return nil
+	return r.addPoolToODFFSConfigMap(odffsConfigMap, fscName, poolName)
 }
 
-func (r *StorageClassWatcher) removeStorageClassFromODFFSConfigMap(configMap corev1.ConfigMap, fscName string, scName string) error {
-	r.Log.Info("removing StorageClass from odf-fs-pools ConfigMap", "FlashSystemCluster", fscName, "ConfigMap", configMap.Name)
-
-	fscContent, exist := configMap.Data[fscName]
-	if exist {
-		var poolsMap util.ODFFSPoolsConfigMapFSCContent
-		err := json.Unmarshal([]byte(fscContent), &poolsMap.PoolsData)
-		if err != nil {
-			r.Log.Error(err, "failed to unmarshal value from pools ConfigMap", "ConfigMap", configMap.Name)
-			return err
-		}
-
-		for poolName, poolData := range poolsMap.PoolsData {
-			newScList := util.Remove(poolData.SCList, scName)
-			//newScList, found := util.RemoveElement(scName, poolData.SCList)
-			if len(newScList) != len(poolData.SCList) {
-				if len(newScList) == 0 {
-					delete(poolsMap.PoolsData, poolName)
-				} else {
-					poolData.SCList = newScList
-					poolsMap.PoolsData[poolName] = poolData
-				}
-
-				val, err := json.Marshal(poolsMap.PoolsData)
-				if err != nil {
-					return err
-				}
-				configMap.Data[fscName] = string(val)
-				if err = r.Client.Update(context.TODO(), &configMap); err != nil {
-					r.Log.Error(err, "failed to update odf-fs-pools ConfigMap", "ConfigMap", configMap.Name)
-					return err
-				}
-				return nil
-			}
-		}
-	}
-	return nil
-}
-
-func (r *StorageClassWatcher) addStorageClassToODFFSConfigMap(configMap corev1.ConfigMap, fscName string,
-	scName string, poolName string) error {
-
-	r.Log.Info("adding StorageClass to odf-fs-pools ConfigMap",
-		"FlashSystemCluster", fscName, "ConfigMap", configMap.Name)
+func (r *StorageClassWatcher) addPoolToODFFSConfigMap(configMap corev1.ConfigMap, fscName string, poolName string) error {
+	r.Log.Info("adding pool to ConfigMap", "FlashSystemCluster", fscName, "ConfigMap", configMap.Name)
 
 	fscContent, exist := configMap.Data[fscName]
 	if !exist {
-		msg := "failed to get FlashSystemCluster entry from odf-fs-pools ConfigMap"
+		msg := "failed to get FlashSystemCluster entry from ConfigMap"
 		r.Log.Error(nil, msg, "FlashSystemCluster", fscName, "ConfigMap", configMap.Name)
 		return fmt.Errorf(msg)
 	}
@@ -543,32 +533,22 @@ func (r *StorageClassWatcher) addStorageClassToODFFSConfigMap(configMap corev1.C
 	}
 
 	if poolsMap.PoolsData == nil {
-		r.Log.Info("odf-fs-pools ConfigMap is empty, create map", "ConfigMap", configMap.Name)
+		r.Log.Info("ConfigMap is empty, create map", "ConfigMap", configMap.Name)
 		poolsMap.PoolsData = make(map[string]util.ODFFSPoolsConfigMapPoolsContent)
 	}
 
 	if _, exist := poolsMap.PoolsData[poolName]; !exist {
-		r.Log.Info("odf-fs-pools ConfigMap does not contain pool name entry, create ins",
-			"ConfigMap", configMap.Name)
-
-		poolsMap.PoolsData[poolName] = util.ODFFSPoolsConfigMapPoolsContent{SCList: make([]string, 0),
-			FenceStatus: util.FenceIdle, OG: ""}
-	}
-
-	poolContent := poolsMap.PoolsData[poolName]
-
-	if !util.IsContain(poolContent.SCList, scName) {
-		poolContent.SCList = append(poolContent.SCList, scName)
-		poolsMap.PoolsData[poolName] = poolContent
+		r.Log.Info("ConfigMap does not contain pool entry. Creating.", "ConfigMap", configMap.Name)
+		poolsMap.PoolsData[poolName] = util.ODFFSPoolsConfigMapPoolsContent{FenceStatus: util.FenceIdle, OG: ""}
 
 		val, err := json.Marshal(poolsMap.PoolsData)
 		if err != nil {
 			return err
 		}
-		configMap.Data[fscName] = string(val)
 
+		configMap.Data[fscName] = string(val)
 		if err = r.Client.Update(context.TODO(), &configMap); err != nil {
-			r.Log.Error(err, "failed to update odf-fs-pools ConfigMap", "ConfigMap", configMap.Name)
+			r.Log.Error(err, "failed to update ConfigMap", "ConfigMap", configMap.Name)
 			return err
 		}
 	}

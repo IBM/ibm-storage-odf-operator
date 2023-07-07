@@ -225,12 +225,12 @@ func (r *FlashSystemClusterReconciler) Reconcile(_ context.Context, req ctrl.Req
 	if err != nil {
 		if errors.IsNotFound(err) {
 			r.Log.Info("FlashSystemCluster resource was not found")
-			err = r.removeFscFromConfigMap(req.Name)
+			err = r.removeFscFromConfigMap(req.Name, util.PoolConfigmapName)
 			if err != nil {
 				r.Log.Error(err, "failed to delete entry from pools ConfigMap")
 				return ctrl.Result{}, err
 			}
-			err = r.removeFscFromODFFSConfigMap(req.Name)
+			err = r.removeFscFromConfigMap(req.Name, util.ODFFSPoolsConfigmapName)
 			if err != nil {
 				r.Log.Error(err, "failed to delete entry from odf-fs-pools ConfigMap")
 				return ctrl.Result{}, err
@@ -289,11 +289,11 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 				return reconcile.Result{}, err
 			}
 		}
-		if err = r.removeFscFromConfigMap(instance.Name); err != nil {
+		if err = r.removeFscFromConfigMap(instance.Name, util.PoolConfigmapName); err != nil {
 			r.Log.Error(err, "failed to delete entry from pools ConfigMap")
 			return reconcile.Result{}, err
 		}
-		if err = r.removeFscFromODFFSConfigMap(instance.Name); err != nil {
+		if err = r.removeFscFromConfigMap(instance.Name, util.ODFFSPoolsConfigmapName); err != nil {
 			r.Log.Error(err, "failed to delete entry from odf-fs-pools ConfigMap")
 			return reconcile.Result{}, err
 		}
@@ -524,7 +524,7 @@ func (r *FlashSystemClusterReconciler) createEvent(instance *odfv1alpha1.FlashSy
 
 // this object will not bind with instance
 func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alpha1.FlashSystemCluster) error {
-	configmap, err := util.GetCreateConfigmap(r.Client, r.Log, watchNamespace, true)
+	configmap, err := util.GetCreateConfigmap(r.Client, r.Log, watchNamespace, true, util.PoolConfigmapName)
 	if err != nil {
 		return err
 	}
@@ -546,7 +546,7 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alph
 		if err != nil {
 			return err
 		}
-		r.Log.Info("adding FlashSystemCluster to pools ConfigMap", "ConfigMap", configmap.Name)
+		r.Log.Info("adding FlashSystemCluster to ConfigMap", "ConfigMap", configmap.Name)
 		configmap.Data[instance.Name] = string(val)
 		return r.Client.Update(context.TODO(), configmap)
 	}
@@ -555,7 +555,7 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alph
 }
 
 func (r *FlashSystemClusterReconciler) ensureODFFSPoolsConfigMap(instance *odfv1alpha1.FlashSystemCluster) error {
-	configmap, err := util.GetCreateODFFSPoolsConfigmap(r.Client, r.Log, watchNamespace, true)
+	configmap, err := util.GetCreateConfigmap(r.Client, r.Log, watchNamespace, true, util.ODFFSPoolsConfigmapName)
 	if err != nil {
 		return err
 	}
@@ -570,7 +570,7 @@ func (r *FlashSystemClusterReconciler) ensureODFFSPoolsConfigMap(instance *odfv1
 		if err != nil {
 			return err
 		}
-		r.Log.Info("adding FlashSystemCluster to odf-fs-pools ConfigMap", "ConfigMap", configmap.Name)
+		r.Log.Info("adding FlashSystemCluster to ConfigMap", "ConfigMap", configmap.Name)
 		configmap.Data[instance.Name] = string(val)
 		return r.Client.Update(context.TODO(), configmap)
 	}
@@ -578,35 +578,17 @@ func (r *FlashSystemClusterReconciler) ensureODFFSPoolsConfigMap(instance *odfv1
 	return nil
 }
 
-func (r *FlashSystemClusterReconciler) removeFscFromConfigMap(fscName string) error {
-	r.Log.Info("removing FlashSystemCluster entry from pools ConfigMap", "ConfigMap", util.PoolConfigmapName)
+func (r *FlashSystemClusterReconciler) removeFscFromConfigMap(fscName string, configMapName string) error {
+	r.Log.Info("removing FlashSystemCluster entry from ConfigMap", "ConfigMap", configMapName)
 
-	configmap, err := util.GetCreateConfigmap(r.Client, r.Log, watchNamespace, true)
+	configmap, err := util.GetCreateConfigmap(r.Client, r.Log, watchNamespace, true, configMapName)
 	if err != nil {
 		return err
 	}
 	delete(configmap.Data, fscName)
 	err = r.Client.Update(context.TODO(), configmap)
 	if err != nil {
-		r.Log.Error(err, "failed to update pools ConfigMap", "ConfigMap", configmap.Name)
-		return err
-	}
-	return nil
-}
-
-// TODO - check if can combine between removeFscFromConfigMap and removeFscFromODFFSConfigMap
-func (r *FlashSystemClusterReconciler) removeFscFromODFFSConfigMap(fscName string) error {
-	r.Log.Info("removing FlashSystemCluster entry from odf-fs-pools ConfigMap", "ConfigMap", util.ODFFSPoolsConfigmapName)
-
-	configmap, err := util.GetCreateODFFSPoolsConfigmap(r.Client, r.Log, watchNamespace, true)
-	if err != nil {
-		return err
-	}
-
-	delete(configmap.Data, fscName)
-	err = r.Client.Update(context.TODO(), configmap)
-	if err != nil {
-		r.Log.Error(err, "failed to update pools ConfigMap", "ConfigMap", configmap.Name)
+		r.Log.Error(err, "failed to update ConfigMap", "ConfigMap", configmap.Name)
 		return err
 	}
 	return nil

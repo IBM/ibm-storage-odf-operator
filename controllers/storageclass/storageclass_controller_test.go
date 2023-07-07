@@ -606,23 +606,23 @@ var _ = Describe("StorageClassWatcher", func() {
 			}, timeout, interval).Should(BeTrue())
 
 			// should fail with a non-existing FlashSystemCluster
-			err := watcher.addStorageClassToConfigMap(*createdCm, "fake-fsc", storageClassName, poolName)
+			err := watcher.addStorageClassToConfigMaps(*createdCm, "fake-fsc", storageClassName, poolName)
 			Expect(err).To(HaveOccurred())
 
 			// should succeed with a valid FlashSystemCluster
-			err = watcher.addStorageClassToConfigMap(*createdCm, FlashSystemName, storageClassName, poolName)
+			err = watcher.addStorageClassToConfigMaps(*createdCm, FlashSystemName, storageClassName, poolName)
 			Expect(err).ToNot(HaveOccurred())
 
 			// should not fail with a non-existing FlashSystemCluster - it returns nil and skips
-			err = watcher.removeStorageClassFromConfigMap(*createdCm, "fake-fsc", storageClassName)
+			err = watcher.removeStorageClassFromConfigMaps(*createdCm, "fake-fsc", storageClassName)
 			Expect(err).ToNot(HaveOccurred())
 
 			// should succeed with a valid FlashSystemCluster
-			err = watcher.removeStorageClassFromConfigMap(*createdCm, FlashSystemName, storageClassName)
+			err = watcher.removeStorageClassFromConfigMaps(*createdCm, FlashSystemName, storageClassName)
 			Expect(err).ToNot(HaveOccurred())
 
 			// should fail with a non-existing StorageClass
-			err = watcher.removeStorageClassFromConfigMap(*createdCm, FlashSystemName, "fake-sc")
+			err = watcher.removeStorageClassFromConfigMaps(*createdCm, FlashSystemName, "fake-sc")
 			Expect(err).To(HaveOccurred())
 		})
 
