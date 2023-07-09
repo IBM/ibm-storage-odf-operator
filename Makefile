@@ -1,7 +1,5 @@
 export GOPROXY=https://proxy.golang.org
-export IMAGE_REGISTRY=quay.io/ben_menachem
-export IMAGE_TAG=1.5.0
-export ENABLE_UPGRADE=True
+
 CONTROLLER_GEN_VERSION="v0.4.1"
 
 CSV_PATH=bundle/manifests/ibm-storage-odf-operator.clusterserviceversion.yaml
