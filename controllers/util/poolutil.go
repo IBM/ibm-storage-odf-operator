@@ -94,9 +94,9 @@ type PoolsConfigMapPoolContent struct {
 }
 
 type PoolsConfigMapFscContent struct {
-	PoolsMap map[string]PoolsConfigMapPoolContent `json:"pools"`
 	SrcOG    string                               `json:"srcOwnershipGroup"`
 	DestOG   string                               `json:"destOwnershipGroup"`
+	PoolsMap map[string]PoolsConfigMapPoolContent `json:"pools"`
 }
 
 var IgnoreUpdateAndGenericPredicate = predicate.Funcs{
