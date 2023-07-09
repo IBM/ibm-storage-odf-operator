@@ -668,7 +668,7 @@ var _ = Describe("StorageClassWatcher", func() {
 			err = watcher.removeStorageClassFromConfigMaps(*createdCm, *createdPoolsCm, FlashSystemName, storageClassName)
 			Expect(err).ToNot(HaveOccurred())
 
-			// should fail with a non-existing StorageClass
+			// should not fail with a non-existing StorageClass
 			err = watcher.removeStorageClassFromConfigMaps(*createdCm, *createdPoolsCm, FlashSystemName, "fake-sc")
 			Expect(err).ToNot(HaveOccurred())
 		})
