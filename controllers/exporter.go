@@ -275,7 +275,7 @@ func InitExporterDeployment(
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
-										Name: util.PoolConfigmapName,
+										Name: util.FscCmName,
 									},
 								},
 							},

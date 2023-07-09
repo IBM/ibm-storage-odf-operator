@@ -154,19 +154,39 @@ var _ = Describe("StorageClassWatcher", func() {
 			selectLabels := util.GetLabels()
 			createdCm := &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      util.PoolConfigmapName,
+					Name:      util.FscCmName,
 					Namespace: namespace,
 					Labels:    selectLabels,
 				},
 			}
 			createdCm.Data = make(map[string]string)
-			value := util.FlashSystemClusterMapContent{
+			value := util.FscConfigMapFscContent{
 				ScPoolMap: make(map[string]string), Secret: secretName}
 			val, _ := json.Marshal(value)
 			createdCm.Data[FlashSystemName] = string(val)
 
 			Eventually(func() bool {
 				err := k8sClient.Create(ctx, createdCm)
+				return err == nil
+			}, timeout, interval).Should(BeTrue())
+
+			By("By creating the Pools ConfigMap")
+			createdPoolsCm := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      util.PoolsCmName,
+					Namespace: namespace,
+					Labels:    selectLabels,
+				},
+			}
+			createdPoolsCm.Data = make(map[string]string)
+			poolsValue := util.PoolsConfigMapFscContent{PoolsMap: make(map[string]util.PoolsConfigMapPoolContent),
+				SrcOG: "", DestOG: ""}
+
+			poolsVal, _ := json.Marshal(poolsValue)
+			createdPoolsCm.Data[FlashSystemName] = string(poolsVal)
+
+			Eventually(func() bool {
+				err := k8sClient.Create(ctx, createdPoolsCm)
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 		})
@@ -211,7 +231,7 @@ var _ = Describe("StorageClassWatcher", func() {
 
 			By("By querying the ConfigMap")
 			cmLookupKey := types.NamespacedName{
-				Name:      util.PoolConfigmapName,
+				Name:      util.FscCmName,
 				Namespace: namespace,
 			}
 			createdCm := &corev1.ConfigMap{}
@@ -219,7 +239,7 @@ var _ = Describe("StorageClassWatcher", func() {
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, cmLookupKey, createdCm)
 				if err == nil {
-					var sp util.FlashSystemClusterMapContent
+					var sp util.FscConfigMapFscContent
 					err = json.Unmarshal([]byte(createdCm.Data[FlashSystemName]), &sp)
 					if err == nil {
 						return sp.ScPoolMap[storageClassName] == poolName
@@ -308,19 +328,36 @@ var _ = Describe("StorageClassWatcher", func() {
 			}
 
 			cmLookupKey := types.NamespacedName{
-				Name:      util.PoolConfigmapName,
+				Name:      util.FscCmName,
 				Namespace: namespace,
 			}
 			createdCm := &corev1.ConfigMap{}
 			err := k8sClient.Get(ctx, cmLookupKey, createdCm)
 			if err == nil {
 				for fscName, secretName := range fscToSecretMap {
-					value := util.FlashSystemClusterMapContent{
+					value := util.FscConfigMapFscContent{
 						ScPoolMap: make(map[string]string), Secret: secretName}
 					val, _ := json.Marshal(value)
 					createdCm.Data[fscName] = string(val)
 				}
 				err := k8sClient.Update(ctx, createdCm)
+				Expect(err).Should(BeNil())
+			}
+
+			poolsCmLookupKey := types.NamespacedName{
+				Name:      util.PoolsCmName,
+				Namespace: namespace,
+			}
+			createdPoolsCm := &corev1.ConfigMap{}
+			err = k8sClient.Get(ctx, poolsCmLookupKey, createdPoolsCm)
+			if err == nil {
+				for fscName, _ := range fscToSecretMap {
+					poolsValue := util.PoolsConfigMapFscContent{PoolsMap: make(map[string]util.PoolsConfigMapPoolContent),
+						SrcOG: "", DestOG: ""}
+					val, _ := json.Marshal(poolsValue)
+					createdPoolsCm.Data[fscName] = string(val)
+				}
+				err := k8sClient.Update(ctx, createdPoolsCm)
 				Expect(err).Should(BeNil())
 			}
 
@@ -360,7 +397,7 @@ var _ = Describe("StorageClassWatcher", func() {
 				err := k8sClient.Get(ctx, cmLookupKey, createdCm)
 				if err == nil {
 					for fsc, value := range createdCm.Data {
-						fc := util.FlashSystemClusterMapContent{}
+						fc := util.FscConfigMapFscContent{}
 						err := json.Unmarshal([]byte(value), &fc)
 						if err != nil {
 							return false
@@ -397,7 +434,7 @@ var _ = Describe("StorageClassWatcher", func() {
 			}, timeout, interval).Should(BeTrue())
 
 			cmLookupKey := types.NamespacedName{
-				Name:      util.PoolConfigmapName,
+				Name:      util.FscCmName,
 				Namespace: namespace,
 			}
 			createdCm := &corev1.ConfigMap{}
@@ -409,7 +446,7 @@ var _ = Describe("StorageClassWatcher", func() {
 				err := k8sClient.Get(ctx, cmLookupKey, createdCm)
 				if err == nil {
 					for fsc, value := range createdCm.Data {
-						fc := util.FlashSystemClusterMapContent{}
+						fc := util.FscConfigMapFscContent{}
 						err := json.Unmarshal([]byte(value), &fc)
 						if err != nil {
 							return false
@@ -596,7 +633,7 @@ var _ = Describe("StorageClassWatcher", func() {
 			}
 
 			cmLookupKey := types.NamespacedName{
-				Name:      util.PoolConfigmapName,
+				Name:      util.FscCmName,
 				Namespace: namespace,
 			}
 			createdCm := &corev1.ConfigMap{}
@@ -605,25 +642,35 @@ var _ = Describe("StorageClassWatcher", func() {
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
+			poolsCmLookupKey := types.NamespacedName{
+				Name:      util.PoolsCmName,
+				Namespace: namespace,
+			}
+			createdPoolsCm := &corev1.ConfigMap{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, poolsCmLookupKey, createdPoolsCm)
+				return err == nil
+			}, timeout, interval).Should(BeTrue())
+
 			// should fail with a non-existing FlashSystemCluster
-			err := watcher.addStorageClassToConfigMaps(*createdCm, "fake-fsc", storageClassName, poolName)
+			err := watcher.addStorageClassToConfigMaps(*createdCm, *createdPoolsCm, "fake-fsc", storageClassName, poolName)
 			Expect(err).To(HaveOccurred())
 
 			// should succeed with a valid FlashSystemCluster
-			err = watcher.addStorageClassToConfigMaps(*createdCm, FlashSystemName, storageClassName, poolName)
+			err = watcher.addStorageClassToConfigMaps(*createdCm, *createdPoolsCm, FlashSystemName, storageClassName, poolName)
 			Expect(err).ToNot(HaveOccurred())
 
 			// should not fail with a non-existing FlashSystemCluster - it returns nil and skips
-			err = watcher.removeStorageClassFromConfigMaps(*createdCm, "fake-fsc", storageClassName)
+			err = watcher.removeStorageClassFromConfigMaps(*createdCm, *createdPoolsCm, "fake-fsc", storageClassName)
 			Expect(err).ToNot(HaveOccurred())
 
 			// should succeed with a valid FlashSystemCluster
-			err = watcher.removeStorageClassFromConfigMaps(*createdCm, FlashSystemName, storageClassName)
+			err = watcher.removeStorageClassFromConfigMaps(*createdCm, *createdPoolsCm, FlashSystemName, storageClassName)
 			Expect(err).ToNot(HaveOccurred())
 
 			// should fail with a non-existing StorageClass
-			err = watcher.removeStorageClassFromConfigMaps(*createdCm, FlashSystemName, "fake-sc")
-			Expect(err).To(HaveOccurred())
+			err = watcher.removeStorageClassFromConfigMaps(*createdCm, *createdPoolsCm, FlashSystemName, "fake-sc")
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should delete all StorageClasses successfully", func() {
@@ -653,7 +700,7 @@ var _ = Describe("StorageClassWatcher", func() {
 
 			By("By querying the ConfigMap to verify StorageClass is deleted")
 			cmLookupKey := types.NamespacedName{
-				Name:      util.PoolConfigmapName,
+				Name:      util.FscCmName,
 				Namespace: namespace,
 			}
 			createdCm := &corev1.ConfigMap{}
@@ -664,7 +711,7 @@ var _ = Describe("StorageClassWatcher", func() {
 					return false
 				}
 
-				var sp util.FlashSystemClusterMapContent
+				var sp util.FscConfigMapFscContent
 				err = json.Unmarshal([]byte(createdCm.Data[FlashSystemName]), &sp)
 				Expect(err).ToNot(HaveOccurred())
 

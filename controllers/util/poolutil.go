@@ -37,15 +37,13 @@ import (
 )
 
 const (
-	PoolConfigmapName       = "ibm-flashsystem-pools"
-	ODFFSPoolsConfigmapName = "odf-fs-pools"
-	PoolsKey                = "pools"
-	FSCConfigmapMountPath   = "/config"
+	FscCmName             = "ibm-flashsystem-pools"
+	PoolsCmName           = "odf-fs-pools"
+	PoolsKey              = "pools"
+	FSCConfigmapMountPath = "/config"
 
 	TopologySecretDataKey        = "config"
 	TopologyStorageClassByMgmtId = "by_management_id"
-
-	PVMgmtAddrKey = "array_address"
 
 	CsiIBMBlockDriver = "block.csi.ibm.com"
 	CsiIBMBlockScPool = "pool"
@@ -73,13 +71,13 @@ func (m *UniqueFSCMatchError) Error() string {
 	return "cannot find unique FlashSystemCluster"
 }
 
-type FlashSystemClusterMapContent struct {
+type FscConfigMapFscContent struct {
 	ScPoolMap map[string]string `json:"storageclass"`
 	Secret    string            `json:"secret"`
 }
 
-type FSCConfigMapData struct {
-	FlashSystemClusterMap map[string]FlashSystemClusterMapContent
+type FscConfigMapData struct {
+	FlashSystemClusterMap map[string]FscConfigMapFscContent
 }
 
 type FenceStatus string
@@ -90,13 +88,15 @@ const (
 	FenceIdle     FenceStatus = "Idle"
 )
 
-type ODFFSPoolsConfigMapPoolsContent struct {
+type PoolsConfigMapPoolContent struct {
 	OG          string      `json:"ownershipGroup"`
 	FenceStatus FenceStatus `json:"fenceStatus"`
 }
 
-type ODFFSPoolsConfigMapFSCContent struct {
-	PoolsData map[string]ODFFSPoolsConfigMapPoolsContent `json:"-"`
+type PoolsConfigMapFscContent struct {
+	PoolsMap map[string]PoolsConfigMapPoolContent `json:"pools"`
+	SrcOG    string                               `json:"srcOwnershipGroup"`
+	DestOG   string                               `json:"destOwnershipGroup"`
 }
 
 var IgnoreUpdateAndGenericPredicate = predicate.Funcs{
@@ -213,9 +213,9 @@ var RunDeletePredicate = predicate.Funcs{
 	},
 }
 
-func ReadPoolConfigMapFile() (map[string]FlashSystemClusterMapContent, error) {
-	var flashSystemClustersMap = make(map[string]FlashSystemClusterMapContent)
-	var flashSystemClusterContent FlashSystemClusterMapContent
+func ReadPoolConfigMapFile() (map[string]FscConfigMapFscContent, error) {
+	var flashSystemClustersMap = make(map[string]FscConfigMapFscContent)
+	var flashSystemClusterContent FscConfigMapFscContent
 	fscPath := FSCConfigmapMountPath + "/"
 
 	files, err := os.ReadDir(fscPath)
@@ -236,8 +236,8 @@ func ReadPoolConfigMapFile() (map[string]FlashSystemClusterMapContent, error) {
 	return flashSystemClustersMap, nil
 }
 
-func getFileContent(filePath string) (FlashSystemClusterMapContent, error) {
-	var fscContent FlashSystemClusterMapContent
+func getFileContent(filePath string) (FscConfigMapFscContent, error) {
+	var fscContent FscConfigMapFscContent
 	fileReader, err := os.Open(filePath)
 	if err != nil {
 		return fscContent, err

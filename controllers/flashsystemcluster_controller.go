@@ -87,7 +87,7 @@ func (s *ReconcileMapper) DefaultStorageClassToClusterMapperFunc(object client.O
 
 func (s *ReconcileMapper) ConfigMapToClusterMapFunc(object client.Object) []reconcile.Request {
 	requests := []reconcile.Request{}
-	if object.GetName() == util.PoolConfigmapName {
+	if object.GetName() == util.FscCmName {
 		s.reconciler.Log.Info("Discovered ODF-FS configMap deletion. Reconciling all FlashSystemClusters", "ConfigMapToClusterMapFunc", s)
 
 		clusters := &odfv1alpha1.FlashSystemClusterList{}
@@ -225,14 +225,14 @@ func (r *FlashSystemClusterReconciler) Reconcile(_ context.Context, req ctrl.Req
 	if err != nil {
 		if errors.IsNotFound(err) {
 			r.Log.Info("FlashSystemCluster resource was not found")
-			err = r.removeFscFromConfigMap(req.Name, util.PoolConfigmapName)
+			err = r.removeFscFromConfigMap(req.Name, util.PoolsCmName)
 			if err != nil {
-				r.Log.Error(err, "failed to delete entry from pools ConfigMap")
+				r.Log.Error(err, "failed to delete entry from ConfigMap", "ConfigMap", util.PoolsCmName)
 				return ctrl.Result{}, err
 			}
-			err = r.removeFscFromConfigMap(req.Name, util.ODFFSPoolsConfigmapName)
+			err = r.removeFscFromConfigMap(req.Name, util.FscCmName)
 			if err != nil {
-				r.Log.Error(err, "failed to delete entry from odf-fs-pools ConfigMap")
+				r.Log.Error(err, "failed to delete entry from ConfigMap", "ConfigMap", util.FscCmName)
 				return ctrl.Result{}, err
 			}
 			return result, nil
@@ -289,12 +289,12 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 				return reconcile.Result{}, err
 			}
 		}
-		if err = r.removeFscFromConfigMap(instance.Name, util.PoolConfigmapName); err != nil {
-			r.Log.Error(err, "failed to delete entry from pools ConfigMap")
+		if err = r.removeFscFromConfigMap(instance.Name, util.PoolsCmName); err != nil {
+			r.Log.Error(err, "failed to delete entry ConfigMap", "ConfigMap", util.PoolsCmName)
 			return reconcile.Result{}, err
 		}
-		if err = r.removeFscFromConfigMap(instance.Name, util.ODFFSPoolsConfigmapName); err != nil {
-			r.Log.Error(err, "failed to delete entry from odf-fs-pools ConfigMap")
+		if err = r.removeFscFromConfigMap(instance.Name, util.FscCmName); err != nil {
+			r.Log.Error(err, "failed to delete entry from ConfigMap", "ConfigMap", util.FscCmName)
 			return reconcile.Result{}, err
 		}
 		r.Log.Info("object is terminated, skipping reconciliation")
@@ -322,27 +322,27 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 		return reconcile.Result{}, err
 	}
 
-	r.Log.Info("step: ensureScPoolConfigMap")
-	if err = r.ensureScPoolConfigMap(instance); err != nil {
+	r.Log.Info("step: ensureFscConfigMap")
+	if err = r.ensureFscConfigMap(instance); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
-		message := fmt.Sprintf("failed to ensureScPoolConfigMap: %v", err)
+		message := fmt.Sprintf("failed to ensureFscConfigMap: %v", err)
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
 		instance.Status.Phase = util.PhaseError
 
 		r.createEvent(instance, corev1.EventTypeWarning,
-			util.FailedScPoolConfigMapReason, message)
+			util.FailedFscConfigMapReason, message)
 		return reconcile.Result{}, err
 	}
 
-	r.Log.Info("step: ensureODFFSPoolsConfigMap")
-	if err = r.ensureODFFSPoolsConfigMap(instance); err != nil {
+	r.Log.Info("step: ensurePoolsConfigMap")
+	if err = r.ensurePoolsConfigMap(instance); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
-		message := fmt.Sprintf("failed to ensureODFFSPoolsConfigMap: %v", err)
+		message := fmt.Sprintf("failed to ensurePoolsConfigMap: %v", err)
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
 		instance.Status.Phase = util.PhaseError
 
 		r.createEvent(instance, corev1.EventTypeWarning,
-			util.FailedODFFSPoolsConfigMapReason, message)
+			util.FailedPoolsConfigMapReason, message)
 		return reconcile.Result{}, err
 	}
 
@@ -523,8 +523,8 @@ func (r *FlashSystemClusterReconciler) createEvent(instance *odfv1alpha1.FlashSy
 }
 
 // this object will not bind with instance
-func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alpha1.FlashSystemCluster) error {
-	configmap, err := util.GetCreateConfigmap(r.Client, r.Log, watchNamespace, true, util.PoolConfigmapName)
+func (r *FlashSystemClusterReconciler) ensureFscConfigMap(instance *odfv1alpha1.FlashSystemCluster) error {
+	configmap, err := util.GetCreateConfigmap(r.Client, r.Log, watchNamespace, true, util.FscCmName)
 	if err != nil {
 		return err
 	}
@@ -540,7 +540,7 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alph
 		}
 	}
 	if _, exist := configmap.Data[instance.Name]; !exist {
-		value := util.FlashSystemClusterMapContent{
+		value := util.FscConfigMapFscContent{
 			ScPoolMap: make(map[string]string), Secret: instance.Spec.Secret.Name}
 		val, err := json.Marshal(value)
 		if err != nil {
@@ -554,8 +554,8 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alph
 	return nil
 }
 
-func (r *FlashSystemClusterReconciler) ensureODFFSPoolsConfigMap(instance *odfv1alpha1.FlashSystemCluster) error {
-	configmap, err := util.GetCreateConfigmap(r.Client, r.Log, watchNamespace, true, util.ODFFSPoolsConfigmapName)
+func (r *FlashSystemClusterReconciler) ensurePoolsConfigMap(instance *odfv1alpha1.FlashSystemCluster) error {
+	configmap, err := util.GetCreateConfigmap(r.Client, r.Log, watchNamespace, true, util.PoolsCmName)
 	if err != nil {
 		return err
 	}
@@ -565,7 +565,7 @@ func (r *FlashSystemClusterReconciler) ensureODFFSPoolsConfigMap(instance *odfv1
 	}
 
 	if _, exist := configmap.Data[instance.Name]; !exist {
-		value := util.ODFFSPoolsConfigMapFSCContent{PoolsData: make(map[string]util.ODFFSPoolsConfigMapPoolsContent)}
+		value := util.PoolsConfigMapFscContent{PoolsMap: make(map[string]util.PoolsConfigMapPoolContent), SrcOG: "", DestOG: ""}
 		val, err := json.Marshal(value)
 		if err != nil {
 			return err
