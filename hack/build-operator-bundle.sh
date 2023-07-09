@@ -19,7 +19,7 @@
 set -e
 
 source hack/common.sh
-#source hack/ensure-opm.sh
+source hack/ensure-opm.sh
 
 build_push_bundle_image(){
   bundle_image_name=${1}

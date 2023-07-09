@@ -13,5 +13,5 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
   - name: ibm-console
-    newName: quay.io/ben_menachem
+    newName: quay.io/ibmodffs/ibm-storage-odf-plugin
     newTag: 1.5.0
