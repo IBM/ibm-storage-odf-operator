@@ -351,7 +351,7 @@ var _ = Describe("StorageClassWatcher", func() {
 			createdPoolsCm := &corev1.ConfigMap{}
 			err = k8sClient.Get(ctx, poolsCmLookupKey, createdPoolsCm)
 			if err == nil {
-				for fscName, _ := range fscToSecretMap {
+				for fscName := range fscToSecretMap {
 					poolsValue := util.PoolsConfigMapFscContent{PoolsMap: make(map[string]util.PoolsConfigMapPoolContent),
 						SrcOG: "", DestOG: ""}
 					val, _ := json.Marshal(poolsValue)
