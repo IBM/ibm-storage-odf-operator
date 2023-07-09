@@ -109,6 +109,8 @@ jobs:
         push: ${{ github.event_name == 'release' && github.event.action == 'published' }}
         tags: quay.io/ibmodffs/ibm-block-csi-bundle:${{ env.BUILD_VERSION || 'dev' }}
 
+        #TODO - add docker pull command to pull existing bundle multiarch image
+
       # Build and (optionally) push the operator catalog image
     - name: build the operator catalog image
       uses: docker/build-push-action@v2
