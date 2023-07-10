@@ -4,8 +4,8 @@ go 1.19
 
 require (
 	github.com/go-logr/logr v1.2.3
-	github.com/onsi/ginkgo v1.16.4
-	github.com/onsi/gomega v1.13.0
+	github.com/onsi/ginkgo v1.16.5
+	github.com/onsi/gomega v1.27.4
 	github.com/openshift/api v0.0.0-20210430163505-eeaa94b80043
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.51.0
 	k8s.io/api v0.25.0
