@@ -58,7 +58,7 @@ func TestAPIs(t *testing.T) {
 
 // by default testenv sets up local api server & etcd environment without external dependencies
 // test method for real cluster environment
-// 	1. prepare the openshift environment with CRD & ns is created
+//  1. prepare the openshift environment with CRD & ns is created
 //  2. export TEST_USE_EXISTING_CLUSTER=true
 //  3. make test
 var _ = BeforeSuite(func() {

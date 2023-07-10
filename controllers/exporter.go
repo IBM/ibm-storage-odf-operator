@@ -233,7 +233,7 @@ func InitExporterDeployment(
 								{Name: ExporterClusterConfigMapVolumeName, MountPath: util.FSCConfigmapMountPath},
 							},
 							LivenessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
+								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path: "/",
 										Port: intstr.FromInt(9100),
@@ -245,7 +245,7 @@ func InitExporterDeployment(
 								FailureThreshold:    3,
 							},
 							ReadinessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
+								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path: "/",
 										Port: intstr.FromInt(9100),
