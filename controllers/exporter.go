@@ -41,12 +41,13 @@ const (
 
 	// ExporterClusterConfigMapMountPoint = "/cluster-configmap"
 
-	ExporterClusterConfigMapVolumeName = "storageclass-pool"
-	ServiceAccount                     = "ibm-storage-odf-operator"
-	fsObjectsPrefix                    = "ibm-flashsystem-storage"
-	fsServiceName                      = "ibm-flashsystem-storage-service"
-	fsDeploymentName                   = "ibm-flashsystem-storage-deployment"
-	fsServiceMonitorName               = "ibm-flashsystem-storage-service-monitor"
+	ExporterClusterConfigMapVolumeName      = "storageclass-pool"
+	ExporterClusterPoolsConfigMapVolumeName = "pools-cm"
+	ServiceAccount                          = "ibm-storage-odf-operator"
+	fsObjectsPrefix                         = "ibm-flashsystem-storage"
+	fsServiceName                           = "ibm-flashsystem-storage-service"
+	fsDeploymentName                        = "ibm-flashsystem-storage-deployment"
+	fsServiceMonitorName                    = "ibm-flashsystem-storage-service-monitor"
 
 	portMetrics    = "metrics"
 	scrapeInterval = "1m"
@@ -231,6 +232,7 @@ func InitExporterDeployment(
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{Name: ExporterClusterConfigMapVolumeName, MountPath: util.FSCConfigmapMountPath},
+								{Name: ExporterClusterPoolsConfigMapVolumeName, MountPath: util.PoolsConfigmapMountPath},
 							},
 							LivenessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
@@ -276,6 +278,16 @@ func InitExporterDeployment(
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
 										Name: util.FscCmName,
+									},
+								},
+							},
+						},
+						{
+							Name: ExporterClusterPoolsConfigMapVolumeName,
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: util.PoolsCmName,
 									},
 								},
 							},

@@ -37,10 +37,11 @@ import (
 )
 
 const (
-	FscCmName             = "ibm-flashsystem-pools"
-	PoolsCmName           = "odf-fs-pools"
-	PoolsKey              = "pools"
-	FSCConfigmapMountPath = "/config"
+	FscCmName               = "ibm-flashsystem-pools"
+	PoolsCmName             = "odf-fs-pools"
+	PoolsKey                = "pools"
+	FSCConfigmapMountPath   = "/config"
+	PoolsConfigmapMountPath = "/pools_config"
 
 	TopologySecretDataKey        = "config"
 	TopologyStorageClassByMgmtId = "by_management_id"
@@ -238,6 +239,41 @@ func ReadPoolConfigMapFile() (map[string]FscConfigMapFscContent, error) {
 
 func getFileContent(filePath string) (FscConfigMapFscContent, error) {
 	var fscContent FscConfigMapFscContent
+	fileReader, err := os.Open(filePath)
+	if err != nil {
+		return fscContent, err
+	}
+
+	fileContent, _ := io.ReadAll(fileReader)
+	err = json.Unmarshal(fileContent, &fscContent)
+	return fscContent, err
+}
+
+func ReadNewPoolsConfigMapFile() (map[string]PoolsConfigMapFscContent, error) {
+	var fscMap = make(map[string]PoolsConfigMapFscContent)
+	var fscContent PoolsConfigMapFscContent
+	fscPath := PoolsConfigmapMountPath + "/"
+
+	files, err := os.ReadDir(fscPath)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, file := range files {
+		if !file.IsDir() && !strings.HasPrefix(file.Name(), ".") {
+			fscContent, err = getNewPoolsFileContent(filepath.Join(fscPath, file.Name()))
+			if err != nil {
+				return fscMap, err
+			} else {
+				fscMap[file.Name()] = fscContent
+			}
+		}
+	}
+	return fscMap, nil
+}
+
+func getNewPoolsFileContent(filePath string) (PoolsConfigMapFscContent, error) {
+	var fscContent PoolsConfigMapFscContent
 	fileReader, err := os.Open(filePath)
 	if err != nil {
 		return fscContent, err
