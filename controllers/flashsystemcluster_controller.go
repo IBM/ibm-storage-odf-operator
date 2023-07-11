@@ -102,7 +102,7 @@ func (s *ReconcileMapper) ConfigMapToClusterMapFunc(object client.Object) []reco
 				context.TODO(),
 				foundPoolsCm)
 			if err != nil {
-				s.reconciler.Log.Error(err, "failed to delete ConfigMap", util.PoolsCmName)
+				s.reconciler.Log.Error(err, "failed to delete ConfigMap", "ConfigMap", util.PoolsCmName)
 				return nil
 			}
 		}
