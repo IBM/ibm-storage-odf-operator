@@ -173,7 +173,7 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 			}, timeout, interval).Should(BeTrue())
 
 			cmLookupKey := types.NamespacedName{
-				Name:      util.PoolConfigmapName,
+				Name:      util.FscCmName,
 				Namespace: namespace,
 			}
 			createdCm := &corev1.ConfigMap{}
@@ -181,7 +181,7 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, cmLookupKey, createdCm)
 				if err == nil {
-					var sp util.FlashSystemClusterMapContent
+					var sp util.FscConfigMapFscContent
 					err = json.Unmarshal([]byte(createdCm.Data[FlashSystemName]), &sp)
 					if err == nil {
 						return sp.Secret == secretName
@@ -323,7 +323,7 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 			}, timeout, interval).Should(BeTrue())
 
 			cmLookupKey := types.NamespacedName{
-				Name:      util.PoolConfigmapName,
+				Name:      util.FscCmName,
 				Namespace: namespace,
 			}
 
