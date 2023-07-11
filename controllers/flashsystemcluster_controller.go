@@ -91,8 +91,12 @@ func (s *ReconcileMapper) ConfigMapToClusterMapFunc(object client.Object) []reco
 	if object.GetName() == util.FscCmName {
 		s.reconciler.Log.Info("Discovered ODF-FS configMap deletion. Deleting Pools ConfigMap", "ConfigMapToClusterMapFunc", s)
 		foundPoolsCm, err := util.GetCreateConfigmap(s.reconciler.Client, s.reconciler.Log, object.GetNamespace(), false, util.PoolsCmName)
-		if err != nil && errors.IsNotFound(err) {
-			s.reconciler.Log.Info("ConfigMap is already deleted", "ConfigMap", util.PoolsCmName)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				s.reconciler.Log.Info("ConfigMap is already deleted", "ConfigMap", util.PoolsCmName)
+			} else {
+				return nil // Error reading the object - requeue the request.
+			}
 		} else {
 			err = s.reconciler.Client.Delete(
 				context.TODO(),
