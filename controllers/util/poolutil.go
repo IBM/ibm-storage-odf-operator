@@ -214,9 +214,8 @@ var RunDeletePredicate = predicate.Funcs{
 	},
 }
 
-func ReadPoolConfigMapFile() (map[string]FscConfigMapFscContent, error) {
+func ReadFscConfigMapFile() (map[string]FscConfigMapFscContent, error) {
 	var flashSystemClustersMap = make(map[string]FscConfigMapFscContent)
-	var flashSystemClusterContent FscConfigMapFscContent
 	fscPath := FSCConfigmapMountPath + "/"
 
 	files, err := os.ReadDir(fscPath)
@@ -225,8 +224,9 @@ func ReadPoolConfigMapFile() (map[string]FscConfigMapFscContent, error) {
 	}
 
 	for _, file := range files {
+		var flashSystemClusterContent FscConfigMapFscContent
 		if !file.IsDir() && !strings.HasPrefix(file.Name(), ".") {
-			flashSystemClusterContent, err = getFileContent(filepath.Join(fscPath, file.Name()))
+			err = getFileContent(filepath.Join(fscPath, file.Name()), &flashSystemClusterContent)
 			if err != nil {
 				return flashSystemClustersMap, err
 			} else {
@@ -237,21 +237,8 @@ func ReadPoolConfigMapFile() (map[string]FscConfigMapFscContent, error) {
 	return flashSystemClustersMap, nil
 }
 
-func getFileContent(filePath string) (FscConfigMapFscContent, error) {
-	var fscContent FscConfigMapFscContent
-	fileReader, err := os.Open(filePath)
-	if err != nil {
-		return fscContent, err
-	}
-
-	fileContent, _ := io.ReadAll(fileReader)
-	err = json.Unmarshal(fileContent, &fscContent)
-	return fscContent, err
-}
-
-func ReadNewPoolsConfigMapFile() (map[string]PoolsConfigMapFscContent, error) {
+func ReadPoolsConfigMapFile() (map[string]PoolsConfigMapFscContent, error) {
 	var fscMap = make(map[string]PoolsConfigMapFscContent)
-	var fscContent PoolsConfigMapFscContent
 	fscPath := PoolsConfigmapMountPath + "/"
 
 	files, err := os.ReadDir(fscPath)
@@ -260,8 +247,9 @@ func ReadNewPoolsConfigMapFile() (map[string]PoolsConfigMapFscContent, error) {
 	}
 
 	for _, file := range files {
+		var fscContent PoolsConfigMapFscContent
 		if !file.IsDir() && !strings.HasPrefix(file.Name(), ".") {
-			fscContent, err = getNewPoolsFileContent(filepath.Join(fscPath, file.Name()))
+			err = getFileContent(filepath.Join(fscPath, file.Name()), &fscContent)
 			if err != nil {
 				return fscMap, err
 			} else {
@@ -272,16 +260,15 @@ func ReadNewPoolsConfigMapFile() (map[string]PoolsConfigMapFscContent, error) {
 	return fscMap, nil
 }
 
-func getNewPoolsFileContent(filePath string) (PoolsConfigMapFscContent, error) {
-	var fscContent PoolsConfigMapFscContent
+func getFileContent[ContentType *FscConfigMapFscContent | *PoolsConfigMapFscContent](filePath string, fscContent ContentType) error {
 	fileReader, err := os.Open(filePath)
 	if err != nil {
-		return fscContent, err
+		return err
 	}
 
 	fileContent, _ := io.ReadAll(fileReader)
-	err = json.Unmarshal(fileContent, &fscContent)
-	return fscContent, err
+	err = json.Unmarshal(fileContent, fscContent)
+	return err
 }
 
 func GetCreateConfigmap(client client.Client, log logr.Logger, ns string, createIfMissing bool, configMapName string) (*corev1.ConfigMap, error) {
