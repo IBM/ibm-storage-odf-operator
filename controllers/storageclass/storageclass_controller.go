@@ -82,8 +82,8 @@ type storageClassMapper struct {
 
 func (f *storageClassMapper) ConfigMapToStorageClassMapFunc(object client.Object) []reconcile.Request {
 	requests := []reconcile.Request{}
-	if object.GetName() == util.FscCmName {
-		f.reconciler.Log.Info("Discovered ODF-FS configMap deletion. Reconciling all storageClasses", "ConfigMapToStorageClassMapFunc", f)
+	if object.GetName() == util.PoolsCmName {
+		f.reconciler.Log.Info("Discovered configMap deletion. Reconciling all storageClasses", "ConfigMapToStorageClassMapFunc", f)
 
 		storageClasses := &storagev1.StorageClassList{}
 		err := f.reconciler.Client.List(context.TODO(), storageClasses)

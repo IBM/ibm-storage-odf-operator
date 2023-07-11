@@ -87,8 +87,29 @@ func (s *ReconcileMapper) DefaultStorageClassToClusterMapperFunc(object client.O
 
 func (s *ReconcileMapper) ConfigMapToClusterMapFunc(object client.Object) []reconcile.Request {
 	requests := []reconcile.Request{}
+
 	if object.GetName() == util.FscCmName {
-		s.reconciler.Log.Info("Discovered ODF-FS configMap deletion. Reconciling all FlashSystemClusters", "ConfigMapToClusterMapFunc", s)
+		s.reconciler.Log.Info("Discovered ODF-FS configMap deletion. Deleting Pools ConfigMap", "ConfigMapToClusterMapFunc", s)
+		foundPoolsCm, err := util.GetCreateConfigmap(s.reconciler.Client, s.reconciler.Log, object.GetNamespace(), false, util.PoolsCmName)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				s.reconciler.Log.Info("ConfigMap is already deleted", "ConfigMap", util.PoolsCmName)
+			} else {
+				return nil // Error reading the object - requeue the request.
+			}
+		} else {
+			err = s.reconciler.Client.Delete(
+				context.TODO(),
+				foundPoolsCm)
+			if err != nil {
+				s.reconciler.Log.Error(err, "failed to delete ConfigMap", "ConfigMap", util.PoolsCmName)
+				return nil
+			}
+		}
+	}
+
+	if object.GetName() == util.PoolsCmName {
+		s.reconciler.Log.Info("Discovered Pools ConfigMap deletion. Reconciling all FlashSystemClusters", "ConfigMapToClusterMapFunc", s)
 
 		clusters := &odfv1alpha1.FlashSystemClusterList{}
 		err := s.reconciler.Client.List(context.TODO(), clusters)
