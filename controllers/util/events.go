@@ -40,7 +40,7 @@ const (
 	FailedCreateStorageClassReason      = "FailedCreateStorageClass"
 	DeletedDuplicatedStorageClassReason = "DeletedDuplicatedStorageClass"
 	FailedCreatePromRuleReason          = "FailedCreatePromRule"
-	PoolOGChangeReason                  = "PoolOwnershipChange"
+	PoolOGChangeReason                  = "PoolOwnershipGroupChange"
 )
 
 func InitK8sEvent(instance *odfv1alpha1.FlashSystemCluster, eventType, reason, message string) *corev1.Event {
@@ -75,7 +75,7 @@ func InitK8sPoolOGChangeEvent(instance *odfv1alpha1.FlashSystemCluster, poolName
 	selectLabels := GetLabels()
 	return &corev1.Event{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("PoolOwnershipChange_for_%v", poolName),
+			Name:      fmt.Sprintf("%v_for_%v", PoolOGChangeReason, poolName),
 			Namespace: instance.Namespace,
 			Labels:    selectLabels,
 		},
@@ -88,7 +88,7 @@ func InitK8sPoolOGChangeEvent(instance *odfv1alpha1.FlashSystemCluster, poolName
 			APIVersion:      instance.APIVersion,
 		},
 		Reason:         PoolOGChangeReason,
-		Message:        fmt.Sprintf("Pool %v changed ownership to %v", poolName, ogName),
+		Message:        fmt.Sprintf("Pool %v changed ownership group to %v", poolName, ogName),
 		FirstTimestamp: t,
 		LastTimestamp:  t,
 		Count:          1,
