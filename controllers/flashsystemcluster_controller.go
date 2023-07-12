@@ -59,8 +59,7 @@ type ReconcileMapper struct {
 
 func (s *ReconcileMapper) DefaultStorageClassToClusterMapperFunc(object client.Object) []reconcile.Request {
 	clusters := &odfv1alpha1.FlashSystemClusterList{}
-	err := s.reconciler.Client.List(context.TODO(), clusters)
-	if err != nil {
+	if err := s.reconciler.Client.List(context.TODO(), clusters); err != nil {
 		s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "DefaultStorageClassToClusterMapperFunc", s)
 		return nil
 	}
@@ -90,30 +89,16 @@ func (s *ReconcileMapper) ConfigMapToClusterMapFunc(object client.Object) []reco
 
 	if object.GetName() == util.FscCmName {
 		s.reconciler.Log.Info("Discovered ODF-FS configMap deletion. Deleting Pools ConfigMap", "ConfigMapToClusterMapFunc", s)
-		foundPoolsCm, err := util.GetCreateConfigmap(s.reconciler.Client, s.reconciler.Log, object.GetNamespace(), false, util.PoolsCmName)
-		if err != nil {
-			if errors.IsNotFound(err) {
-				s.reconciler.Log.Info("ConfigMap is already deleted", "ConfigMap", util.PoolsCmName)
-			} else {
-				return nil // Error reading the object - requeue the request.
-			}
-		} else {
-			err = s.reconciler.Client.Delete(
-				context.TODO(),
-				foundPoolsCm)
-			if err != nil {
-				s.reconciler.Log.Error(err, "failed to delete ConfigMap", "ConfigMap", util.PoolsCmName)
-				return nil
-			}
+		if err := util.DeleteConfigMap(s.reconciler.Log, s.reconciler.Client, util.PoolsCmName, object.GetNamespace()); err != nil {
+			s.reconciler.Log.Error(err, "failed to delete ConfigMap", "ConfigMap", util.PoolsCmName)
+			return nil
 		}
 	}
 
 	if object.GetName() == util.PoolsCmName {
 		s.reconciler.Log.Info("Discovered Pools ConfigMap deletion. Reconciling all FlashSystemClusters", "ConfigMapToClusterMapFunc", s)
-
 		clusters := &odfv1alpha1.FlashSystemClusterList{}
-		err := s.reconciler.Client.List(context.TODO(), clusters)
-		if err != nil {
+		if err := s.reconciler.Client.List(context.TODO(), clusters); err != nil {
 			s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "ConfigMapToClusterMapFunc", s)
 			return nil
 		}
@@ -135,8 +120,7 @@ func (s *ReconcileMapper) CSIToClusterMapFunc(_ client.Object) []reconcile.Reque
 	s.reconciler.IsCSICRCreated = false
 
 	clusters := &odfv1alpha1.FlashSystemClusterList{}
-	err := s.reconciler.Client.List(context.TODO(), clusters)
-	if err != nil {
+	if err := s.reconciler.Client.List(context.TODO(), clusters); err != nil {
 		s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "CSIToClusterMapFunc", s)
 		return nil
 	}
@@ -161,8 +145,7 @@ func (s *ReconcileMapper) CSIToClusterMapFunc(_ client.Object) []reconcile.Reque
 func (s *ReconcileMapper) SecretToClusterMapFunc(object client.Object) []reconcile.Request {
 	clusters := &odfv1alpha1.FlashSystemClusterList{}
 
-	err := s.reconciler.Client.List(context.TODO(), clusters)
-	if err != nil {
+	if err := s.reconciler.Client.List(context.TODO(), clusters); err != nil {
 		s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "SecretToClusterMapFunc", s)
 		return nil
 	}
@@ -179,7 +162,6 @@ func (s *ReconcileMapper) SecretToClusterMapFunc(object client.Object) []reconci
 			}
 			requests = append(requests, req)
 		}
-
 	}
 
 	if len(requests) > 0 {
