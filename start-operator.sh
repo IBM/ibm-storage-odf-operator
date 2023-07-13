@@ -18,6 +18,7 @@
 
 export RESOURCES_NAMESPACE=openshift-storage
 export EXPORTER_IMAGE=docker.io/ibmcom/ibm-storage-odf-block-driver:v0.0.22
+export OPERATOR_POD_NAME=ibm-storage-odf-operator
 export TEST_FS_CR_FILEPATH="$(pwd)/config/samples/csi.ibm.com_v1_ibmblockcsi_cr.yaml"
 export TEST_FS_PROM_RULE_FILE="$(pwd)/rules/prometheus-flashsystem-rules.yaml"
 

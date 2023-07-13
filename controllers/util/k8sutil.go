@@ -34,6 +34,7 @@ type Label struct {
 // this value is empty if the operator is running with clusterScope.
 const WatchNamespaceEnvVar = "RESOURCES_NAMESPACE"
 const ExporterImageEnvVar = "EXPORTER_IMAGE"
+const OperatorPodNameEnvVar = "OPERATOR_POD_NAME"
 
 const OdfFsStorageSystemLabelKey = "odf-fs-storage-system"
 
@@ -57,6 +58,15 @@ func GetExporterImage() (string, error) {
 		return "", fmt.Errorf("%s must be set", ExporterImageEnvVar)
 	}
 	return image, nil
+}
+
+// GetOperatorPodName returns the operator pod name
+func GetOperatorPodName() (string, error) {
+	podName, found := os.LookupEnv(OperatorPodNameEnvVar)
+	if !found {
+		return "", fmt.Errorf("%s must be set", OperatorPodNameEnvVar)
+	}
+	return podName, nil
 }
 
 // GetLabels returns the labels with cluster name

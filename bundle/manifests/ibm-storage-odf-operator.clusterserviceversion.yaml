@@ -327,6 +327,10 @@ spec:
                         valueFrom:
                           fieldRef:
                             fieldPath: metadata.annotations['olm.operatorNamespace']
+                      - name: OPERATOR_POD_NAME
+                        valueFrom:
+                          fileRef:
+                            fieldPath: metadata.name
                     image: registry.connect.redhat.com/ibm/ibm-storage-odf-operator:1.5.0
                     imagePullPolicy: Always
                     livenessProbe:

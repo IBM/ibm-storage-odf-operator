@@ -267,6 +267,12 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 		UID:        instance.UID,
 	}
 
+	newCMOwnerDetails, err := r.getCmOwnerDetails(instance.Namespace)
+	if err != nil {
+		r.Log.Error(err, "failed to get operator pod name", "ConfigMap", util.FscCmName)
+		return reconcile.Result{}, err
+	}
+
 	// Check GetDeletionTimestamp to determine if the object is under deletion
 	if instance.GetDeletionTimestamp().IsZero() {
 		if !util.IsContain(instance.GetFinalizers(), flashSystemClusterFinalizer) {
@@ -326,7 +332,7 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 	}
 
 	r.Log.Info("step: ensureFscConfigMap")
-	if err = r.ensureFscConfigMap(instance, newOwnerDetails); err != nil {
+	if err = r.ensureFscConfigMap(instance, newCMOwnerDetails); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to ensureFscConfigMap: %v", err)
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
@@ -338,7 +344,7 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 	}
 
 	r.Log.Info("step: ensurePoolsConfigMap")
-	if err = r.ensurePoolsConfigMap(instance, newOwnerDetails); err != nil {
+	if err = r.ensurePoolsConfigMap(instance, newCMOwnerDetails); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to ensurePoolsConfigMap: %v", err)
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
@@ -939,4 +945,25 @@ func (r *FlashSystemClusterReconciler) ensureFlashSystemCSICR(instance *odfv1alp
 
 	r.IsCSICRCreated = true
 	return nil
+}
+
+func (r *FlashSystemClusterReconciler) getCmOwnerDetails(namespace string) (v1.OwnerReference, error) {
+	newOwnerDetails := v1.OwnerReference{}
+	operatorPodName, err := util.GetOperatorPodName()
+	if err != nil {
+		return newOwnerDetails, err
+	}
+	operatorPod := &corev1.Pod{}
+	err = r.Client.Get(
+		context.TODO(),
+		types.NamespacedName{Name: operatorPodName, Namespace: namespace},
+		operatorPod)
+
+	newOwnerDetails = v1.OwnerReference{
+		Name:       operatorPod.Name,
+		Kind:       operatorPod.Kind,
+		APIVersion: operatorPod.APIVersion,
+		UID:        operatorPod.UID,
+	}
+	return newOwnerDetails, nil
 }
