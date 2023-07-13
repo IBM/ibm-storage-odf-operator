@@ -207,10 +207,6 @@ func InitExporterDeployment(
 								{
 									Name:  util.WatchNamespaceEnvVar,
 									Value: instance.Namespace,
-								},
-								{
-									Name:  util.OperatorPodNameEnvVar,
-									Value: instance.Name,
 								}},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
