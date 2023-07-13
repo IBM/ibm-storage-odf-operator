@@ -44,7 +44,7 @@ spec:
                 fieldPath: metadata.annotations['olm.operatorNamespace']
           - name: OPERATOR_POD_NAME
             valueFrom:
-              fileRef:
+              fieldRef:
                 fieldPath: metadata.name
           - name: EXPORTER_IMAGE
             value: docker.io/ibmcom/ibm-storage-odf-block-driver:v0.0.22
