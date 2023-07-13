@@ -326,7 +326,7 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 	}
 
 	r.Log.Info("step: ensureFscConfigMap")
-	if err = r.ensureFscConfigMap(instance); err != nil {
+	if err = r.ensureFscConfigMap(instance, newOwnerDetails); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to ensureFscConfigMap: %v", err)
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
@@ -338,7 +338,7 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 	}
 
 	r.Log.Info("step: ensurePoolsConfigMap")
-	if err = r.ensurePoolsConfigMap(instance); err != nil {
+	if err = r.ensurePoolsConfigMap(instance, newOwnerDetails); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to ensurePoolsConfigMap: %v", err)
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
@@ -526,10 +526,14 @@ func (r *FlashSystemClusterReconciler) createEvent(instance *odfv1alpha1.FlashSy
 }
 
 // this object will not bind with instance
-func (r *FlashSystemClusterReconciler) ensureFscConfigMap(instance *odfv1alpha1.FlashSystemCluster) error {
+func (r *FlashSystemClusterReconciler) ensureFscConfigMap(instance *odfv1alpha1.FlashSystemCluster, newOwnerDetails v1.OwnerReference) error {
 	configmap, err := util.GetCreateConfigmap(r.Client, r.Log, watchNamespace, true, util.FscCmName)
 	if err != nil {
 		return err
+	}
+
+	if !IsOwnerExist(configmap.GetOwnerReferences(), newOwnerDetails) {
+		configmap.SetOwnerReferences(append(configmap.GetOwnerReferences(), newOwnerDetails))
 	}
 
 	if configmap.Data == nil {
@@ -557,10 +561,14 @@ func (r *FlashSystemClusterReconciler) ensureFscConfigMap(instance *odfv1alpha1.
 	return nil
 }
 
-func (r *FlashSystemClusterReconciler) ensurePoolsConfigMap(instance *odfv1alpha1.FlashSystemCluster) error {
+func (r *FlashSystemClusterReconciler) ensurePoolsConfigMap(instance *odfv1alpha1.FlashSystemCluster, newOwnerDetails v1.OwnerReference) error {
 	configmap, err := util.GetCreateConfigmap(r.Client, r.Log, watchNamespace, true, util.PoolsCmName)
 	if err != nil {
 		return err
+	}
+
+	if !IsOwnerExist(configmap.GetOwnerReferences(), newOwnerDetails) {
+		configmap.SetOwnerReferences(append(configmap.GetOwnerReferences(), newOwnerDetails))
 	}
 
 	if configmap.Data == nil {

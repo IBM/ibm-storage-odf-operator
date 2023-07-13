@@ -182,13 +182,4 @@ func main() {
 	if err := console.RemoveConsole(mgr.GetClient(), ns); err != nil {
 		setupLog.Error(err, "problem removing console plugin")
 	}
-
-	//+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
-	setupLog.Info("removing ConfigMaps")
-	if err := util.DeleteConfigMap(setupLog, mgr.GetClient(), util.PoolsCmName, ns); err != nil {
-		setupLog.Error(err, "failed to delete Pools ConfigMap", "ConfigMap", util.PoolsCmName)
-	}
-	if err := util.DeleteConfigMap(setupLog, mgr.GetClient(), util.FscCmName, ns); err != nil {
-		setupLog.Error(err, "failed to delete FSC ConfigMap", "ConfigMap", util.FscCmName)
-	}
 }
