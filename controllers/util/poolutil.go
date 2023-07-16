@@ -309,6 +309,22 @@ func initConfigMap(ns string, configMapName string) *corev1.ConfigMap {
 	return configMap
 }
 
+func DeleteConfigMap(log logr.Logger, client client.Client, configMapName string, ns string) error {
+	foundPoolsCm, err := GetCreateConfigmap(client, log, ns, false, configMapName)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			log.Info("ConfigMap is already deleted", "ConfigMap", configMapName)
+		} else {
+			return err // Error reading the object - requeue the request.
+		}
+	} else {
+		if err := client.Delete(context.TODO(), foundPoolsCm); err != nil {
+			log.Error(err, "failed to delete ConfigMap", "ConfigMap", configMapName)
+			return err
+		}
+	}
+	return nil
+}
 func MapClustersByMgmtAddress(client client.Client, logger logr.Logger) (map[string]v1alpha1.FlashSystemCluster, error) {
 	clusters := &v1alpha1.FlashSystemClusterList{}
 	if err := client.List(context.Background(), clusters); err != nil {

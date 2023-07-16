@@ -77,7 +77,7 @@ func getExporterMetricsServiceMonitorName() string {
 	return fsServiceMonitorName
 }
 
-func isOwnerExist(ownerReferences []metav1.OwnerReference, newOwner metav1.OwnerReference) bool {
+func IsOwnerExist(ownerReferences []metav1.OwnerReference, newOwner metav1.OwnerReference) bool {
 	for _, owner := range ownerReferences {
 		if owner.UID == newOwner.UID {
 			return true
@@ -135,7 +135,7 @@ func updateExporterMetricsService(foundService *corev1.Service, expectedService 
 		isChanged = true
 	}
 
-	if !isOwnerExist(foundService.GetOwnerReferences(), newOwner) {
+	if !IsOwnerExist(foundService.GetOwnerReferences(), newOwner) {
 		foundService.SetOwnerReferences(append(foundService.GetOwnerReferences(), newOwner))
 		isChanged = true
 	}
@@ -300,7 +300,7 @@ func InitExporterDeployment(
 }
 
 func updateExporterDeployment(found *appsv1.Deployment, expected *appsv1.Deployment, newOwner metav1.OwnerReference) *appsv1.Deployment {
-	isExist := isOwnerExist(found.GetOwnerReferences(), newOwner)
+	isExist := IsOwnerExist(found.GetOwnerReferences(), newOwner)
 	if !isExist {
 		found.SetOwnerReferences(append(found.GetOwnerReferences(), newOwner))
 	}
@@ -351,7 +351,7 @@ func InitExporterMetricsServiceMonitor(instance *odfv1alpha1.FlashSystemCluster)
 func updateExporterMetricsServiceMonitor(foundServiceMonitor *monitoringv1.ServiceMonitor,
 	expectedServiceMonitor *monitoringv1.ServiceMonitor, newOwner metav1.OwnerReference) *monitoringv1.ServiceMonitor {
 
-	isExist := isOwnerExist(foundServiceMonitor.GetOwnerReferences(), newOwner)
+	isExist := IsOwnerExist(foundServiceMonitor.GetOwnerReferences(), newOwner)
 	if !isExist {
 		foundServiceMonitor.SetOwnerReferences(append(foundServiceMonitor.GetOwnerReferences(), newOwner))
 	}
