@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-
 	configv1 "github.com/openshift/api/config/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -108,6 +107,15 @@ func (r *ClusterVersionReconciler) ensureConsolePlugin(clusterVersion string) er
 
 	// Create/Update IBM console ConsolePlugin
 	ibmConsolePlugin := console.GetConsolePluginCR(r.ConsolePort, basePath, watchNamespace)
+
+	consolePluginOwnerDetails, err := getOperatorPodOwnerDetails(ibmConsoleDeployment.Namespace, r.Client)
+	if err != nil {
+		return err
+	}
+	if !IsOwnerExist(ibmConsolePlugin.GetOwnerReferences(), consolePluginOwnerDetails) {
+		ibmConsolePlugin.SetOwnerReferences(append(ibmConsolePlugin.GetOwnerReferences(), consolePluginOwnerDetails))
+	}
+
 	_, err = controllerutil.CreateOrUpdate(context.TODO(), r.Client, ibmConsolePlugin, func() error {
 		return nil
 	})

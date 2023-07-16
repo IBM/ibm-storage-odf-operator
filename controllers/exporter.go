@@ -18,10 +18,13 @@ package controllers
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"path/filepath"
 	"reflect"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
@@ -413,4 +416,27 @@ func getPrometheusRules(instance *odfv1alpha1.FlashSystemCluster, newOwnerDetail
 	promRule.ObjectMeta.SetOwnerReferences([]metav1.OwnerReference{newOwnerDetails})
 
 	return &promRule, nil
+}
+
+func getOperatorPodOwnerDetails(namespace string, client client.Client) (metav1.OwnerReference, error) {
+	newOwnerDetails := metav1.OwnerReference{}
+	operatorPodName, err := util.GetOperatorPodName()
+	if err != nil {
+		return newOwnerDetails, err
+	}
+	operatorPod := &corev1.Pod{}
+	if err := client.Get(
+		context.TODO(),
+		types.NamespacedName{Name: operatorPodName, Namespace: namespace},
+		operatorPod); err != nil {
+		return newOwnerDetails, err
+	}
+
+	newOwnerDetails = metav1.OwnerReference{
+		Name:       operatorPod.Name,
+		Kind:       operatorPod.Kind,
+		APIVersion: operatorPod.APIVersion,
+		UID:        operatorPod.UID,
+	}
+	return newOwnerDetails, nil
 }

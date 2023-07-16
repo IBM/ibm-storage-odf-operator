@@ -268,7 +268,7 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 		UID:        instance.UID,
 	}
 
-	newCMOwnerDetails, err := r.getCmOwnerDetails(instance.Namespace)
+	newCMOwnerDetails, err := getOperatorPodOwnerDetails(instance.Namespace, r.Client)
 	if err != nil {
 		r.Log.Error(err, "failed to get operator pod details", "ConfigMap", util.FscCmName)
 		return reconcile.Result{}, err
@@ -946,27 +946,4 @@ func (r *FlashSystemClusterReconciler) ensureFlashSystemCSICR(instance *odfv1alp
 
 	r.IsCSICRCreated = true
 	return nil
-}
-
-func (r *FlashSystemClusterReconciler) getCmOwnerDetails(namespace string) (v1.OwnerReference, error) {
-	newOwnerDetails := v1.OwnerReference{}
-	operatorPodName, err := util.GetOperatorPodName()
-	if err != nil {
-		return newOwnerDetails, err
-	}
-	operatorPod := &corev1.Pod{}
-	if err := r.Client.Get(
-		context.TODO(),
-		types.NamespacedName{Name: operatorPodName, Namespace: namespace},
-		operatorPod); err != nil {
-		return newOwnerDetails, err
-	}
-
-	newOwnerDetails = v1.OwnerReference{
-		Name:       operatorPod.Name,
-		Kind:       operatorPod.Kind,
-		APIVersion: operatorPod.APIVersion,
-		UID:        operatorPod.UID,
-	}
-	return newOwnerDetails, nil
 }
