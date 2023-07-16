@@ -270,7 +270,7 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 
 	newCMOwnerDetails, err := r.getCmOwnerDetails(instance.Namespace)
 	if err != nil {
-		r.Log.Error(err, "failed to get operator pod name", "ConfigMap", util.FscCmName)
+		r.Log.Error(err, "failed to get operator pod details", "ConfigMap", util.FscCmName)
 		return reconcile.Result{}, err
 	}
 

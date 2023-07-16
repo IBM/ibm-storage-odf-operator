@@ -41,7 +41,7 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 		FlashSystemName  = "flashsystemcluster-sample"
 		namespace        = "openshift-storage"
 		secretName       = "fs-secret-sample"
-		podName          = "ibm-storage-odf-operator"
+		operatorPodName  = "ibm-storage-odf-operator"
 		storageClassName = "odf-flashsystemcluster-sample"
 		poolName         = "Pool0"
 		fsType           = "ext4"
@@ -82,13 +82,13 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 
 			pod := &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      podName,
+					Name:      operatorPodName,
 					Namespace: namespace,
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:  podName,
+							Name:  operatorPodName,
 							Image: "nginx",
 						},
 					},
@@ -99,7 +99,7 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 
 			By("By querying the created pod")
 			podLookupKey := types.NamespacedName{
-				Name:      podName,
+				Name:      operatorPodName,
 				Namespace: namespace,
 			}
 			createdPod := &corev1.Pod{}

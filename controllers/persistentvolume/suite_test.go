@@ -103,7 +103,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	err = os.Setenv(util.ExporterImageEnvVar, "docker.io/ibmcom/ibm-storage-odf-block-driver:v0.0.22")
 	Expect(err).NotTo(HaveOccurred())
-	err = os.Setenv(util.OperatorPodNameEnvVar, "ibm-storage-odf-operator*")
+	err = os.Setenv(util.OperatorPodNameEnvVar, "ibm-storage-odf-operator")
 	Expect(err).NotTo(HaveOccurred())
 
 	// create manager and register controller for tset
