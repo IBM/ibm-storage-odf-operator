@@ -38,7 +38,7 @@ func reconcileEvent(obj runtime.Object) bool {
 	if !ok {
 		return false
 	}
-	return strings.HasPrefix(evt.Name, util.PoolOGChangeReason)
+	return strings.HasPrefix(evt.Name, util.PoolOGChangedReason)
 
 }
 
@@ -91,8 +91,17 @@ func (r *EventWatcher) Reconcile(_ context.Context, request reconcile.Request) (
 	r.Log = r.Log.WithValues("Event", request.NamespacedName)
 	r.Log.Info("reconciling Event")
 
-	// TODO - Handle PoolOwnershipGroupChanged & FenceComplete events
+	evt := &corev1.Event{}
+
+	if err = r.Client.Get(context.TODO(), request.NamespacedName, evt); err != nil {
+		if errors.IsNotFound(err) {
+			r.Log.Info("Event not found")
+			return result, nil
+		}
+		return result, err
+	}
+
+	// TODO - Handle PoolOwnershipGroupChanged & FenceCompleted events
 
 	return result, nil
 }
-
