@@ -955,10 +955,12 @@ func (r *FlashSystemClusterReconciler) getCmOwnerDetails(namespace string) (v1.O
 		return newOwnerDetails, err
 	}
 	operatorPod := &corev1.Pod{}
-	err = r.Client.Get(
+	if err := r.Client.Get(
 		context.TODO(),
 		types.NamespacedName{Name: operatorPodName, Namespace: namespace},
-		operatorPod)
+		operatorPod); err != nil {
+		return newOwnerDetails, err
+	}
 
 	newOwnerDetails = v1.OwnerReference{
 		Name:       operatorPod.Name,
