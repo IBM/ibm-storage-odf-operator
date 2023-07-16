@@ -19,6 +19,7 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/IBM/ibm-storage-odf-operator/controllers/event"
 	"os"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -145,6 +146,16 @@ func main() {
 		Scheme:    mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PersistentVolumeWatcher")
+		os.Exit(1)
+	}
+
+	if err = (&event.EventWatcher{
+		Client:    mgr.GetClient(),
+		Namespace: ns,
+		Log:       ctrl.Log.WithName("controllers").WithName("EventWatcher"),
+		Scheme:    mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "EventWatcher")
 		os.Exit(1)
 	}
 
