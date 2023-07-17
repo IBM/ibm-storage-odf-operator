@@ -19,14 +19,18 @@ package controllers
 import (
 	"context"
 	configv1 "github.com/openshift/api/config/v1"
+	consolev1alpha1 "github.com/openshift/api/console/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/IBM/ibm-storage-odf-operator/console"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
@@ -79,6 +83,9 @@ func (r *ClusterVersionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&configv1.ClusterVersion{}).
+		Watches(&source.Kind{
+			Type: &consolev1alpha1.ConsolePlugin{},
+		}, &handler.EnqueueRequestForOwner{OwnerType: &corev1.Pod{}}).
 		Complete(r)
 }
 
