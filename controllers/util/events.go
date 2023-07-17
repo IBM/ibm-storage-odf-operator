@@ -41,6 +41,7 @@ const (
 	DeletedDuplicatedStorageClassReason = "DeletedDuplicatedStorageClass"
 	FailedCreatePromRuleReason          = "FailedCreatePromRule"
 	PoolOGChangedReason                 = "PoolOwnershipGroupChanged"
+	FenceCompletedReason                = "FenceCompleted"
 )
 
 func InitK8sEvent(instance *odfv1alpha1.FlashSystemCluster, eventType, reason, message string) *corev1.Event {

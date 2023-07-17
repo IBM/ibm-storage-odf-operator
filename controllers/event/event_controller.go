@@ -38,7 +38,8 @@ func reconcileEvent(obj runtime.Object) bool {
 	if !ok {
 		return false
 	}
-	return strings.HasPrefix(evt.Name, util.PoolOGChangedReason)
+	return strings.HasPrefix(evt.Name, util.PoolOGChangedReason) ||
+		strings.HasPrefix(evt.Name, util.FenceCompletedReason)
 
 }
 
