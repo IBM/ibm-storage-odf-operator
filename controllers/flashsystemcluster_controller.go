@@ -59,8 +59,7 @@ type ReconcileMapper struct {
 
 func (s *ReconcileMapper) DefaultStorageClassToClusterMapperFunc(object client.Object) []reconcile.Request {
 	clusters := &odfv1alpha1.FlashSystemClusterList{}
-	err := s.reconciler.Client.List(context.TODO(), clusters)
-	if err != nil {
+	if err := s.reconciler.Client.List(context.TODO(), clusters); err != nil {
 		s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "DefaultStorageClassToClusterMapperFunc", s)
 		return nil
 	}
@@ -90,30 +89,16 @@ func (s *ReconcileMapper) ConfigMapToClusterMapFunc(object client.Object) []reco
 
 	if object.GetName() == util.FscCmName {
 		s.reconciler.Log.Info("Discovered ODF-FS configMap deletion. Deleting Pools ConfigMap", "ConfigMapToClusterMapFunc", s)
-		foundPoolsCm, err := util.GetCreateConfigmap(s.reconciler.Client, s.reconciler.Log, object.GetNamespace(), false, util.PoolsCmName)
-		if err != nil {
-			if errors.IsNotFound(err) {
-				s.reconciler.Log.Info("ConfigMap is already deleted", "ConfigMap", util.PoolsCmName)
-			} else {
-				return nil // Error reading the object - requeue the request.
-			}
-		} else {
-			err = s.reconciler.Client.Delete(
-				context.TODO(),
-				foundPoolsCm)
-			if err != nil {
-				s.reconciler.Log.Error(err, "failed to delete ConfigMap", "ConfigMap", util.PoolsCmName)
-				return nil
-			}
+		if err := util.DeleteConfigMap(s.reconciler.Log, s.reconciler.Client, util.PoolsCmName, object.GetNamespace()); err != nil {
+			s.reconciler.Log.Error(err, "failed to delete ConfigMap", "ConfigMap", util.PoolsCmName)
+			return nil
 		}
 	}
 
 	if object.GetName() == util.PoolsCmName {
 		s.reconciler.Log.Info("Discovered Pools ConfigMap deletion. Reconciling all FlashSystemClusters", "ConfigMapToClusterMapFunc", s)
-
 		clusters := &odfv1alpha1.FlashSystemClusterList{}
-		err := s.reconciler.Client.List(context.TODO(), clusters)
-		if err != nil {
+		if err := s.reconciler.Client.List(context.TODO(), clusters); err != nil {
 			s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "ConfigMapToClusterMapFunc", s)
 			return nil
 		}
@@ -135,8 +120,7 @@ func (s *ReconcileMapper) CSIToClusterMapFunc(_ client.Object) []reconcile.Reque
 	s.reconciler.IsCSICRCreated = false
 
 	clusters := &odfv1alpha1.FlashSystemClusterList{}
-	err := s.reconciler.Client.List(context.TODO(), clusters)
-	if err != nil {
+	if err := s.reconciler.Client.List(context.TODO(), clusters); err != nil {
 		s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "CSIToClusterMapFunc", s)
 		return nil
 	}
@@ -161,8 +145,7 @@ func (s *ReconcileMapper) CSIToClusterMapFunc(_ client.Object) []reconcile.Reque
 func (s *ReconcileMapper) SecretToClusterMapFunc(object client.Object) []reconcile.Request {
 	clusters := &odfv1alpha1.FlashSystemClusterList{}
 
-	err := s.reconciler.Client.List(context.TODO(), clusters)
-	if err != nil {
+	if err := s.reconciler.Client.List(context.TODO(), clusters); err != nil {
 		s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "SecretToClusterMapFunc", s)
 		return nil
 	}
@@ -179,7 +162,6 @@ func (s *ReconcileMapper) SecretToClusterMapFunc(object client.Object) []reconci
 			}
 			requests = append(requests, req)
 		}
-
 	}
 
 	if len(requests) > 0 {
@@ -207,6 +189,7 @@ type FlashSystemClusterReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
@@ -285,6 +268,12 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 		UID:        instance.UID,
 	}
 
+	newCMOwnerDetails, err := r.getCmOwnerDetails(instance.Namespace)
+	if err != nil {
+		r.Log.Error(err, "failed to get operator pod details", "ConfigMap", util.FscCmName)
+		return reconcile.Result{}, err
+	}
+
 	// Check GetDeletionTimestamp to determine if the object is under deletion
 	if instance.GetDeletionTimestamp().IsZero() {
 		if !util.IsContain(instance.GetFinalizers(), flashSystemClusterFinalizer) {
@@ -344,7 +333,7 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 	}
 
 	r.Log.Info("step: ensureFscConfigMap")
-	if err = r.ensureFscConfigMap(instance); err != nil {
+	if err = r.ensureFscConfigMap(instance, newCMOwnerDetails); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to ensureFscConfigMap: %v", err)
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
@@ -356,7 +345,7 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 	}
 
 	r.Log.Info("step: ensurePoolsConfigMap")
-	if err = r.ensurePoolsConfigMap(instance); err != nil {
+	if err = r.ensurePoolsConfigMap(instance, newCMOwnerDetails); err != nil {
 		reason := odfv1alpha1.ReasonReconcileFailed
 		message := fmt.Sprintf("failed to ensurePoolsConfigMap: %v", err)
 		util.SetReconcileErrorCondition(&instance.Status.Conditions, reason, message)
@@ -544,10 +533,14 @@ func (r *FlashSystemClusterReconciler) createEvent(instance *odfv1alpha1.FlashSy
 }
 
 // this object will not bind with instance
-func (r *FlashSystemClusterReconciler) ensureFscConfigMap(instance *odfv1alpha1.FlashSystemCluster) error {
+func (r *FlashSystemClusterReconciler) ensureFscConfigMap(instance *odfv1alpha1.FlashSystemCluster, newOwnerDetails v1.OwnerReference) error {
 	configmap, err := util.GetCreateConfigmap(r.Client, r.Log, watchNamespace, true, util.FscCmName)
 	if err != nil {
 		return err
+	}
+
+	if !IsOwnerExist(configmap.GetOwnerReferences(), newOwnerDetails) {
+		configmap.SetOwnerReferences(append(configmap.GetOwnerReferences(), newOwnerDetails))
 	}
 
 	if configmap.Data == nil {
@@ -575,10 +568,14 @@ func (r *FlashSystemClusterReconciler) ensureFscConfigMap(instance *odfv1alpha1.
 	return nil
 }
 
-func (r *FlashSystemClusterReconciler) ensurePoolsConfigMap(instance *odfv1alpha1.FlashSystemCluster) error {
+func (r *FlashSystemClusterReconciler) ensurePoolsConfigMap(instance *odfv1alpha1.FlashSystemCluster, newOwnerDetails v1.OwnerReference) error {
 	configmap, err := util.GetCreateConfigmap(r.Client, r.Log, watchNamespace, true, util.PoolsCmName)
 	if err != nil {
 		return err
+	}
+
+	if !IsOwnerExist(configmap.GetOwnerReferences(), newOwnerDetails) {
+		configmap.SetOwnerReferences(append(configmap.GetOwnerReferences(), newOwnerDetails))
 	}
 
 	if configmap.Data == nil {
@@ -949,4 +946,27 @@ func (r *FlashSystemClusterReconciler) ensureFlashSystemCSICR(instance *odfv1alp
 
 	r.IsCSICRCreated = true
 	return nil
+}
+
+func (r *FlashSystemClusterReconciler) getCmOwnerDetails(namespace string) (v1.OwnerReference, error) {
+	newOwnerDetails := v1.OwnerReference{}
+	operatorPodName, err := util.GetOperatorPodName()
+	if err != nil {
+		return newOwnerDetails, err
+	}
+	operatorPod := &corev1.Pod{}
+	if err := r.Client.Get(
+		context.TODO(),
+		types.NamespacedName{Name: operatorPodName, Namespace: namespace},
+		operatorPod); err != nil {
+		return newOwnerDetails, err
+	}
+
+	newOwnerDetails = v1.OwnerReference{
+		Name:       operatorPod.Name,
+		Kind:       operatorPod.Kind,
+		APIVersion: operatorPod.APIVersion,
+		UID:        operatorPod.UID,
+	}
+	return newOwnerDetails, nil
 }

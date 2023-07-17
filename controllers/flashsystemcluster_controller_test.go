@@ -41,6 +41,7 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 		FlashSystemName  = "flashsystemcluster-sample"
 		namespace        = "openshift-storage"
 		secretName       = "fs-secret-sample"
+		operatorPodName  = "ibm-storage-odf-operator"
 		storageClassName = "odf-flashsystemcluster-sample"
 		poolName         = "Pool0"
 		fsType           = "ext4"
@@ -74,6 +75,39 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
+		})
+		It("should create operator pod successfully", func() {
+			By("By creating a new pod")
+			ctx := context.TODO()
+
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      operatorPodName,
+					Namespace: namespace,
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  operatorPodName,
+							Image: "nginx",
+						},
+					},
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, pod)).Should(Succeed())
+
+			By("By querying the created pod")
+			podLookupKey := types.NamespacedName{
+				Name:      operatorPodName,
+				Namespace: namespace,
+			}
+			createdPod := &corev1.Pod{}
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, podLookupKey, createdPod)
+				return err == nil
+			}, timeout, interval).Should(BeTrue())
 		})
 
 		It("should create secret successfully", func() {
