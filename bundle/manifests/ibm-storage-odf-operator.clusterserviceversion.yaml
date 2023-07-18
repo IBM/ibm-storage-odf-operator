@@ -161,6 +161,7 @@ spec:
                 - events
               verbs:
                 - create
+                - delete
                 - get
                 - list
                 - patch
