@@ -12,4 +12,4 @@ kind: Kustomization
 images:
   - name: ibm-console
     newName: quay.io/ibmodffs/ibm-storage-odf-plugin
-    newTag: 1.4.0
+    newTag: 1.4.1
