@@ -9,8 +9,8 @@ pipeline {
     }
     parameters {
         string(name: 'DOCKER_REGISTRY', defaultValue: "stg-artifactory.xiv.ibm.com:5030")
-        string(name: 'DRIVER_GIT_BRANCH', defaultValue: "release-1.4.0")
-        string(name: 'CONSOLE_GIT_BRANCH', defaultValue: "release-1.4.0")
+        string(name: 'DRIVER_GIT_BRANCH', defaultValue: "release-1.4.1")
+        string(name: 'CONSOLE_GIT_BRANCH', defaultValue: "release-1.4.1")
         string(name: 'OPERATOR_GIT_BRANCH', defaultValue: "release-1.4.1")
         string(name: 'PLATFORM', defaultValue: "linux/amd64")
         string(name: 'ENABLE_UPGRADE', defaultValue: "False")

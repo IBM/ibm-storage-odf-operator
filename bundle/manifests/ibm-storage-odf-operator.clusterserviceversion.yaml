@@ -319,7 +319,7 @@ spec:
                       - /manager
                     env:
                       - name: EXPORTER_IMAGE
-                        value: quay.io/ibmodffs/ibm-storage-odf-block-driver:1.4.0
+                        value: quay.io/ibmodffs/ibm-storage-odf-block-driver:1.4.1
                       - name: RESOURCES_NAMESPACE
                         valueFrom:
                           fieldRef:
@@ -376,7 +376,7 @@ spec:
                   app: ibm-odf-console
               spec:
                 containers:
-                  - image: quay.io/ibmodffs/ibm-storage-odf-plugin:1.4.0
+                  - image: quay.io/ibmodffs/ibm-storage-odf-plugin:1.4.1
                     name: ibm-odf-console
                     ports:
                       - containerPort: 9003
