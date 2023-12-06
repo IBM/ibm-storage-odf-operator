@@ -34,7 +34,6 @@ metadata:
     operators.operatorframework.io/operator-type: non-standalone
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     olm.skipRange: '>=0.0.1 <1.4.1'
-  name: ibm-storage-odf-operator.v1.4.1
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
