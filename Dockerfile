@@ -19,7 +19,7 @@ COPY console/ console/
 RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on go build -a -o manager main.go
 
 
-FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
+FROM registry.access.redhat.com/ubi9-minimal:9.4-949.1714662671
 MAINTAINER IBM Storage
 
 RUN microdnf update -y && microdnf clean all
