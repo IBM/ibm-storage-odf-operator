@@ -10,13 +10,13 @@ data:
         app.kubernetes.io/name: ibm-block-csi
         app.kubernetes.io/instance: ibm-block-csi
         app.kubernetes.io/managed-by: ibm-block-csi-operator
-        release: v1.11.1
+        release: v1.11.3
     spec:
       # controller is a statefulSet with ibm-block-csi-controller container
       # and csi-provisioner, csi-attacher, csi-snapshotter and livenessprobe sidecars.
       controller:
         repository: quay.io/ibmcsiblock/ibm-block-csi-driver-controller
-        tag: "1.11.0"
+        tag: "1.11.2"
         imagePullPolicy: IfNotPresent
         affinity:
           nodeAffinity:
@@ -34,7 +34,7 @@ data:
       # and csi-node-driver-registrar and livenessprobe sidecars.
       node:
         repository: quay.io/ibmcsiblock/ibm-block-csi-driver-node
-        tag: "1.11.0"
+        tag: "1.11.2"
         imagePullPolicy: IfNotPresent
         affinity:
           nodeAffinity:
@@ -80,7 +80,7 @@ data:
           imagePullPolicy: IfNotPresent
         - name: csi-volume-group
           repository: quay.io/ibmcsiblock/csi-volume-group-operator
-          tag: "v0.9.0"
+          tag: "v0.9.1"
           imagePullPolicy: IfNotPresent
         - name: livenessprobe
           repository: k8s.gcr.io/sig-storage/livenessprobe
