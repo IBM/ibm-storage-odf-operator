@@ -58,7 +58,7 @@ jobs:
 
     - name: set output
       id: vars
-      run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+      run: echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
     - name: get tag without v
       id: tag
