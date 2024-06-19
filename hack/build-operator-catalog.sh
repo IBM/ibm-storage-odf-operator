@@ -78,7 +78,7 @@ init_parent_catalog() {
   catalog_name=${1}
   mkdir "${catalog_name}" || exit
   echo "Generating parent catalog Dockerfile"
-  ${OPM_BIN} alpha generate dockerfile "${catalog_name}"
+  ${OPM_BIN} generate dockerfile "${catalog_name}" || ${OPM_BIN} alpha generate dockerfile "${catalog_name}" #command depends on opm version
   cd "${catalog_name}"
   echo
 }
