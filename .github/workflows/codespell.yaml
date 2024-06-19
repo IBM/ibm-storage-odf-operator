@@ -19,3 +19,4 @@ jobs:
         check_filenames: true
         check_hidden: true
         skip: "./go.sum"
+        ignore-words-list: NotIn
