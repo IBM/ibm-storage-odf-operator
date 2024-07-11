@@ -38,7 +38,7 @@ resources=()
 # TODO: Re enable the collection of storagecluster via inspect command
 # resources+=(storageclusters)
 
-# collect OB/OBC resoureces
+# collect OB/OBC resources
 resources+=(objectbuckets)
 
 # collection path for OC commands
