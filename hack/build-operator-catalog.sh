@@ -26,9 +26,15 @@ add_bundle_image_to_existing_catalog() {
   channel=${2}
   bundle_quay_io_image=${3}
   operator_package_name_version=${4}
+  previous_op_name=${5} #optional parameter
   initialize_operator_catalog "${operator_package_name}" "${channel}"
   add_bundle_to_catalog "${operator_package_name}" "${bundle_quay_io_image}"
   add_channel_entry_for_bundle "${operator_package_name}" "${channel}" "${operator_package_name_version}"
+  if [ ! -z $previous_op_name ]; then
+    cat << EOF >> "${operator_package_name}"/index.yaml
+  replaces: ${previous_op_name}
+EOF
+  fi
 
   ${OPM_BIN} validate "${operator_package_name}"
 }
@@ -105,7 +111,7 @@ init_parent_catalog "${CATALOG_IMAGE_NAME}"
 check_and_add_previous_odf_bundle_to_catalog
 echo
 echo "Adding current ODF-FS bundle image into catalog"
-add_bundle_image_to_existing_catalog "${OPERATOR_IMAGE_NAME}" "${CHANNELS}" "${BUNDLE_FULL_IMAGE_NAME}" "${OPERATOR_IMAGE_NAME_VERSION}"
+add_bundle_image_to_existing_catalog "${OPERATOR_IMAGE_NAME}" "${CHANNELS}" "${BUNDLE_FULL_IMAGE_NAME}" "${OPERATOR_IMAGE_NAME_VERSION}" "${PREVIOUS_OPERATOR_IMAGE_NAME_VERSION}"
 echo
 check_and_add_csi_bundle_to_catalog
 echo
