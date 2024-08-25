@@ -58,8 +58,8 @@ func GetService(port int, namespace string) *apiv1.Service {
 		Spec: apiv1.ServiceSpec{
 			Ports: []apiv1.ServicePort{
 				{Protocol: "TCP",
-					TargetPort: intstr.IntOrString{IntVal: int32(port)},
-					Port:       int32(port),
+					TargetPort: intstr.IntOrString{IntVal: uint32(port)},
+					Port:       uint32(port),
 					Name:       "console-port",
 				},
 			},
@@ -81,7 +81,7 @@ func GetConsolePluginCR(consolePort int, basePath string, serviceNamespace strin
 			Service: consolev1alpha1.ConsolePluginService{
 				Name:      "ibm-odf-console-service",
 				Namespace: serviceNamespace,
-				Port:      int32(consolePort),
+				Port:      uint32(consolePort),
 				BasePath:  basePath,
 			},
 		},

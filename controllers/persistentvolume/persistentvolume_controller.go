@@ -254,14 +254,14 @@ func (r *PersistentVolumeWatcher) getPVManagementAddress(pv *corev1.PersistentVo
 		if pvVolumeHandle == "" {
 			msg := "volumeHandle cannot be empty"
 			r.Log.Error(nil, msg)
-			return "", fmt.Errorf(msg)
+			return "", fmt.Errorf("%s", msg)
 		}
 
 		pvVolumeHandleList := strings.Split(pvVolumeHandle, ":")
 		if len(pvVolumeHandleList) < 2 {
 			msg := "volumeHandle must contain system id"
 			r.Log.Error(nil, msg)
-			return "", fmt.Errorf(msg)
+			return "", fmt.Errorf("%s", msg)
 		}
 
 		pvMgmtId := pvVolumeHandleList[1]
@@ -269,7 +269,7 @@ func (r *PersistentVolumeWatcher) getPVManagementAddress(pv *corev1.PersistentVo
 		if !exist {
 			msg := "could not find system id in topology Secret"
 			r.Log.Error(nil, msg)
-			return "", fmt.Errorf(msg)
+			return "", fmt.Errorf("%s", msg)
 		}
 
 		pvMgmtAddr = matchSecretMgmtData.(map[string]interface{})[util.SecretManagementAddressKey].(string)

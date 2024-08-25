@@ -250,7 +250,7 @@ func (r *StorageClassWatcher) ensureConfigMapUpdated(request reconcile.Request, 
 		if !fscExist {
 			msg := "failed to get FlashSystemCluster entry from pools ConfigMap"
 			r.Log.Error(nil, msg, "FlashSystemCluster", fscName, "ConfigMap", configMap.Name)
-			return fmt.Errorf(msg)
+			return fmt.Errorf("%s", msg)
 		}
 	}
 
@@ -370,7 +370,7 @@ func (r *StorageClassWatcher) extractPoolName(sc storagev1.StorageClass, mgmtDat
 	if !ok {
 		msg := "failed to find the management id in the \"by_management_id\" parameter in the StorageClass"
 		r.Log.Error(nil, msg, "management id", mgmtId)
-		return poolName, fmt.Errorf(msg)
+		return poolName, fmt.Errorf("%s", msg)
 	}
 	byMgmtIdData := mgmtData.(map[string]interface{})
 	poolName, ok = byMgmtIdData[util.CsiIBMBlockScPool].(string)
@@ -437,7 +437,7 @@ func (r *StorageClassWatcher) addStorageClassToConfigMap(configMap corev1.Config
 	if !exist {
 		msg := "failed to get FlashSystemCluster entry from pools ConfigMap"
 		r.Log.Error(nil, msg, "FlashSystemCluster", fscName, "ConfigMap", configMap.Name)
-		return fmt.Errorf(msg)
+		return fmt.Errorf("%s", msg)
 	}
 
 	var fsMap util.FlashSystemClusterMapContent
