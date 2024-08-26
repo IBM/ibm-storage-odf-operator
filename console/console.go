@@ -19,6 +19,7 @@ package console
 import (
 	"context"
 	"strings"
+	"math"
 
 	consolev1alpha1 "github.com/openshift/api/console/v1alpha1"
 	operatorv1 "github.com/openshift/api/operator/v1"
@@ -33,6 +34,14 @@ import (
 
 const MainBasePath = "/"
 const CompatibilityBasePath = "/compatibility/"
+
+func safeIntToInt32(val int) int32 {
+        // Verify no integer overflow conversion int -> int32 (gosec G115)
+        if val < math.MinInt32 || val > math.MaxInt32 {
+                panic("safeIntToInt32 - integer overflow")
+        }
+        return int32(val) // #nosec G115
+}
 
 func GetDeployment(namespace string) *appsv1.Deployment {
 	return &appsv1.Deployment{
@@ -58,8 +67,8 @@ func GetService(port int, namespace string) *apiv1.Service {
 		Spec: apiv1.ServiceSpec{
 			Ports: []apiv1.ServicePort{
 				{Protocol: "TCP",
-					TargetPort: intstr.IntOrString{IntVal: uint32(port)},
-					Port:       uint32(port),
+					TargetPort: intstr.IntOrString{IntVal: safeIntToInt32(port)},
+					Port:       safeIntToInt32(port),
 					Name:       "console-port",
 				},
 			},
@@ -81,7 +90,7 @@ func GetConsolePluginCR(consolePort int, basePath string, serviceNamespace strin
 			Service: consolev1alpha1.ConsolePluginService{
 				Name:      "ibm-odf-console-service",
 				Namespace: serviceNamespace,
-				Port:      uint32(consolePort),
+				Port:      safeIntToInt32(consolePort),
 				BasePath:  basePath,
 			},
 		},
