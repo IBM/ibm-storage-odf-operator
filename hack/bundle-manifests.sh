@@ -67,5 +67,5 @@ echo "Updating the olm.skipRange for new release version ${RELEASE_VERSION}..."
 ${YQ_BIN} eval -i ".metadata.annotations.\"olm.skipRange\" = \">=0.0.1 <${RELEASE_VERSION}\"" "${CSV_PATH}"
 
 echo "add certification required labels to bundle.Dockerfile"
-echo "LABEL com.redhat.openshift.versions=\"v4.15\"" >> ./bundle.Dockerfile
+echo "LABEL com.redhat.openshift.versions=\"v4.15-v4.17\"" >> ./bundle.Dockerfile
 echo "LABEL com.redhat.delivery.operator.bundle=true" >> ./bundle.Dockerfile
