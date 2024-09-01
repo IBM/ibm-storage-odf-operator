@@ -44,7 +44,7 @@ spec:
         displayName: Flash System Cluster
         kind: FlashSystemCluster
         name: flashsystemclusters.odf.ibm.com
-        version: v1alpha1
+        version: v1
   description: IBM Storage ODF operator provides basic storage capabilities and extended management functions through OpenShift data foundation framework for applications.
   displayName: IBM Storage ODF operator
   icon:

@@ -17,7 +17,7 @@ package persistentvolume
 
 import (
 	"fmt"
-	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
+	odfv1 "github.com/IBM/ibm-storage-odf-operator/api/v1"
 	"os"
 	"path/filepath"
 	"testing"
@@ -108,7 +108,7 @@ var _ = BeforeSuite(func() {
 	ns, err := util.GetWatchNamespace()
 	Expect(err).ToNot(HaveOccurred())
 
-	err = odfv1alpha1.AddToScheme(scheme.Scheme)
+	err = odfv1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{

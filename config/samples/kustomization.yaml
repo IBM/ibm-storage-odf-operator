@@ -1,4 +1,4 @@
 ## Append samples you want in your CSV to this file as resources ##
 resources:
-- odf_v1alpha1_flashsystemcluster.yaml
+- odf_v1_flashsystemcluster.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

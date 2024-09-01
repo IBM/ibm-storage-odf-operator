@@ -23,7 +23,7 @@ import (
 	"os"
 	"strings"
 
-	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
+	odfv1 "github.com/IBM/ibm-storage-odf-operator/api/v1"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,7 +49,7 @@ const (
 	FlashSystemCRFilePathEnvVar = "TEST_FS_CR_FILEPATH"
 )
 
-func InitDefaultStorageClass(instance *odfv1alpha1.FlashSystemCluster) *storagev1.StorageClass {
+func InitDefaultStorageClass(instance *odfv1.FlashSystemCluster) *storagev1.StorageClass {
 	selectLabels := util.GetLabels()
 	secret := instance.Spec.Secret
 	pool := instance.Spec.DefaultPool

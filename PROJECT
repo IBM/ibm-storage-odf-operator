@@ -13,6 +13,6 @@ resources:
   domain: ibm.com
   group: odf
   kind: FlashSystemCluster
-  path: github.com/IBM/ibm-storage-odf-operator/api/v1alpha1
-  version: v1alpha1
+  path: github.com/IBM/ibm-storage-odf-operator/api/v1
+  version: v1
 version: "3"

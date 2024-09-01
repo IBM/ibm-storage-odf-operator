@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-// Package v1alpha1 contains API Schema definitions for the odf v1alpha1 API group
+// Package v1 contains API Schema definitions for the odf v1 API group
 // +kubebuilder:object:generate=true
 // +groupName=odf.ibm.com
-package v1alpha1
+package v1
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"

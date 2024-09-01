@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
-	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
+	odfv1 "github.com/IBM/ibm-storage-odf-operator/api/v1"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	//+kubebuilder:scaffold:imports
@@ -96,7 +96,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	err = odfv1alpha1.AddToScheme(scheme.Scheme)
+	err = odfv1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	err = monitoringv1.AddToScheme(scheme.Scheme)

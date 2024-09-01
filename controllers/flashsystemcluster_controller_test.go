@@ -23,7 +23,7 @@ import (
 
 	"time"
 
-	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
+	odfv1 "github.com/IBM/ibm-storage-odf-operator/api/v1"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -108,12 +108,12 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 		})
 
 		It("should create CSI operator CR successfully", func() {
-			instance := &odfv1alpha1.FlashSystemCluster{
+			instance := &odfv1.FlashSystemCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      FlashSystemName,
 					Namespace: namespace,
 				},
-				Spec: odfv1alpha1.FlashSystemClusterSpec{
+				Spec: odfv1.FlashSystemClusterSpec{
 					Name: FlashSystemName,
 					Secret: corev1.SecretReference{
 						Name:      secretName,
@@ -137,19 +137,19 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 		It("should create FlashSystemCluster successfully", func() {
 			By("By creating a new FlashSystemCluster")
 			ctx := context.TODO()
-			instance := &odfv1alpha1.FlashSystemCluster{
+			instance := &odfv1.FlashSystemCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      FlashSystemName,
 					Namespace: namespace,
 				},
-				Spec: odfv1alpha1.FlashSystemClusterSpec{
+				Spec: odfv1.FlashSystemClusterSpec{
 					Name: FlashSystemName,
 					Secret: corev1.SecretReference{
 						Name:      secretName,
 						Namespace: namespace,
 					},
 					InsecureSkipVerify: true,
-					DefaultPool: &odfv1alpha1.StorageClassConfig{
+					DefaultPool: &odfv1.StorageClassConfig{
 						StorageClassName: storageClassName,
 						PoolName:         poolName,
 						FsType:           fsType,
@@ -165,7 +165,7 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 				Name:      FlashSystemName,
 				Namespace: namespace,
 			}
-			createdFs := &odfv1alpha1.FlashSystemCluster{}
+			createdFs := &odfv1.FlashSystemCluster{}
 
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, fsLookupKey, createdFs)
@@ -268,7 +268,7 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
-			currentFS := &odfv1alpha1.FlashSystemCluster{}
+			currentFS := &odfv1.FlashSystemCluster{}
 
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, fsLookupKey, currentFS)
@@ -278,16 +278,16 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 			isNotReady := currentFS.Status.Phase == util.PhaseNotReady
 			Expect(isNotReady).Should(BeTrue())
 
-			util.SetReconcileCompleteCondition(&currentFS.Status.Conditions, odfv1alpha1.ReasonReconcileCompleted, "reconciling done")
+			util.SetReconcileCompleteCondition(&currentFS.Status.Conditions, odfv1.ReasonReconcileCompleted, "reconciling done")
 
 			// simulate driver ready
-			util.SetStatusCondition(&currentFS.Status.Conditions, odfv1alpha1.Condition{
-				Type:   odfv1alpha1.ExporterReady,
+			util.SetStatusCondition(&currentFS.Status.Conditions, odfv1.Condition{
+				Type:   odfv1.ExporterReady,
 				Status: corev1.ConditionTrue,
 			})
 
-			util.SetStatusCondition(&currentFS.Status.Conditions, odfv1alpha1.Condition{
-				Type:   odfv1alpha1.StorageClusterReady,
+			util.SetStatusCondition(&currentFS.Status.Conditions, odfv1.Condition{
+				Type:   odfv1.StorageClusterReady,
 				Status: corev1.ConditionTrue,
 			})
 
@@ -309,7 +309,7 @@ var _ = Describe("FlashSystemClusterReconciler", func() {
 				Name:      FlashSystemName,
 				Namespace: namespace,
 			}
-			createdFs := &odfv1alpha1.FlashSystemCluster{}
+			createdFs := &odfv1.FlashSystemCluster{}
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, fsLookupKey, createdFs)
 				return err == nil

@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"time"
 
-	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
+	odfv1 "github.com/IBM/ibm-storage-odf-operator/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -41,7 +41,7 @@ const (
 	FailedCreatePromRuleReason          = "FailedCreatePromRule"
 )
 
-func InitK8sEvent(instance *odfv1alpha1.FlashSystemCluster, eventType, reason, message string) *corev1.Event {
+func InitK8sEvent(instance *odfv1.FlashSystemCluster, eventType, reason, message string) *corev1.Event {
 	t := metav1.Time{Time: time.Now()}
 	selectLabels := GetLabels()
 	return &corev1.Event{

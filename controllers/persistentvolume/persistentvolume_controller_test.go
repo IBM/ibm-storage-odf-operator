@@ -18,8 +18,8 @@ package persistentvolume
 
 import (
 	"context"
-	_ "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
-	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
+	_ "github.com/IBM/ibm-storage-odf-operator/api/v1"
+	odfv1 "github.com/IBM/ibm-storage-odf-operator/api/v1"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -156,19 +156,19 @@ var _ = Describe("PersistentVolume Controller", func() {
 			}
 
 			By("By creating a new FlashSystemCluster")
-			instance := &odfv1alpha1.FlashSystemCluster{
+			instance := &odfv1.FlashSystemCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      FlashSystemName,
 					Namespace: namespace,
 				},
-				Spec: odfv1alpha1.FlashSystemClusterSpec{
+				Spec: odfv1.FlashSystemClusterSpec{
 					Name: FlashSystemName,
 					Secret: corev1.SecretReference{
 						Name:      secretName,
 						Namespace: namespace,
 					},
 					InsecureSkipVerify: true,
-					DefaultPool: &odfv1alpha1.StorageClassConfig{
+					DefaultPool: &odfv1.StorageClassConfig{
 						StorageClassName: storageClassName,
 						PoolName:         poolName,
 						FsType:           fsType,
@@ -185,7 +185,7 @@ var _ = Describe("PersistentVolume Controller", func() {
 				Name:      FlashSystemName,
 				Namespace: namespace,
 			}
-			createdFsc := &odfv1alpha1.FlashSystemCluster{}
+			createdFsc := &odfv1.FlashSystemCluster{}
 
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, fscLoopUpKey, createdFsc)

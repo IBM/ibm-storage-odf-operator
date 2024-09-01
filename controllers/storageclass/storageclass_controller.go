@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
+	apiv1 "github.com/IBM/ibm-storage-odf-operator/api/v1"
 	"github.com/IBM/ibm-storage-odf-operator/controllers"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	"github.com/go-logr/logr"
@@ -178,7 +178,7 @@ func (r *StorageClassWatcher) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&storagev1.StorageClass{}, builder.WithPredicates(scPredicate)).
 		Watches(&source.Kind{
-			Type: &v1alpha1.FlashSystemCluster{},
+			Type: &apiv1.FlashSystemCluster{},
 		}, handler.EnqueueRequestsFromMapFunc(scMapper.fscStorageClassMap), builder.WithPredicates(util.IgnoreUpdateAndGenericPredicate)).
 		Watches(&source.Kind{
 			Type: &corev1.ConfigMap{},
@@ -332,7 +332,7 @@ func (r *StorageClassWatcher) getFscByTopologyStorageClass(sc *storagev1.Storage
 
 func (r *StorageClassWatcher) getFscByRegularStorageClass(sc *storagev1.StorageClass, storageClassSecret corev1.Secret) (map[string]string, error) {
 	fscToPoolsMap := make(map[string]string)
-	clusters := &v1alpha1.FlashSystemClusterList{}
+	clusters := &apiv1.FlashSystemClusterList{}
 	if err := r.Client.List(context.Background(), clusters); err != nil {
 		r.Log.Error(nil, "failed to list FlashSystemClusterList")
 		return fscToPoolsMap, err
@@ -380,8 +380,8 @@ func (r *StorageClassWatcher) extractPoolName(sc storagev1.StorageClass, mgmtDat
 	return poolName, nil
 }
 
-func (r *StorageClassWatcher) mapClustersByMgmtId(topologySecret *corev1.Secret) (map[string]v1alpha1.FlashSystemCluster, error) {
-	clustersByMgmtId := make(map[string]v1alpha1.FlashSystemCluster)
+func (r *StorageClassWatcher) mapClustersByMgmtId(topologySecret *corev1.Secret) (map[string]apiv1.FlashSystemCluster, error) {
+	clustersByMgmtId := make(map[string]apiv1.FlashSystemCluster)
 	secretMgmtDataByMgmtId := make(map[string]interface{})
 	topologySecretData := string(topologySecret.Data[util.TopologySecretDataKey])
 

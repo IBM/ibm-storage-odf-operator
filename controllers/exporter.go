@@ -24,7 +24,7 @@ import (
 	"reflect"
 	"strings"
 
-	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
+	odfv1 "github.com/IBM/ibm-storage-odf-operator/api/v1"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -85,7 +85,7 @@ func isOwnerExist(ownerReferences []metav1.OwnerReference, newOwner metav1.Owner
 	return false
 }
 
-func InitExporterMetricsService(instance *odfv1alpha1.FlashSystemCluster) *corev1.Service {
+func InitExporterMetricsService(instance *odfv1.FlashSystemCluster) *corev1.Service {
 	serviceName := getExporterMetricsServiceName()
 	labels := util.GetLabels()
 
@@ -161,7 +161,7 @@ func updateExporterMetricsService(foundService *corev1.Service, expectedService 
 }
 
 func InitExporterDeployment(
-	instance *odfv1alpha1.FlashSystemCluster,
+	instance *odfv1.FlashSystemCluster,
 	pullPolicy corev1.PullPolicy,
 	image string) (*appsv1.Deployment, error) {
 
@@ -300,7 +300,7 @@ func updateExporterDeployment(found *appsv1.Deployment, expected *appsv1.Deploym
 	return nil
 }
 
-func InitExporterMetricsServiceMonitor(instance *odfv1alpha1.FlashSystemCluster) *monitoringv1.ServiceMonitor {
+func InitExporterMetricsServiceMonitor(instance *odfv1.FlashSystemCluster) *monitoringv1.ServiceMonitor {
 	selectLabels := util.GetLabels()
 
 	serviceMonitor := &monitoringv1.ServiceMonitor{
@@ -363,7 +363,7 @@ func getFlashSystemPrometheusRuleFilepath() string {
 	return FlashSystemPrometheusRuleFilepath
 }
 
-func getPrometheusRules(instance *odfv1alpha1.FlashSystemCluster, newOwnerDetails metav1.OwnerReference) (*monitoringv1.PrometheusRule, error) {
+func getPrometheusRules(instance *odfv1.FlashSystemCluster, newOwnerDetails metav1.OwnerReference) (*monitoringv1.PrometheusRule, error) {
 	ruleFile, err := os.ReadFile(filepath.Clean(getFlashSystemPrometheusRuleFilepath()))
 	if err != nil {
 		return nil, fmt.Errorf("PrometheusRules file could not be fetched. %v", err)

@@ -19,7 +19,7 @@ package storageclass
 import (
 	"context"
 	"encoding/json"
-	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
+	odfv1 "github.com/IBM/ibm-storage-odf-operator/api/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -114,19 +114,19 @@ var _ = Describe("StorageClassWatcher", func() {
 			}, timeout, interval).Should(BeTrue())
 
 			By("By creating a new FlashSystemCluster")
-			instance := &odfv1alpha1.FlashSystemCluster{
+			instance := &odfv1.FlashSystemCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      FlashSystemName,
 					Namespace: namespace,
 				},
-				Spec: odfv1alpha1.FlashSystemClusterSpec{
+				Spec: odfv1.FlashSystemClusterSpec{
 					Name: FlashSystemName,
 					Secret: corev1.SecretReference{
 						Name:      secretName,
 						Namespace: namespace,
 					},
 					InsecureSkipVerify: true,
-					DefaultPool: &odfv1alpha1.StorageClassConfig{
+					DefaultPool: &odfv1.StorageClassConfig{
 						StorageClassName: storageClassName,
 						PoolName:         poolName,
 						FsType:           fsType,
@@ -143,7 +143,7 @@ var _ = Describe("StorageClassWatcher", func() {
 				Name:      FlashSystemName,
 				Namespace: namespace,
 			}
-			createdFsc := &odfv1alpha1.FlashSystemCluster{}
+			createdFsc := &odfv1.FlashSystemCluster{}
 
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, fscLoopUpKey, createdFsc)
@@ -270,19 +270,19 @@ var _ = Describe("StorageClassWatcher", func() {
 			By("By creating the additional FlashSystemClusters")
 			fscToSecretMap := map[string]string{SecondFlashSystemName: secondSecretName, ThirdFlashSystemName: thirdSecretName}
 			for fscName, secretName := range fscToSecretMap {
-				instance := &odfv1alpha1.FlashSystemCluster{
+				instance := &odfv1.FlashSystemCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      fscName,
 						Namespace: namespace,
 					},
-					Spec: odfv1alpha1.FlashSystemClusterSpec{
+					Spec: odfv1.FlashSystemClusterSpec{
 						Name: fscName,
 						Secret: corev1.SecretReference{
 							Name:      secretName,
 							Namespace: namespace,
 						},
 						InsecureSkipVerify: true,
-						DefaultPool: &odfv1alpha1.StorageClassConfig{
+						DefaultPool: &odfv1.StorageClassConfig{
 							StorageClassName: topologyStorageClassName,
 							PoolName:         poolName,
 							FsType:           fsType,
@@ -299,7 +299,7 @@ var _ = Describe("StorageClassWatcher", func() {
 					Name:      fscName,
 					Namespace: namespace,
 				}
-				createdFsc := &odfv1alpha1.FlashSystemCluster{}
+				createdFsc := &odfv1.FlashSystemCluster{}
 
 				Eventually(func() bool {
 					err := k8sClient.Get(ctx, fscLoopUpKey, createdFsc)

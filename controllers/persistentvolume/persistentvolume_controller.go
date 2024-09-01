@@ -20,7 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
+	apiv1 "github.com/IBM/ibm-storage-odf-operator/api/v1"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -112,7 +112,7 @@ func (r *PersistentVolumeWatcher) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.PersistentVolume{}, builder.WithPredicates(pvPredicate)).
 		Watches(&source.Kind{
-			Type: &v1alpha1.FlashSystemCluster{},
+			Type: &apiv1.FlashSystemCluster{},
 		}, handler.EnqueueRequestsFromMapFunc(pvMapper.pvMap), builder.WithPredicates(util.IgnoreUpdateAndGenericPredicate)).
 		Watches(&source.Kind{
 			Type: &corev1.Secret{},

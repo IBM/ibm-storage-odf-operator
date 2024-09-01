@@ -20,7 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
+	apiv1 "github.com/IBM/ibm-storage-odf-operator/api/v1"
 	"github.com/go-logr/logr"
 	"io"
 	corev1 "k8s.io/api/core/v1"
@@ -268,13 +268,13 @@ func initScPoolConfigMap(ns string) *corev1.ConfigMap {
 	return scPoolConfigMap
 }
 
-func MapClustersByMgmtAddress(client client.Client, logger logr.Logger) (map[string]v1alpha1.FlashSystemCluster, error) {
-	clusters := &v1alpha1.FlashSystemClusterList{}
+func MapClustersByMgmtAddress(client client.Client, logger logr.Logger) (map[string]apiv1.FlashSystemCluster, error) {
+	clusters := &apiv1.FlashSystemClusterList{}
 	if err := client.List(context.Background(), clusters); err != nil {
 		logger.Error(nil, "failed to list FlashSystemClusters")
 		return nil, err
 	}
-	clustersMapByMgmtAddr := make(map[string]v1alpha1.FlashSystemCluster)
+	clustersMapByMgmtAddr := make(map[string]apiv1.FlashSystemCluster)
 	for _, cluster := range clusters.Items {
 		clusterSecret := &corev1.Secret{}
 		err := client.Get(context.Background(),
