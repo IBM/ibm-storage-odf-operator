@@ -21,7 +21,7 @@ import (
 	"strings"
 	"math"
 
-	consolev1alpha1 "github.com/openshift/api/console/v1alpha1"
+	consolev1 "github.com/openshift/api/console/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
@@ -80,18 +80,24 @@ func GetService(port int, namespace string) *apiv1.Service {
 	}
 }
 
-func GetConsolePluginCR(consolePort int, basePath string, serviceNamespace string) *consolev1alpha1.ConsolePlugin {
-	return &consolev1alpha1.ConsolePlugin{
+func GetConsolePluginCR(consolePort int, basePath string, serviceNamespace string) *consolev1.ConsolePlugin {
+	return &consolev1.ConsolePlugin{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "ibm-storage-odf-plugin",
 		},
-		Spec: consolev1alpha1.ConsolePluginSpec{
+		Spec: consolev1.ConsolePluginSpec{
 			DisplayName: "IBM Plugin",
-			Service: consolev1alpha1.ConsolePluginService{
-				Name:      "ibm-odf-console-service",
-				Namespace: serviceNamespace,
-				Port:      safeIntToInt32(consolePort),
-				BasePath:  basePath,
+			Backend: consolev1.ConsolePluginBackend{
+				Service: &consolev1.ConsolePluginService{
+					Name:      "ibm-odf-console-service",
+					Namespace: serviceNamespace,
+					Port:      safeIntToInt32(consolePort),
+					BasePath:  basePath,
+				},
+				Type: consolev1.Service,
+			},
+			I18n: consolev1.ConsolePluginI18n{
+				LoadType: consolev1.Empty,
 			},
 		},
 	}
@@ -104,7 +110,7 @@ func GetConsolePluginCR(consolePort int, basePath string, serviceNamespace strin
 
 // RemoveConsole ensure plugin is cleaned when uninstall operator
 func RemoveConsole(client client.Client, namespace string) error {
-	consolePlugin := consolev1alpha1.ConsolePlugin{}
+	consolePlugin := consolev1.ConsolePlugin{}
 	if err := client.Get(context.TODO(), types.NamespacedName{
 		Name:      "ibm-storage-odf-plugin",
 		Namespace: namespace,
