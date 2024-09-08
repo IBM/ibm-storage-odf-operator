@@ -35,7 +35,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 	"strings"
 
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
@@ -45,7 +44,7 @@ type persistentVolumeMapper struct {
 	reconciler *PersistentVolumeWatcher
 }
 
-func (f *persistentVolumeMapper) pvMap(_ client.Object) []reconcile.Request {
+func (f *persistentVolumeMapper) pvMap(_ context.Context, _ client.Object) []reconcile.Request {
 	pvs := &corev1.PersistentVolumeList{}
 	err := f.reconciler.Client.List(context.TODO(), pvs)
 	if err != nil {
@@ -111,12 +110,8 @@ func (r *PersistentVolumeWatcher) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.PersistentVolume{}, builder.WithPredicates(pvPredicate)).
-		Watches(&source.Kind{
-			Type: &v1alpha1.FlashSystemCluster{},
-		}, handler.EnqueueRequestsFromMapFunc(pvMapper.pvMap), builder.WithPredicates(util.IgnoreUpdateAndGenericPredicate)).
-		Watches(&source.Kind{
-			Type: &corev1.Secret{},
-		}, handler.EnqueueRequestsFromMapFunc(pvMapper.pvMap), builder.WithPredicates(util.SecretMgmtAddrPredicate)).
+		Watches(&v1alpha1.FlashSystemCluster{}, handler.EnqueueRequestsFromMapFunc(pvMapper.pvMap), builder.WithPredicates(util.IgnoreUpdateAndGenericPredicate)).
+		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(pvMapper.pvMap), builder.WithPredicates(util.SecretMgmtAddrPredicate)).
 		WithOptions(controller.Options{MaxConcurrentReconciles: 1}).
 		Complete(r)
 }
