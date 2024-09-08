@@ -26,12 +26,12 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"sigs.k8s.io/controller-runtime/pkg/metrics"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	odfv1 "github.com/IBM/ibm-storage-odf-operator/api/v1"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
@@ -51,9 +51,7 @@ var testFlashSystemClusterReconciler *FlashSystemClusterReconciler
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 
-	RunSpecsWithDefaultAndCustomReporters(t,
-		"Controller Suite",
-		[]Reporter{printer.NewlineReporter{}})
+	RunSpecs(t, "Controller Suite")
 }
 
 // by default testenv sets up local api server & etcd environment without external dependencies
@@ -65,7 +63,7 @@ var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	// Prevent the metrics listener being created
-	metrics.DefaultBindAddress = "0"
+	metricsserver.DefaultBindAddress = "0"
 
 	By("bootstrapping test environment")
 
@@ -120,8 +118,10 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Namespace: ns,
-		Scheme:    scheme.Scheme,
+		Scheme: scheme.Scheme,
+		Cache: cache.Options{
+			DefaultNamespaces: map[string]cache.Config{ns: {}},
+		},
 	})
 	Expect(err).ToNot(HaveOccurred())
 
@@ -154,5 +154,5 @@ var _ = AfterSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	// Put the DefaultBindAddress back
-	metrics.DefaultBindAddress = ":8080"
+	metricsserver.DefaultBindAddress = ":8080"
 })
