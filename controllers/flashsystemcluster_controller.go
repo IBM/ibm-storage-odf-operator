@@ -43,7 +43,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 var flashSystemClusterFinalizer = "flashsystemcluster.odf.ibm.com"
@@ -57,7 +56,7 @@ type ReconcileMapper struct {
 	reconciler *FlashSystemClusterReconciler
 }
 
-func (s *ReconcileMapper) DefaultStorageClassToClusterMapperFunc(object client.Object) []reconcile.Request {
+func (s *ReconcileMapper) DefaultStorageClassToClusterMapperFunc(_ context.Context, object client.Object) []reconcile.Request {
 	clusters := &odfv1alpha1.FlashSystemClusterList{}
 	err := s.reconciler.Client.List(context.TODO(), clusters)
 	if err != nil {
@@ -85,7 +84,7 @@ func (s *ReconcileMapper) DefaultStorageClassToClusterMapperFunc(object client.O
 	return requests
 }
 
-func (s *ReconcileMapper) ConfigMapToClusterMapFunc(object client.Object) []reconcile.Request {
+func (s *ReconcileMapper) ConfigMapToClusterMapFunc(_ context.Context, object client.Object) []reconcile.Request {
 	requests := []reconcile.Request{}
 	if object.GetName() == util.PoolConfigmapName {
 		s.reconciler.Log.Info("Discovered ODF-FS configMap deletion. Reconciling all FlashSystemClusters", "ConfigMapToClusterMapFunc", s)
@@ -110,7 +109,7 @@ func (s *ReconcileMapper) ConfigMapToClusterMapFunc(object client.Object) []reco
 	return requests
 }
 
-func (s *ReconcileMapper) CSIToClusterMapFunc(_ client.Object) []reconcile.Request {
+func (s *ReconcileMapper) CSIToClusterMapFunc(_ context.Context, _ client.Object) []reconcile.Request {
 	s.reconciler.IsCSICRCreated = false
 
 	clusters := &odfv1alpha1.FlashSystemClusterList{}
@@ -137,7 +136,7 @@ func (s *ReconcileMapper) CSIToClusterMapFunc(_ client.Object) []reconcile.Reque
 	return requests
 }
 
-func (s *ReconcileMapper) SecretToClusterMapFunc(object client.Object) []reconcile.Request {
+func (s *ReconcileMapper) SecretToClusterMapFunc(_ context.Context, object client.Object) []reconcile.Request {
 	clusters := &odfv1alpha1.FlashSystemClusterList{}
 
 	err := s.reconciler.Client.List(context.TODO(), clusters)
@@ -465,27 +464,13 @@ func (r *FlashSystemClusterReconciler) SetupWithManager(mgr ctrl.Manager) error 
 	//TODO: it seems operator-sdk 1.5 + golang 1.5 fails to watch resources through Owns
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&odfv1alpha1.FlashSystemCluster{}).
-		Watches(&source.Kind{
-			Type: &appsv1.Deployment{},
-		}, &handler.EnqueueRequestForOwner{OwnerType: &odfv1alpha1.FlashSystemCluster{}}).
-		Watches(&source.Kind{
-			Type: &corev1.Service{},
-		}, &handler.EnqueueRequestForOwner{OwnerType: &odfv1alpha1.FlashSystemCluster{}}).
-		Watches(&source.Kind{
-			Type: &monitoringv1.ServiceMonitor{},
-		}, &handler.EnqueueRequestForOwner{OwnerType: &odfv1alpha1.FlashSystemCluster{}}).
-		Watches(&source.Kind{
-			Type: &corev1.Secret{},
-		}, handler.EnqueueRequestsFromMapFunc(reconcileMapper.SecretToClusterMapFunc)).
-		Watches(&source.Kind{
-			Type: &storagev1.StorageClass{},
-		}, handler.EnqueueRequestsFromMapFunc(reconcileMapper.DefaultStorageClassToClusterMapperFunc), builder.WithPredicates(util.RunDeletePredicate)).
-		Watches(&source.Kind{
-			Type: &corev1.ConfigMap{},
-		}, handler.EnqueueRequestsFromMapFunc(reconcileMapper.ConfigMapToClusterMapFunc), builder.WithPredicates(util.RunDeletePredicate)).
-		Watches(&source.Kind{
-			Type: csiBlock},
-			handler.EnqueueRequestsFromMapFunc(reconcileMapper.CSIToClusterMapFunc), builder.WithPredicates(util.RunDeletePredicate)).
+		Watches(&appsv1.Deployment{}, handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &odfv1alpha1.FlashSystemCluster{})).
+		Watches(&corev1.Service{}, handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &odfv1alpha1.FlashSystemCluster{})).
+		Watches(&monitoringv1.ServiceMonitor{}, handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &odfv1alpha1.FlashSystemCluster{})).
+		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(reconcileMapper.SecretToClusterMapFunc)).
+		Watches(&storagev1.StorageClass{}, handler.EnqueueRequestsFromMapFunc(reconcileMapper.DefaultStorageClassToClusterMapperFunc), builder.WithPredicates(util.RunDeletePredicate)).
+		Watches(&corev1.ConfigMap{}, handler.EnqueueRequestsFromMapFunc(reconcileMapper.ConfigMapToClusterMapFunc), builder.WithPredicates(util.RunDeletePredicate)).
+		Watches(csiBlock, handler.EnqueueRequestsFromMapFunc(reconcileMapper.CSIToClusterMapFunc), builder.WithPredicates(util.RunDeletePredicate)).
 		WithOptions(controller.Options{MaxConcurrentReconciles: 1}).
 		Complete(r)
 

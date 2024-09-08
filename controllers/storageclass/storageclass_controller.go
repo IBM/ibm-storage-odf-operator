@@ -38,7 +38,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 func reconcileSC(obj runtime.Object) bool {
@@ -80,7 +79,7 @@ type storageClassMapper struct {
 	reconciler *StorageClassWatcher
 }
 
-func (f *storageClassMapper) ConfigMapToStorageClassMapFunc(object client.Object) []reconcile.Request {
+func (f *storageClassMapper) ConfigMapToStorageClassMapFunc(_ context.Context, object client.Object) []reconcile.Request {
 	requests := []reconcile.Request{}
 	if object.GetName() == util.PoolConfigmapName {
 		f.reconciler.Log.Info("Discovered ODF-FS configMap deletion. Reconciling all storageClasses", "ConfigMapToStorageClassMapFunc", f)
@@ -107,7 +106,7 @@ func (f *storageClassMapper) ConfigMapToStorageClassMapFunc(object client.Object
 	return requests
 }
 
-func (f *storageClassMapper) fscStorageClassMap(_ client.Object) []reconcile.Request {
+func (f *storageClassMapper) fscStorageClassMap(_ context.Context, _ client.Object) []reconcile.Request {
 	storageClasses := &storagev1.StorageClassList{}
 	err := f.reconciler.Client.List(context.TODO(), storageClasses)
 	if err != nil {
@@ -130,7 +129,7 @@ func (f *storageClassMapper) fscStorageClassMap(_ client.Object) []reconcile.Req
 	return requests
 }
 
-func (f *storageClassMapper) secretStorageClassMap(object client.Object) []reconcile.Request {
+func (f *storageClassMapper) secretStorageClassMap(_ context.Context, object client.Object) []reconcile.Request {
 	requests := []reconcile.Request{}
 	secret, ok := object.(*corev1.Secret)
 	if !ok {
@@ -177,15 +176,9 @@ func (r *StorageClassWatcher) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&storagev1.StorageClass{}, builder.WithPredicates(scPredicate)).
-		Watches(&source.Kind{
-			Type: &v1alpha1.FlashSystemCluster{},
-		}, handler.EnqueueRequestsFromMapFunc(scMapper.fscStorageClassMap), builder.WithPredicates(util.IgnoreUpdateAndGenericPredicate)).
-		Watches(&source.Kind{
-			Type: &corev1.ConfigMap{},
-		}, handler.EnqueueRequestsFromMapFunc(scMapper.ConfigMapToStorageClassMapFunc), builder.WithPredicates(util.RunDeletePredicate)).
-		Watches(&source.Kind{
-			Type: &corev1.Secret{},
-		}, handler.EnqueueRequestsFromMapFunc(scMapper.secretStorageClassMap), builder.WithPredicates(util.SecretMgmtAddrPredicate)).
+		Watches(&v1alpha1.FlashSystemCluster{}, handler.EnqueueRequestsFromMapFunc(scMapper.fscStorageClassMap), builder.WithPredicates(util.IgnoreUpdateAndGenericPredicate)).
+		Watches(&corev1.ConfigMap{}, handler.EnqueueRequestsFromMapFunc(scMapper.ConfigMapToStorageClassMapFunc), builder.WithPredicates(util.RunDeletePredicate)).
+		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(scMapper.secretStorageClassMap), builder.WithPredicates(util.SecretMgmtAddrPredicate)).
 		WithOptions(controller.Options{MaxConcurrentReconciles: 1}).
 		Complete(r)
 }
