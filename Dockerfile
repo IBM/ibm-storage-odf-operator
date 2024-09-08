@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM --platform=$BUILDPLATFORM golang:1.23 as builder
+FROM --platform=$BUILDPLATFORM golang:1.23 AS builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -20,7 +20,6 @@ RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on go build -a -o manager main.go
 
 
 FROM registry.access.redhat.com/ubi9-minimal:9.4-1134
-MAINTAINER IBM Storage
 
 RUN microdnf update -y && microdnf clean all
 
