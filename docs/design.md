@@ -30,4 +30,3 @@ be the first citizen.
 ### Dependencies/limitations
 
 1. This operator only support one instance only. So, ODF should prevent client from creating more if there is already a FlashSystem cluster created.
-
