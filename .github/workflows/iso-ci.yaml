@@ -39,7 +39,7 @@ jobs:
     - name: login to Quay.io
       # Only if we need to push an image
       if: ${{ github.event_name == 'release' && github.event.action == 'published' }}
-      uses: docker/login-action@v1
+      uses: docker/login-action@v3
       with:
         registry: quay.io
         username: ${{ secrets.QUAYIO_USERNAME }}
