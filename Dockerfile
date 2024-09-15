@@ -1,6 +1,7 @@
 # Build the manager binary
 FROM --platform=$BUILDPLATFORM golang:1.23 AS builder
 
+
 WORKDIR /workspace
 # Copy the Go Modules manifests
 COPY go.mod go.mod
