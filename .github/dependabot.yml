@@ -11,7 +11,7 @@ updates:
       interval: "weekly"
     rebase-strategy: "disabled"
     reviewers:
-      - "IBM/csi-reviewers"
+      - "IBM/ibm-storage-odf-developers"
     labels:
       - go
       - dependencies
