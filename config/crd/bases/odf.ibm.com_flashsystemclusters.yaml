@@ -65,6 +65,8 @@ spec:
                     - thin
                     - compressed
                     - deduplicated
+                    - dedup_thin
+                    - dedup_compressed
                     type: string
                   storageclassName:
                     type: string
