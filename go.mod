@@ -2,7 +2,7 @@ module github.com/IBM/ibm-storage-odf-operator
 
 go 1.23.0
 
-toolchain go1.23.4
+toolchain go1.24.1
 
 require (
 	github.com/go-logr/logr v1.4.2
@@ -10,8 +10,8 @@ require (
 	github.com/onsi/gomega v1.36.2
 	github.com/openshift/api v0.0.0-20240926211938-f89ab92f1597
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.79.2
-	k8s.io/api v0.32.2
-	k8s.io/apimachinery v0.32.2
+	k8s.io/api v0.32.3
+	k8s.io/apimachinery v0.32.3
 	k8s.io/client-go v0.32.2
 	sigs.k8s.io/controller-runtime v0.20.3
 )
