@@ -5,6 +5,8 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
   name: flashsystemclusters.odf.ibm.com
+  labels:
+    odf.openshift.io/is-storage-system: "true"
 spec:
   group: odf.ibm.com
   names:
