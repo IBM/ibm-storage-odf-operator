@@ -39,5 +39,9 @@ else
         sed -i "s/tag: "\"${CSI_VOLUME_GROUP_OPERATOR_TAG}\""/tag: "\"${CSI_LATEST_TAG}\""/g" "${CSI_CR_PATH}"
 fi
 
+echo >> "${CSI_CR_PATH}"
+echo "  odfVersionForCallHome: \"1.7.0\"" >> "${CSI_CR_PATH}"
+
+
 echo "Coping CR file to all directories"
 cp "${CSI_CR_PATH}" "${CSI_SAMPLES_CR_PATH}"
