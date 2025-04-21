@@ -18,10 +18,10 @@
 
 set -e
 
-DEFAULT_YQ_VERSION="4.8.0"
-DEFAULT_OPM_VERSION="v1.46.0"
+DEFAULT_YQ_VERSION="4.45.1"
+DEFAULT_OPM_VERSION="v1.51.0"
 DEFAULT_OPERATOR_SDK_VERSION="v1.25.0"
-DEFAULT_KUSTOMIZE_VERSION="v3.8.7"
+DEFAULT_KUSTOMIZE_VERSION="v5.6.0"
 
 # Check IBM block storage CSI driver versions on https://www.ibm.com/docs/en/blockstg-csi-driver
 # shellcheck disable=SC2034
@@ -40,7 +40,7 @@ CSI_CSV_PATH="deploy/olm-catalog/ibm-block-csi-operator/${CSI_RELEASE_NUMBER}/ma
 CSI_CSV_FILE="ibm-block-csi-operator.clusterserviceversion.yaml"
 CSI_GA_CR_URL="https://raw.githubusercontent.com/IBM/ibm-block-csi-operator/${CSI_RELEASE}/config/samples/${CSI_CR_FILE}"
 CSI_VOLUME_GROUP_OPERATOR_DEVELOP_PATH="quay.io\/csiblock\/volume-group-operator-staging"
-CSI_VOLUME_GROUP_OPERATOR_TAG="v0.9.1"
+CSI_VOLUME_GROUP_OPERATOR_TAG="v0.9.2"
 
 VCS_URL="https://github.com/IBM/ibm-storage-odf-operator"
 VCS_REF="1.7.0-$(git rev-parse --short HEAD)"
