@@ -34,7 +34,8 @@ LABEL vendor="IBM" \
   org.label-schema.vcs-url=$VCS_URL \
   org.label-schema.schema-version="1.7.0" \
   summary="IBM Storage ODF Operator" \
-  description="operator and driver of ibm storage systems for openshift data foundation (ODF)"
+  description="IBM® FlashSystem storage systems operator and driver for Red Hat® OpenShift Data Foundation" \
+  maintainer="IBM"
 
 WORKDIR /
 COPY --from=builder /workspace/manager /manager
