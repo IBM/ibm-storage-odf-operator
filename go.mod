@@ -11,7 +11,7 @@ require (
 	github.com/openshift/api v0.0.0-20240926211938-f89ab92f1597
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.79.2
 	k8s.io/api v0.33.0
-	k8s.io/apimachinery v0.33.0
+	k8s.io/apimachinery v0.33.1
 	k8s.io/client-go v0.33.0
 	sigs.k8s.io/controller-runtime v0.20.4
 )
