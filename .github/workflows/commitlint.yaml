@@ -2,6 +2,9 @@ name: commitlint
 
 on: workflow_dispatch
 
+permissions:
+  contents: read
+
 jobs:
   commitlint:
     name: commitlint

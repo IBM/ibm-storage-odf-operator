@@ -8,6 +8,9 @@ on:
   release:
     types: [ published ]
 
+permissions:
+  contents: read
+
 env:
   VCS_URL: https://github.com/IBM/ibm-storage-odf-operator
 
