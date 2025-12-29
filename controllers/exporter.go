@@ -123,11 +123,7 @@ func InitExporterMetricsService(instance *odfv1alpha1.FlashSystemCluster) *corev
 }
 
 func updateExporterMetricsService(foundService *corev1.Service, expectedService *corev1.Service, newOwner metav1.OwnerReference) *corev1.Service {
-	isChanged := false
-
-	if foundService.Spec.Type != expectedService.Spec.Type {
-		isChanged = true
-	}
+	isChanged := (foundService.Spec.Type != expectedService.Spec.Type)
 
 	if len(foundService.Spec.Ports) != 1 ||
 		!reflect.DeepEqual(foundService.Spec.Ports[0], expectedService.Spec.Ports[0]) {
