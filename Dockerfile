@@ -19,7 +19,7 @@ COPY console/ console/
 RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on go build -a -o manager main.go
 
 
-FROM registry.access.redhat.com/ubi9-minimal:9.6-1749489516
+FROM registry.access.redhat.com/ubi9-minimal:9.7-1764794109
 
 RUN microdnf update -y && microdnf clean all
 

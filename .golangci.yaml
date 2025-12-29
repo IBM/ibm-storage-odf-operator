@@ -1,0 +1,6 @@
+# .golangci.yml (v2 syntax)
+linters:
+  exclusions:
+    paths:
+      - controllers/suite_test.go  # path relative to repo root
+
