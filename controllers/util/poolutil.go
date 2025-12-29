@@ -197,37 +197,65 @@ var RunDeletePredicate = predicate.Funcs{
 
 func ReadPoolConfigMapFile() (map[string]FlashSystemClusterMapContent, error) {
 	var flashSystemClustersMap = make(map[string]FlashSystemClusterMapContent)
-	var flashSystemClusterContent FlashSystemClusterMapContent
-	fscPath := FSCConfigmapMountPath + "/"
 
-	files, err := os.ReadDir(fscPath)
+	// Validate/anchor the base directory itself
+	safeBase, err := EnsureUnderBase(FSCConfigmapMountPath, ".")
 	if err != nil {
 		return nil, err
 	}
 
-	for _, file := range files {
-		if !file.IsDir() && !strings.HasPrefix(file.Name(), ".") {
-			flashSystemClusterContent, err = getFileContent(filepath.Join(fscPath, file.Name()))
-			if err != nil {
-				return flashSystemClustersMap, err
-			} else {
-				flashSystemClustersMap[file.Name()] = flashSystemClusterContent
-			}
-		}
+	entries, err := os.ReadDir(safeBase)
+	if err != nil {
+		return nil, err
 	}
+
+
+	for _, e := range entries {
+		if e.IsDir() || strings.HasPrefix(e.Name(), ".") {
+			continue
+		}
+
+		candidate := filepath.Join(safeBase, e.Name())
+		fsc, err := getFileContent(candidate)
+		if err != nil {
+			// Return the partial map + error if you prefer; or log and continue.
+			return flashSystemClustersMap, err
+		}
+		flashSystemClustersMap[e.Name()] = fsc
+	}
+
 	return flashSystemClustersMap, nil
 }
 
 func getFileContent(filePath string) (FlashSystemClusterMapContent, error) {
-	var fscContent FlashSystemClusterMapContent
-	fileReader, err := os.Open(filePath)
-	if err != nil {
-		return fscContent, err
-	}
+    var fscContent FlashSystemClusterMapContent
 
-	fileContent, _ := io.ReadAll(fileReader)
-	err = json.Unmarshal(fileContent, &fscContent)
-	return fscContent, err
+    // Sanitize: clean+anchor+prefix check under /config
+    safePath, err := EnsureUnderBase(FSCConfigmapMountPath, filePath)
+    if err != nil {
+        return fscContent, err
+    }
+
+    // #nosec G304 -- path is sanitized & anchored under baseDir (Clean + Abs + prefix check)
+    fileReader, err := os.Open(safePath)
+    if err != nil {
+        return fscContent, err
+    }
+    defer func() {
+        if cerr := fileReader.Close(); cerr != nil && err == nil {
+            err = cerr
+        }
+    }()
+
+    fileContent, err := io.ReadAll(fileReader)
+    if err != nil {
+        return fscContent, err
+    }
+
+    if err := json.Unmarshal(fileContent, &fscContent); err != nil {
+        return fscContent, err
+    }
+    return fscContent, nil
 }
 
 func GetCreateConfigmap(client client.Client, log logr.Logger, ns string, createIfMissing bool) (*corev1.ConfigMap, error) {

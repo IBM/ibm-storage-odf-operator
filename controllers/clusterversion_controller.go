@@ -53,7 +53,7 @@ type ClusterVersionReconciler struct {
 func (r *ClusterVersionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	instance := configv1.ClusterVersion{}
-	if err := r.Client.Get(context.TODO(), req.NamespacedName, &instance); err != nil {
+	if err := r.Get(context.TODO(), req.NamespacedName, &instance); err != nil {
 		return ctrl.Result{}, err
 	}
 	if err := r.ensureConsolePlugin(instance.Status.Desired.Version); err != nil {
@@ -89,7 +89,7 @@ func (r *ClusterVersionReconciler) ensureConsolePlugin(clusterVersion string) er
 
 	// Get IBM console Deployment
 	ibmConsoleDeployment := console.GetDeployment(watchNamespace)
-	err := r.Client.Get(context.TODO(), types.NamespacedName{
+	err := r.Get(context.TODO(), types.NamespacedName{
 		Name:      ibmConsoleDeployment.Name,
 		Namespace: ibmConsoleDeployment.Namespace,
 	}, ibmConsoleDeployment)
