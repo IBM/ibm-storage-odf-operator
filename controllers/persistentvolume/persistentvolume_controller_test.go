@@ -18,7 +18,6 @@ package persistentvolume
 
 import (
 	"context"
-	_ "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	. "github.com/onsi/ginkgo"
