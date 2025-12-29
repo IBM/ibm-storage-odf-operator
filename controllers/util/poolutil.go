@@ -236,12 +236,16 @@ func getFileContent(filePath string) (FlashSystemClusterMapContent, error) {
         return fscContent, err
     }
 
-    // #nosec G304 -- path is sanitized & anchored under baseDir (Clean + EvalSymlinks + Abs + prefix check)
+    // #nosec G304 -- path is sanitized & anchored under baseDir (Clean + Abs + prefix check)
     fileReader, err := os.Open(safePath)
     if err != nil {
         return fscContent, err
     }
-    defer fileReader.Close()
+    defer func() {
+        if cerr := fileReader.Close(); cerr != nil && err == nil {
+            err = cerr
+        }
+    }()
 
     fileContent, err := io.ReadAll(fileReader)
     if err != nil {
