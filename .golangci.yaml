@@ -1,0 +1,16 @@
+# .golangci.yaml (v2 syntax)
+version: "2"
+
+linters:
+  # default set of linters; common options: standard | all | none | fast
+  default: standard
+  enable:
+    - gosec
+  exclusions:
+    paths:
+      - controllers/suite_test.go  # replaces CLI --exclude-files
+
+# Optional: run-related settings
+run:
+  timeout: 6m
+

@@ -19,8 +19,10 @@ package controllers
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
@@ -47,6 +49,8 @@ const (
 	FlashSystemCRFilePath = "/config/csi.ibm.com_v1_ibmblockcsi_cr.yaml"
 	// FlashSystemCRFilePathEnvVar is only for UT
 	FlashSystemCRFilePathEnvVar = "TEST_FS_CR_FILEPATH"
+	defaultCRPath = "config/samples/csi.ibm.com_v1_ibmblockcsi_cr.yaml"
+	baseDir       = "config/samples" // anchor directory
 )
 
 func InitDefaultStorageClass(instance *odfv1alpha1.FlashSystemCluster) *storagev1.StorageClass {
@@ -118,9 +122,42 @@ func getFlashSystemCRFilePath() string {
 }
 
 func LoadFlashSystemCRFromFile() (*unstructured.Unstructured, error) {
-	crFile := getFlashSystemCRFilePath()
-	fmt.Printf("cr file: %s", crFile)
-	fileBytes, err := os.ReadFile(crFile)
+    crFile := getFlashSystemCRFilePath()
+    fmt.Printf("cr file: %s", crFile)
+
+    // Clean user-provided part and anchor it under baseDir
+    cleaned := filepath.Clean(crFile)
+    // If absolute was provided, keep it, otherwise anchor under baseDir
+    var joined string
+    if filepath.IsAbs(cleaned) {
+        joined = cleaned
+    } else {
+        joined = filepath.Join(baseDir, cleaned)
+    }
+
+    // Resolve symlinks, then re-clean.
+    joined, err := filepath.EvalSymlinks(joined)
+    if err != nil {
+        return nil, err
+    }
+    fullAbs, err := filepath.Abs(filepath.Clean(joined))
+    if err != nil {
+        return nil, err
+    }
+
+    // Enforce prefix to prevent escaping via "../"
+    baseAbs, err := filepath.Abs(baseDir)
+    if err != nil {
+        return nil, err
+    }
+
+    sep := string(os.PathSeparator)
+    if !strings.HasPrefix(fullAbs, baseAbs+sep) && fullAbs != baseAbs {
+        return nil, errors.New("invalid path: outside allowed base directory")
+    }
+    // #nosec G304 -- path is sanitized & anchored under baseDir (Clean + EvalSymlinks + Abs + prefix check)
+    fileBytes, err := os.ReadFile(fullAbs)
+
 	if err != nil {
 		return nil, err
 	}
