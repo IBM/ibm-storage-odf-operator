@@ -2,9 +2,9 @@ name: iso-ci.yaml
 
 on:
   push:
-    branches: [ '*' ]
+    branches: [ '**' ]
   pull_request:
-    branches: [ '*' ]
+    branches: [ '**' ]
   release:
     types: [ published ]
 
