@@ -398,7 +398,7 @@ func getPrometheusRules(instance *odfv1alpha1.FlashSystemCluster, newOwnerDetail
 			}
 		}
 	}
-	promRule.ObjectMeta.SetOwnerReferences([]metav1.OwnerReference{newOwnerDetails})
+	promRule.SetOwnerReferences([]metav1.OwnerReference{newOwnerDetails})
 
 	return &promRule, nil
 }

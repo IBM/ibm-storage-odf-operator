@@ -269,7 +269,7 @@ var _ = Describe("PersistentVolume Controller", func() {
 				}
 
 				if pvName == topologyPV {
-					pv.Spec.PersistentVolumeSource.CSI.VolumeHandle = topologyVolumeHandle
+					pv.Spec.CSI.VolumeHandle = topologyVolumeHandle
 				}
 				Expect(k8sClient.Create(ctx, pv)).Should(Succeed())
 
