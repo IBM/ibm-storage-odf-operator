@@ -657,6 +657,7 @@ func (r *FlashSystemClusterReconciler) deleteDuplicatedDeployment(instance *odfv
 	return nil
 }
 
+
 func (r *FlashSystemClusterReconciler) deleteDuplicatedServiceMonitor(instance *odfv1alpha1.FlashSystemCluster) error {
 	serviceMonitorList := &monitoringv1.ServiceMonitorList{}
 	if err := r.getObjectListByLabel(instance, serviceMonitorList); err != nil {
@@ -664,10 +665,10 @@ func (r *FlashSystemClusterReconciler) deleteDuplicatedServiceMonitor(instance *
 		return err
 	}
 
-	for _, currentSM := range serviceMonitorList.Items {
+	for i := range serviceMonitorList.Items {
+		currentSM := &serviceMonitorList.Items[i] // pointer to slice element
 		if r.isOldObject(currentSM.GetLabels(), currentSM.Name) {
-			deleteSM := currentSM
-			if err := r.Delete(context.Background(), deleteSM); err != nil {
+			if err := r.Delete(context.Background(), currentSM); err != nil {
 				r.Log.Error(err, "failed to delete historical serviceMonitor")
 				return err
 			}
