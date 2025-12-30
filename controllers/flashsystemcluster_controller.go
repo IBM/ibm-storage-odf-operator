@@ -58,7 +58,7 @@ type ReconcileMapper struct {
 
 func (s *ReconcileMapper) DefaultStorageClassToClusterMapperFunc(_ context.Context, object client.Object) []reconcile.Request {
 	clusters := &odfv1alpha1.FlashSystemClusterList{}
-	err := s.reconciler.Client.List(context.TODO(), clusters)
+	err := s.reconciler.List(context.TODO(), clusters)
 	if err != nil {
 		s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "DefaultStorageClassToClusterMapperFunc", s)
 		return nil
@@ -90,7 +90,7 @@ func (s *ReconcileMapper) ConfigMapToClusterMapFunc(_ context.Context, object cl
 		s.reconciler.Log.Info("Discovered ODF-FS configMap deletion. Reconciling all FlashSystemClusters", "ConfigMapToClusterMapFunc", s)
 
 		clusters := &odfv1alpha1.FlashSystemClusterList{}
-		err := s.reconciler.Client.List(context.TODO(), clusters)
+		err := s.reconciler.List(context.TODO(), clusters)
 		if err != nil {
 			s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "ConfigMapToClusterMapFunc", s)
 			return nil
@@ -113,7 +113,7 @@ func (s *ReconcileMapper) CSIToClusterMapFunc(_ context.Context, _ client.Object
 	s.reconciler.IsCSICRCreated = false
 
 	clusters := &odfv1alpha1.FlashSystemClusterList{}
-	err := s.reconciler.Client.List(context.TODO(), clusters)
+	err := s.reconciler.List(context.TODO(), clusters)
 	if err != nil {
 		s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "CSIToClusterMapFunc", s)
 		return nil
@@ -139,7 +139,7 @@ func (s *ReconcileMapper) CSIToClusterMapFunc(_ context.Context, _ client.Object
 func (s *ReconcileMapper) SecretToClusterMapFunc(_ context.Context, object client.Object) []reconcile.Request {
 	clusters := &odfv1alpha1.FlashSystemClusterList{}
 
-	err := s.reconciler.Client.List(context.TODO(), clusters)
+	err := s.reconciler.List(context.TODO(), clusters)
 	if err != nil {
 		s.reconciler.Log.Error(err, "failed to list FlashSystemCluster", "SecretToClusterMapFunc", s)
 		return nil
@@ -220,7 +220,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(_ context.Context, req ctrl.Req
 	r.Log.Info("reconciling FlashSystemCluster")
 
 	instance := &odfv1alpha1.FlashSystemCluster{}
-	err = r.Client.Get(context.TODO(), req.NamespacedName, instance)
+	err = r.Get(context.TODO(), req.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			r.Log.Info("FlashSystemCluster resource was not found")
@@ -236,7 +236,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(_ context.Context, req ctrl.Req
 	}
 	result, err = r.reconcile(instance)
 
-	statusError := r.Client.Status().Update(context.TODO(), instance)
+	statusError := r.Status().Update(context.TODO(), instance)
 
 	if err != nil {
 		r.Log.Error(err, "failed to reconcile")
@@ -262,8 +262,8 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 	if instance.GetDeletionTimestamp().IsZero() {
 		if !util.IsContain(instance.GetFinalizers(), flashSystemClusterFinalizer) {
 			r.Log.Info("append FlashSystemCluster to finalizer")
-			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, flashSystemClusterFinalizer)
-			if err = r.Client.Update(context.TODO(), instance); err != nil {
+			instance.Finalizers = append(instance.Finalizers, flashSystemClusterFinalizer)
+			if err = r.Update(context.TODO(), instance); err != nil {
 				r.Log.Info("Update Error", "MetaUpdateErr", "failed to update FlashSystemCluster with finalizer")
 				return reconcile.Result{}, err
 			}
@@ -277,8 +277,8 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 			}
 
 			// Once all finalizers have been removed, the object will be deleted
-			instance.ObjectMeta.Finalizers = util.Remove(instance.ObjectMeta.Finalizers, flashSystemClusterFinalizer)
-			if err = r.Client.Update(context.TODO(), instance); err != nil {
+			instance.Finalizers = util.Remove(instance.Finalizers, flashSystemClusterFinalizer)
+			if err = r.Update(context.TODO(), instance); err != nil {
 				r.Log.Info("Update Error", "MetaUpdateErr", "failed to remove finalizer from FlashSystemCluster")
 				return reconcile.Result{}, err
 			}
@@ -415,7 +415,7 @@ func (r *FlashSystemClusterReconciler) reconcile(instance *odfv1alpha1.FlashSyst
 func (r *FlashSystemClusterReconciler) ensureSecretOwnership(instance *odfv1alpha1.FlashSystemCluster, newOwnerForSecret v1.OwnerReference) error {
 	// Reading the secret, if it has ownership then skip, else update the secret with details of the FlashSystemCluster
 	secret := &corev1.Secret{}
-	err := r.Client.Get(
+	err := r.Get(
 		context.TODO(),
 		types.NamespacedName{Name: instance.Spec.Secret.Name, Namespace: instance.Spec.Secret.Namespace},
 		secret)
@@ -427,7 +427,7 @@ func (r *FlashSystemClusterReconciler) ensureSecretOwnership(instance *odfv1alph
 	if secret.OwnerReferences == nil {
 		r.Log.Info("adding owner reference for FlashSystemCluster secret")
 		secret.SetOwnerReferences([]v1.OwnerReference{newOwnerForSecret})
-		err = r.Client.Update(context.TODO(), secret)
+		err = r.Update(context.TODO(), secret)
 		if err != nil {
 			r.Log.Error(err, "failed to update secret with owner reference")
 			return err
@@ -480,7 +480,7 @@ func (r *FlashSystemClusterReconciler) createEvent(instance *odfv1alpha1.FlashSy
 	r.Log.Info(message)
 
 	newEvent := util.InitK8sEvent(instance, eventType, reason, message)
-	err := r.Client.Create(context.TODO(), newEvent)
+	err := r.Create(context.TODO(), newEvent)
 	if err != nil {
 		r.Log.Error(err, "failed to create event", "reason", reason, "message", message)
 	}
@@ -498,7 +498,7 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alph
 	}
 	if _, exists := configmap.Data[util.PoolsKey]; exists {
 		delete(configmap.Data, util.PoolsKey)
-		if err = r.Client.Update(context.TODO(), configmap); err != nil {
+		if err = r.Update(context.TODO(), configmap); err != nil {
 			r.Log.Error(err, "failed to update configmap and remove \"pools\" key")
 			return err
 		}
@@ -512,7 +512,7 @@ func (r *FlashSystemClusterReconciler) ensureScPoolConfigMap(instance *odfv1alph
 		}
 		r.Log.Info("adding FlashSystemCluster to pools ConfigMap", "ConfigMap", configmap.Name)
 		configmap.Data[instance.Name] = string(val)
-		return r.Client.Update(context.TODO(), configmap)
+		return r.Update(context.TODO(), configmap)
 	}
 
 	return nil
@@ -526,7 +526,7 @@ func (r *FlashSystemClusterReconciler) removeFscFromConfigMap(fscName string) er
 		return err
 	}
 	delete(configmap.Data, fscName)
-	err = r.Client.Update(context.TODO(), configmap)
+	err = r.Update(context.TODO(), configmap)
 	if err != nil {
 		r.Log.Error(err, "failed to update pools ConfigMap", "ConfigMap", configmap.Name)
 		return err
@@ -547,7 +547,7 @@ func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1a
 	deploymentName := getExporterDeploymentName()
 
 	foundSecret := &corev1.Secret{}
-	err = r.Client.Get(
+	err = r.Get(
 		context.TODO(),
 		types.NamespacedName{
 			Name:      instance.Spec.Secret.Name,
@@ -564,14 +564,14 @@ func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1a
 	}
 
 	foundDeployment := &appsv1.Deployment{}
-	err = r.Client.Get(
+	err = r.Get(
 		context.TODO(),
 		types.NamespacedName{Name: deploymentName, Namespace: instance.Namespace},
 		foundDeployment)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			r.Log.Info("create exporter deployment")
-			return r.Client.Create(context.TODO(), expectedDeployment)
+			return r.Create(context.TODO(), expectedDeployment)
 		}
 
 		r.Log.Error(err, "failed to get exporter deployment")
@@ -581,7 +581,7 @@ func (r *FlashSystemClusterReconciler) ensureExporterDeployment(instance *odfv1a
 	updatedDeployment := updateExporterDeployment(foundDeployment, expectedDeployment, newOwnerDetails)
 	if updatedDeployment != nil {
 		r.Log.Info("update exporter deployment")
-		return r.Client.Update(context.TODO(), updatedDeployment)
+		return r.Update(context.TODO(), updatedDeployment)
 	}
 
 	r.Log.Info("existing exporter deployment is expected with no change")
@@ -596,14 +596,14 @@ func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alph
 	serviceName := getExporterMetricsServiceName()
 	foundService := &corev1.Service{}
 
-	err := r.Client.Get(
+	err := r.Get(
 		context.TODO(),
 		types.NamespacedName{Name: serviceName, Namespace: instance.Namespace},
 		foundService)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			r.Log.Info("create exporter service")
-			return r.Client.Create(context.TODO(), expectedService)
+			return r.Create(context.TODO(), expectedService)
 		}
 		r.Log.Error(err, "failed to get exporter service")
 		return err
@@ -612,7 +612,7 @@ func (r *FlashSystemClusterReconciler) ensureExporterService(instance *odfv1alph
 	updatedService := updateExporterMetricsService(foundService, expectedService, newOwnerDetails)
 	if updatedService != nil {
 		r.Log.Info("update exporter service")
-		return r.Client.Update(context.TODO(), updatedService)
+		return r.Update(context.TODO(), updatedService)
 	}
 
 	r.Log.Info("existing exporter service is expected with no change")
@@ -629,7 +629,7 @@ func (r *FlashSystemClusterReconciler) deleteDuplicatedService(instance *odfv1al
 	for _, currentService := range servicesList.Items {
 		if r.isOldObject(currentService.GetLabels(), currentService.Name) {
 			deleteService := currentService
-			if err := r.Client.Delete(context.Background(), &deleteService); err != nil {
+			if err := r.Delete(context.Background(), &deleteService); err != nil {
 				r.Log.Error(err, "failed to delete historical service")
 				return err
 			}
@@ -648,7 +648,7 @@ func (r *FlashSystemClusterReconciler) deleteDuplicatedDeployment(instance *odfv
 	for _, currentDeployment := range DeploymentList.Items {
 		if r.isOldObject(currentDeployment.GetLabels(), currentDeployment.Name) {
 			deleteDeployment := currentDeployment
-			if err := r.Client.Delete(context.Background(), &deleteDeployment); err != nil {
+			if err := r.Delete(context.Background(), &deleteDeployment); err != nil {
 				r.Log.Error(err, "failed to delete historical deployment")
 				return err
 			}
@@ -657,6 +657,7 @@ func (r *FlashSystemClusterReconciler) deleteDuplicatedDeployment(instance *odfv
 	return nil
 }
 
+
 func (r *FlashSystemClusterReconciler) deleteDuplicatedServiceMonitor(instance *odfv1alpha1.FlashSystemCluster) error {
 	serviceMonitorList := &monitoringv1.ServiceMonitorList{}
 	if err := r.getObjectListByLabel(instance, serviceMonitorList); err != nil {
@@ -664,10 +665,10 @@ func (r *FlashSystemClusterReconciler) deleteDuplicatedServiceMonitor(instance *
 		return err
 	}
 
-	for _, currentSM := range serviceMonitorList.Items {
+	for i := range serviceMonitorList.Items {
+		currentSM := &serviceMonitorList.Items[i] // pointer to slice element
 		if r.isOldObject(currentSM.GetLabels(), currentSM.Name) {
-			deleteSM := currentSM
-			if err := r.Client.Delete(context.Background(), deleteSM); err != nil {
+			if err := r.Delete(context.Background(), currentSM); err != nil {
 				r.Log.Error(err, "failed to delete historical serviceMonitor")
 				return err
 			}
@@ -679,7 +680,7 @@ func (r *FlashSystemClusterReconciler) deleteDuplicatedServiceMonitor(instance *
 func (r *FlashSystemClusterReconciler) getObjectListByLabel(instance *odfv1alpha1.FlashSystemCluster, list client.ObjectList) error {
 	opts := []client.ListOption{client.InNamespace(instance.Namespace),
 		client.MatchingLabels{util.OdfLabel.Name: util.OdfLabel.Value}}
-	return r.Client.List(context.Background(), list, opts...)
+	return r.List(context.Background(), list, opts...)
 }
 
 func (r *FlashSystemClusterReconciler) isOldObject(labels map[string]string, objectName string) bool {
@@ -699,14 +700,14 @@ func (r *FlashSystemClusterReconciler) ensureExporterServiceMonitor(instance *od
 	serviceMonitorName := getExporterMetricsServiceMonitorName()
 	foundServiceMonitor := &monitoringv1.ServiceMonitor{}
 
-	err := r.Client.Get(
+	err := r.Get(
 		context.TODO(),
 		types.NamespacedName{Name: serviceMonitorName, Namespace: instance.Namespace},
 		foundServiceMonitor)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			r.Log.Info("create exporter serviceMonitor")
-			return r.Client.Create(context.TODO(), expectedServiceMonitor)
+			return r.Create(context.TODO(), expectedServiceMonitor)
 		}
 
 		r.Log.Error(err, "failed to get exporter serviceMonitor")
@@ -716,7 +717,7 @@ func (r *FlashSystemClusterReconciler) ensureExporterServiceMonitor(instance *od
 	updatedServiceMonitor := updateExporterMetricsServiceMonitor(foundServiceMonitor, expectedServiceMonitor, newOwnerDetails)
 	if updatedServiceMonitor != nil {
 		r.Log.Info("update exporter serviceMonitor")
-		return r.Client.Update(context.TODO(), updatedServiceMonitor)
+		return r.Update(context.TODO(), updatedServiceMonitor)
 	}
 
 	r.Log.Info("existing exporter serviceMonitor is expected with no change")
@@ -733,7 +734,7 @@ func (r *FlashSystemClusterReconciler) ensureDefaultStorageClass(instance *odfv1
 	expectedStorageClass := InitDefaultStorageClass(instance)
 	foundStorageClass := &storagev1.StorageClass{}
 
-	err := r.Client.Get(
+	err := r.Get(
 		context.TODO(),
 		types.NamespacedName{Name: instance.Spec.DefaultPool.StorageClassName},
 		foundStorageClass)
@@ -762,7 +763,7 @@ func (r *FlashSystemClusterReconciler) ensureDefaultStorageClass(instance *odfv1
 	}
 
 	r.Log.Info("create default StorageClass")
-	return r.Client.Create(context.TODO(), expectedStorageClass)
+	return r.Create(context.TODO(), expectedStorageClass)
 }
 
 func (r *FlashSystemClusterReconciler) deleteDefaultStorageClass(instance *odfv1alpha1.FlashSystemCluster) error {
@@ -773,7 +774,7 @@ func (r *FlashSystemClusterReconciler) deleteDefaultStorageClass(instance *odfv1
 	}
 
 	foundStorageClass := &storagev1.StorageClass{}
-	err := r.Client.Get(
+	err := r.Get(
 		context.TODO(),
 		types.NamespacedName{Name: instance.Spec.DefaultPool.StorageClassName, Namespace: ""},
 		foundStorageClass)
@@ -786,7 +787,7 @@ func (r *FlashSystemClusterReconciler) deleteDefaultStorageClass(instance *odfv1
 		return err
 	}
 
-	err = r.Client.Delete(
+	err = r.Delete(
 		context.TODO(),
 		foundStorageClass)
 	if err != nil {
@@ -813,16 +814,16 @@ func (r *FlashSystemClusterReconciler) enablePrometheusRules(instance *odfv1alph
 
 // CreateOrUpdatePrometheusRules creates or updates Prometheus Rule
 func (r *FlashSystemClusterReconciler) CreateOrUpdatePrometheusRules(rule *monitoringv1.PrometheusRule) error {
-	err := r.Client.Create(context.TODO(), rule)
+	err := r.Create(context.TODO(), rule)
 	if err != nil {
 		if errors.IsAlreadyExists(err) {
 			oldRule := &monitoringv1.PrometheusRule{}
-			err = r.Client.Get(context.TODO(), types.NamespacedName{Name: rule.Name, Namespace: rule.Namespace}, oldRule)
+			err = r.Get(context.TODO(), types.NamespacedName{Name: rule.Name, Namespace: rule.Namespace}, oldRule)
 			if err != nil {
 				return fmt.Errorf("failed while fetching PrometheusRule: %v", err)
 			}
 			oldRule.Spec = rule.Spec
-			err := r.Client.Update(context.TODO(), oldRule)
+			err := r.Update(context.TODO(), oldRule)
 			if err != nil {
 				return fmt.Errorf("failed while updating PrometheusRule: %v", err)
 			}

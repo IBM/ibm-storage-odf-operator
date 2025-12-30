@@ -2,9 +2,9 @@ name: codespell
 
 on:
   push:
-    branches: [ '*' ]
+    branches: [ '**' ]
   pull_request:
-    branches: [ '*' ]
+    branches: [ '**' ]
 
 permissions:
   contents: read
@@ -14,7 +14,7 @@ jobs:
     name: codespell
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: codespell
       uses: codespell-project/actions-codespell@v1

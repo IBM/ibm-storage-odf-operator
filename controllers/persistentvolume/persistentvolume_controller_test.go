@@ -18,7 +18,6 @@ package persistentvolume
 
 import (
 	"context"
-	_ "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
 	. "github.com/onsi/ginkgo"
@@ -269,7 +268,7 @@ var _ = Describe("PersistentVolume Controller", func() {
 				}
 
 				if pvName == topologyPV {
-					pv.Spec.PersistentVolumeSource.CSI.VolumeHandle = topologyVolumeHandle
+					pv.Spec.CSI.VolumeHandle = topologyVolumeHandle
 				}
 				Expect(k8sClient.Create(ctx, pv)).Should(Succeed())
 

@@ -20,7 +20,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"os"
+	"path/filepath"
+        "os"
 	"strings"
 
 	odfv1alpha1 "github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
@@ -47,6 +48,9 @@ const (
 	FlashSystemCRFilePath = "/config/csi.ibm.com_v1_ibmblockcsi_cr.yaml"
 	// FlashSystemCRFilePathEnvVar is only for UT
 	FlashSystemCRFilePathEnvVar = "TEST_FS_CR_FILEPATH"
+	defaultCRPath = "config/samples/csi.ibm.com_v1_ibmblockcsi_cr.yaml"
+	baseDir       = "config/samples" // used in UT
+	ConfigMapBaseDir = "/config" // used in production
 )
 
 func InitDefaultStorageClass(instance *odfv1alpha1.FlashSystemCluster) *storagev1.StorageClass {
@@ -117,10 +121,32 @@ func getFlashSystemCRFilePath() string {
 	return FlashSystemCRFilePath
 }
 
+
 func LoadFlashSystemCRFromFile() (*unstructured.Unstructured, error) {
-	crFile := getFlashSystemCRFilePath()
-	fmt.Printf("cr file: %s", crFile)
-	fileBytes, err := os.ReadFile(crFile)
+    crFile := getFlashSystemCRFilePath()
+    fmt.Printf("cr file: %s", crFile)
+
+    var baseAbs string
+    if _, found := os.LookupEnv(FlashSystemCRFilePathEnvVar); found {
+        // Unit test path → anchor under <module-root>/config/samples
+        modRoot, err := util.FindModuleRoot()
+        if err != nil {
+            return nil, err
+        }
+        baseAbs = filepath.Join(modRoot, baseDir) // baseDir = "config/samples"
+    } else {
+        // Production path → anchor under /config
+        baseAbs = ConfigMapBaseDir // "/config"
+    }
+
+    safePath, err := util.EnsureUnderBase(baseAbs, crFile)
+    if err != nil {
+        return nil, err
+    }
+
+    // #nosec G304 -- sanitized: Clean + EvalSymlinks + Abs + prefix check
+    fileBytes, err := os.ReadFile(safePath)
+
 	if err != nil {
 		return nil, err
 	}
