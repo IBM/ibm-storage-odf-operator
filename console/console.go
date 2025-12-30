@@ -127,7 +127,7 @@ func RemoveConsole(client client.Client, namespace string) error {
 	return nil
 }
 func GetBasePath(clusterVersion string) string {
-	if strings.Contains(clusterVersion, "4.20") {
+	if strings.Contains(clusterVersion, "4.21") {
 		return CompatibilityBasePath
 	}
 

@@ -26,13 +26,13 @@ DEFAULT_KUSTOMIZE_VERSION="v5.6.0"
 # Check IBM block storage CSI driver versions on https://www.ibm.com/docs/en/blockstg-csi-driver
 # shellcheck disable=SC2034
 CSI_CR_FILE="csi.ibm.com_v1_ibmblockcsi_cr.yaml"
-CSI_RELEASE="v1.12.4"
+CSI_RELEASE="v1.13.0"
 CSI_RELEASE_NUMBER="${CSI_RELEASE:1}"
 CSI_DEVELOP_REGISTRY="stg-artifactory.xiv.ibm.com:5030"
 CSI_LATEST_TAG="latest"
 CSI_DEVELOP_BUNDLE_FULL_IMAGE_NAME="ibm-block-csi-bundle"
 CSI_OPERATOR_IMAGE_NAME="ibm-block-csi-operator"
-CSI_CHANNEL="stable-v1.12.4"
+CSI_CHANNEL="stable-v1.13.0"
 CSI_GIT_PATH="https://github.com/IBM/ibm-block-csi-operator.git"
 CSI_DOCKERFILE_PATH="deploy/olm-catalog/ibm-block-csi-operator/${CSI_RELEASE_NUMBER}"
 CSI_DOCKERFILE_NAME="bundle-${CSI_RELEASE_NUMBER}.Dockerfile"
@@ -40,21 +40,21 @@ CSI_CSV_PATH="deploy/olm-catalog/ibm-block-csi-operator/${CSI_RELEASE_NUMBER}/ma
 CSI_CSV_FILE="ibm-block-csi-operator.clusterserviceversion.yaml"
 CSI_GA_CR_URL="https://raw.githubusercontent.com/IBM/ibm-block-csi-operator/${CSI_RELEASE}/config/samples/${CSI_CR_FILE}"
 CSI_VOLUME_GROUP_OPERATOR_DEVELOP_PATH="quay.io\/csiblock\/volume-group-operator-staging"
-CSI_VOLUME_GROUP_OPERATOR_TAG="v0.9.2"
+CSI_VOLUME_GROUP_OPERATOR_TAG="v0.9.3"
 
 VCS_URL="https://github.com/IBM/ibm-storage-odf-operator"
-VCS_REF="1.8.0-$(git rev-parse --short HEAD)"
+VCS_REF="1.9.0-$(git rev-parse --short HEAD)"
 RELEASE_VERSION=$(cat version/version.go | grep "Version =" | awk -F '"' '{print $2}')
 
-CHANNELS="stable-v1.8"
+CHANNELS="stable-v1.9"
 DEFAULT_CHANNEL="${CHANNELS}"
-OPERATOR_IMAGE_VERSION="v1.8.0"
+OPERATOR_IMAGE_VERSION="v1.9.0"
 
 DEFAULT_ENABLE_UPGRADE='False'
-PREVIOUS_CHANNELS="stable-v1.7"
+PREVIOUS_CHANNELS="stable-v1.8"
 PREVIOUS_DEFAULT_CHANNEL="${PREVIOUS_CHANNELS}"
-PREVIOUS_OPERATOR_IMAGE_VERSION="v1.7.1"
-PREVIOUS_OPERATOR_IMAGE_TAG="${PREVIOUS_OPERATOR_IMAGE_VERSION:1}" #1.7.1
+PREVIOUS_OPERATOR_IMAGE_VERSION="v1.8.0"
+PREVIOUS_OPERATOR_IMAGE_TAG="${PREVIOUS_OPERATOR_IMAGE_VERSION:1}" #1.8.0
 PREVIOUS_BUNDLE_IMAGE_PATH="quay.io/ibmodffs/ibm-storage-odf-operator-bundle:${PREVIOUS_OPERATOR_IMAGE_TAG}"
 
 GO111MODULE="on"
