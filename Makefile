@@ -1,6 +1,6 @@
 export GOPROXY=https://proxy.golang.org
 
-CONTROLLER_GEN_VERSION="v0.14.0"
+CONTROLLER_GEN_VERSION="v0.16.4"
 
 CSV_PATH=bundle/manifests/ibm-storage-odf-operator.clusterserviceversion.yaml
 
