@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/go-logr/logr v1.4.3
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.38.3
+	github.com/onsi/gomega v1.39.0
 	github.com/openshift/api v0.0.0-20240926211938-f89ab92f1597
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.87.1
 	k8s.io/api v0.35.0
