@@ -117,6 +117,11 @@ check_and_add_csi_bundle_to_catalog
 echo
 
 cd -
+# Update default channel to the desired version after all bundles are added
+echo "Setting default channel to ${DEFAULT_CHANNEL}"
+pwd
+sed -i "s/^defaultChannel: .*/defaultChannel: ${DEFAULT_CHANNEL}/" "${CATALOG_IMAGE_NAME}/${OPERATOR_IMAGE_NAME}/index.yaml"
+
 build_push_catalog_image "${CATALOG_IMAGE_NAME}" "${CATALOG_FULL_IMAGE_NAME}"
 
 echo "Cleaning leftovers"
