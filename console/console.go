@@ -69,7 +69,7 @@ func GetService(port int, namespace string) *apiv1.Service {
 				{Protocol: "TCP",
 					TargetPort: intstr.IntOrString{IntVal: safeIntToInt32(port)},
 					Port:       safeIntToInt32(port),
-					Name:       "console-port",
+					Name:       "https",
 				},
 			},
 			Selector: map[string]string{
