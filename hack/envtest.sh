@@ -15,29 +15,25 @@
 # limitations under the License.
 #
 
-
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
 source hack/common.sh
 
-if [ ! -d "${OUTDIR}" ]; then
-        mkdir -p "${OUTDIR}"
-fi
+mkdir -p "${OUTDIR}"
 
-OUTDIR_PATH="$(pwd)/${OUTDIR}"
+# Install setup-envtest tool
+go install sigs.k8s.io/controller-runtime/tools/setup-envtest@release-0.23
 
-test -f ${OUTDIR}/setup-envtest.sh || curl -sSLo ${OUTDIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.7.2/hack/setup-envtest.sh
-source ${OUTDIR}/setup-envtest.sh
-fetch_envtest_tools ${OUTDIR}
-setup_envtest_env ${OUTDIR_PATH}
+# Download envtest binaries and get ABSOLUTE path
+KUBEBUILDER_ASSETS_REL="$(setup-envtest use --bin-dir "${OUTDIR}" -p path 1.30.x)"
+export KUBEBUILDER_ASSETS="$(cd "${KUBEBUILDER_ASSETS_REL}" && pwd)"
 
-# export TEST_USE_EXISTING_CLUSTER=true
-#if [ ! -z $TEST_USE_EXISTING_CLUSTER ];then
-    #kubectl apply -f config/samples/csi-crds/csi.ibm.com_ibmblockcsis_crd.yaml
-    #if [ $? -ne 0 ];then
-    #    exit 1
-    #fi
-#fi
+echo "KUBEBUILDER_ASSETS=${KUBEBUILDER_ASSETS}"
+
+# Export test-specific variables
 export TEST_FS_CR_FILEPATH="$(pwd)/config/samples/csi.ibm.com_v1_ibmblockcsi_cr.yaml"
 export TEST_FS_PROM_RULE_FILE="$(pwd)/rules/prometheus-flashsystem-rules.yaml"
+
+# Run tests
 go test -v ./... -coverprofile cover.out

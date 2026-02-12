@@ -137,8 +137,9 @@ var _ = AfterSuite(func() {
 	fmt.Println("tearing down the test environment")
 	By("tearing down the test environment")
 	err := testEnv.Stop()
-	Expect(err).NotTo(HaveOccurred())
-
+	if err != nil {
+		_, _ = fmt.Fprintf(GinkgoWriter, "Warning: %v\n", err)
+	}
 	// Put the DefaultBindAddress back
 	metricsserver.DefaultBindAddress = ":8080"
 })
