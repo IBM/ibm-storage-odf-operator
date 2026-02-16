@@ -38,6 +38,7 @@ jobs:
         make check-copyright
 
     - name: run tests
+      shell: bash
       run: |
         make test
 
