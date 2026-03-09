@@ -77,7 +77,7 @@ jobs:
 
     # Build and (optionally) push the operator image
     - name: build the operator image
-      uses: docker/build-push-action@v6
+      uses: docker/build-push-action@v7
       with:
         context: .
         file: ./Dockerfile
@@ -98,7 +98,7 @@ jobs:
 
     # Build and (optionally) push the operator bundle image
     - name: build the operator bundle image
-      uses: docker/build-push-action@v6
+      uses: docker/build-push-action@v7
       with:
         context: .
         file: ./bundle.Dockerfile
@@ -108,7 +108,7 @@ jobs:
 
       # Build and (optionally) push the operator must gather image
     - name: build the operator must gather image
-      uses: docker/build-push-action@v6
+      uses: docker/build-push-action@v7
       with:
         context: ./must-gather
         file: ./must-gather/Dockerfile
