@@ -18,7 +18,6 @@ package console
 
 import (
 	"context"
-	"strings"
 	"math"
 
 	consolev1 "github.com/openshift/api/console/v1"
@@ -36,11 +35,11 @@ const MainBasePath = "/"
 const CompatibilityBasePath = "/compatibility/"
 
 func safeIntToInt32(val int) int32 {
-        // Verify no integer overflow conversion int -> int32 (gosec G115)
-        if val < math.MinInt32 || val > math.MaxInt32 {
-                panic("safeIntToInt32 - integer overflow")
-        }
-        return int32(val) // #nosec G115
+	// Verify no integer overflow conversion int -> int32 (gosec G115)
+	if val < math.MinInt32 || val > math.MaxInt32 {
+		panic("safeIntToInt32 - integer overflow")
+	}
+	return int32(val) // #nosec G115
 }
 
 func GetDeployment(namespace string) *appsv1.Deployment {
@@ -127,10 +126,7 @@ func RemoveConsole(client client.Client, namespace string) error {
 	return nil
 }
 func GetBasePath(clusterVersion string) string {
-	if strings.Contains(clusterVersion, "4.21") {
-		return CompatibilityBasePath
-	}
-
+	// Always use MainBasePath regardless of cluster version
 	return MainBasePath
 }
 
