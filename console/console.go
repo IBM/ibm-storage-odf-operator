@@ -57,6 +57,7 @@ func GetService(port int, namespace string) *apiv1.Service {
 			Name:      "ibm-odf-console-service",
 			Namespace: namespace,
 			Annotations: map[string]string{
+				// #nosec G101 -- OpenShift annotation; value is a resource name, not a credential
 				"service.alpha.openshift.io/serving-cert-secret-name": "ibm-odf-console-serving-cert",
 			},
 			Labels: map[string]string{
