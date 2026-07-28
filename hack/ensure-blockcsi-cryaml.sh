@@ -40,7 +40,7 @@ else
 fi
 
 echo >> "${CSI_CR_PATH}"
-echo "  odfVersionForCallHome: \"1.9.0\"" >> "${CSI_CR_PATH}"
+echo "  odfVersionForCallHome: \"1.9.1\"" >> "${CSI_CR_PATH}"
 
 
 echo "Coping CR file to all directories"

@@ -43,12 +43,12 @@ CSI_VOLUME_GROUP_OPERATOR_DEVELOP_PATH="quay.io\/csiblock\/volume-group-operator
 CSI_VOLUME_GROUP_OPERATOR_TAG="v0.9.3"
 
 VCS_URL="https://github.com/IBM/ibm-storage-odf-operator"
-VCS_REF="1.9.0-$(git rev-parse --short HEAD)"
+VCS_REF="1.9.1-$(git rev-parse --short HEAD)"
 RELEASE_VERSION=$(cat version/version.go | grep "Version =" | awk -F '"' '{print $2}')
 
 CHANNELS="stable-v1.9"
 DEFAULT_CHANNEL="${CHANNELS}"
-OPERATOR_IMAGE_VERSION="v1.9.0"
+OPERATOR_IMAGE_VERSION="v1.9.1"
 
 DEFAULT_ENABLE_UPGRADE='False'
 PREVIOUS_CHANNELS="stable-v1.8"
