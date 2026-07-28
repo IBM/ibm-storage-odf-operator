@@ -50,7 +50,7 @@ spec:
 #      key: node-role.kubernetes.io/control-plane
 #      operator: Exists
 
-  odfVersionForCallHome: "1.9.0"
+  odfVersionForCallHome: "1.9.1"
 
   sidecars:
   - name: csi-node-driver-registrar
