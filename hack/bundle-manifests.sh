@@ -60,6 +60,9 @@ popd
 
 ${KUSTOMIZE_BIN} build config/manifests | ${OPERATOR_SDK_BIN} generate bundle -q --overwrite --version "${RELEASE_VERSION}" ${BUNDLE_METADATA_OPTS}
 
+echo "Setting com.redhat.openshift.versions in annotations.yaml..."
+${YQ_BIN} eval -i '.annotations."com.redhat.openshift.versions" = "v4.19-v4.22"' "${BUNDLE_METADATA_DIR}/annotations.yaml"
+
 echo "Validating the generated files..."
 ${OPERATOR_SDK_BIN} bundle validate ./bundle
 
@@ -67,5 +70,5 @@ echo "Updating the olm.skipRange for new release version ${RELEASE_VERSION}..."
 ${YQ_BIN} eval -i ".metadata.annotations.\"olm.skipRange\" = \">=0.0.1 <${RELEASE_VERSION}\"" "${CSV_PATH}"
 
 echo "add certification required labels to bundle.Dockerfile"
-echo "LABEL com.redhat.openshift.versions=\"v4.19-v4.21\"" >> ./bundle.Dockerfile
+echo "LABEL com.redhat.openshift.versions=\"v4.19-v4.22\"" >> ./bundle.Dockerfile
 echo "LABEL com.redhat.delivery.operator.bundle=true" >> ./bundle.Dockerfile
