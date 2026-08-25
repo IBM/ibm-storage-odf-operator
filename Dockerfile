@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM --platform=$BUILDPLATFORM golang:1.25 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.25.10 AS builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -19,7 +19,7 @@ COPY console/ console/
 RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on go build -a -o manager main.go
 
 
-FROM registry.access.redhat.com/ubi9-minimal:9.7-1770267347
+FROM registry.access.redhat.com/ubi9-minimal:9.8-1781496742
 
 RUN microdnf update -y && microdnf clean all
 
@@ -32,7 +32,7 @@ LABEL vendor="IBM" \
   org.label-schema.name="ibm storage odf operator" \
   org.label-schema.vcs-ref=$VCS_REF \
   org.label-schema.vcs-url=$VCS_URL \
-  org.label-schema.schema-version="1.9.0" \
+  org.label-schema.schema-version="1.9.1" \
   summary="IBM Storage ODF Operator" \
   description="IBM® FlashSystem storage systems operator and driver for Red Hat® OpenShift Data Foundation" \
   maintainer="IBM"
