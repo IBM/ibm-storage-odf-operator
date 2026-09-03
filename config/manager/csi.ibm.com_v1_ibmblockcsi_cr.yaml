@@ -50,8 +50,6 @@ spec:
 #      key: node-role.kubernetes.io/control-plane
 #      operator: Exists
 
-  odfVersionForCallHome: "1.9.1"
-
   sidecars:
   - name: csi-node-driver-registrar
     repository: registry.k8s.io/sig-storage/csi-node-driver-registrar
@@ -89,3 +87,5 @@ spec:
 #  healthPort: 9808
 #  imagePullSecrets:
 #  - "secretName"
+
+  odfVersionForCallHome: "1.9.1"

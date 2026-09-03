@@ -209,7 +209,6 @@ func ReadPoolConfigMapFile() (map[string]FlashSystemClusterMapContent, error) {
 		return nil, err
 	}
 
-
 	for _, e := range entries {
 		if e.IsDir() || strings.HasPrefix(e.Name(), ".") {
 			continue
@@ -228,34 +227,34 @@ func ReadPoolConfigMapFile() (map[string]FlashSystemClusterMapContent, error) {
 }
 
 func getFileContent(filePath string) (FlashSystemClusterMapContent, error) {
-    var fscContent FlashSystemClusterMapContent
+	var fscContent FlashSystemClusterMapContent
 
-    // Sanitize: clean+anchor+prefix check under /config
-    safePath, err := EnsureUnderBase(FSCConfigmapMountPath, filePath)
-    if err != nil {
-        return fscContent, err
-    }
+	// Sanitize: clean+anchor+prefix check under /config
+	safePath, err := EnsureUnderBase(FSCConfigmapMountPath, filePath)
+	if err != nil {
+		return fscContent, err
+	}
 
-    // #nosec G304 -- path is sanitized & anchored under baseDir (Clean + Abs + prefix check)
-    fileReader, err := os.Open(safePath)
-    if err != nil {
-        return fscContent, err
-    }
-    defer func() {
-        if cerr := fileReader.Close(); cerr != nil && err == nil {
-            err = cerr
-        }
-    }()
+	// #nosec G304 -- path is sanitized & anchored under baseDir (Clean + Abs + prefix check)
+	fileReader, err := os.Open(safePath)
+	if err != nil {
+		return fscContent, err
+	}
+	defer func() {
+		if cerr := fileReader.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
-    fileContent, err := io.ReadAll(fileReader)
-    if err != nil {
-        return fscContent, err
-    }
+	fileContent, err := io.ReadAll(fileReader)
+	if err != nil {
+		return fscContent, err
+	}
 
-    if err := json.Unmarshal(fileContent, &fscContent); err != nil {
-        return fscContent, err
-    }
-    return fscContent, nil
+	if err := json.Unmarshal(fileContent, &fscContent); err != nil {
+		return fscContent, err
+	}
+	return fscContent, nil
 }
 
 func GetCreateConfigmap(client client.Client, log logr.Logger, ns string, createIfMissing bool) (*corev1.ConfigMap, error) {

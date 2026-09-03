@@ -657,7 +657,6 @@ func (r *FlashSystemClusterReconciler) deleteDuplicatedDeployment(instance *odfv
 	return nil
 }
 
-
 func (r *FlashSystemClusterReconciler) deleteDuplicatedServiceMonitor(instance *odfv1alpha1.FlashSystemCluster) error {
 	serviceMonitorList := &monitoringv1.ServiceMonitorList{}
 	if err := r.getObjectListByLabel(instance, serviceMonitorList); err != nil {
