@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -211,7 +212,7 @@ func (r *FlashSystemClusterReconciler) Reconcile(_ context.Context, req ctrl.Req
 		if errors.IsConflict(err) {
 			r.Log.Info("requeue for resource update conflicts")
 			// update return values
-			result = reconcile.Result{Requeue: true}
+			result = reconcile.Result{RequeueAfter: time.Second}
 			err = nil
 		}
 	}()

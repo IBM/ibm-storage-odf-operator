@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"time"
 	"github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	"github.com/IBM/ibm-storage-odf-operator/controllers"
 	"github.com/IBM/ibm-storage-odf-operator/controllers/util"
@@ -195,7 +196,7 @@ func (r *StorageClassWatcher) Reconcile(_ context.Context, request reconcile.Req
 		r.Log = prevLogger
 		if errors.IsConflict(err) {
 			r.Log.Info("requeue due to resource update conflicts")
-			result = reconcile.Result{Requeue: true}
+			result = reconcile.Result{RequeueAfter: time.Second}
 			err = nil
 		}
 	}()

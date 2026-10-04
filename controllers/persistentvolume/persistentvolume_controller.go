@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 	"github.com/IBM/ibm-storage-odf-operator/api/v1alpha1"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -131,7 +132,7 @@ func (r *PersistentVolumeWatcher) Reconcile(_ context.Context, request reconcile
 		r.Log = prevLogger
 		if errors.IsConflict(err) {
 			r.Log.Info("requeue due to resource update conflicts")
-			result = reconcile.Result{Requeue: true}
+			result = reconcile.Result{RequeueAfter: time.Second}
 			err = nil
 		}
 	}()
